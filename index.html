@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Fisher’s Logic Engine (v1.7.2)</title>
+    <link rel="stylesheet" href="src/ui/style.css">
+    <script src="src/data/fisherdata.js"></script>
+    <script src="src/logic/engine.js"></script>
+    <script src="src/logic/csv_handler.js"></script>
+    <script src="src/ui/main.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Fisher’s Logic Engine <small style="font-size: 0.5em; color: #888;">v1.7.2</small></h1>
+        <div class="tabs">
+            <div id="tabSim" class="tab active" onclick="switchView('sim')">シミュレーター</div>
+            <div id="tabMgmt" class="tab" onclick="switchView('mgmt')">データ管理窓</div>
+        </div>
+    </header>
+
+    <div id="simView" class="main-layout">
+        <aside class="sidebar">
+            <section class="panel">
+                <h2>◇条件</h2>
+                <div class="control-group"><label>釣り場</label><select id="spotSelect" onchange="updateSpotSelections('sim')"></select></div>
+                <div class="control-group"><label>天気 / 時間</label><select id="envSelect" onchange="executeSimulation()"></select></div>
+                <div class="control-group"><label>餌</label><select id="baitSelect" onchange="executeSimulation()"></select></div>
+                <div class="control-group"><label>トレードリリース</label><select id="slapSelect" onchange="executeSimulation()"></select></div>
+            </section>
+            <section class="panel">
+                <h2>◇目標・戦略</h2>
+                <div class="control-group"><label>ターゲット魚</label><select id="targetSelect" onchange="executeSimulation()"></select></div>
+                <div class="control-group"><label>撒き餌 (Chum)</label><input type="checkbox" id="chumCheck" style="width:auto" onchange="executeSimulation()"> 有効</div>
+                <button class="btn btn-calc" onclick="executeSimulation()">シミュレート実行</button>
+            </section>
+        </aside>
+        <main>
+            <div class="panel">
+                <h2>Simulation Result</h2>
+                <table id="resultTable">
+                    <thead><tr><th>魚種</th><th>型</th><th>Hit率</th><th>待機時間</th><th>演出空白</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                <div style="margin-top:20px; padding:15px; background:var(--highlight-bg); border-radius:4px">
+                    <div id="yieldScore" style="font-size:1.8rem; font-weight:bold; color:var(--accent-color)">--</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="mgmtView" class="hidden">
+        <div class="mgmt-grid">
+            <section class="panel">
+                <h2>① 編集・個別エクスポート</h2>
+                <div class="control-group"><label>管理対象</label><select id="mgmtSpotSelect" onchange="refreshJsonEditor()"></select></div>
+                <button class="btn btn-secondary" onclick="exportSelectedSpotCSVs()">この設定をCSVでDL (3種)</button>
+                <hr style="border:0; border-top:1px solid #444; margin:20px 0">
+                <textarea id="jsonEditor" style="height:300px; font-family:monospace; font-size:0.75rem; margin-bottom:10px"></textarea>
+                <button class="btn btn-secondary" onclick="applyJsonEdit()">JSON変更を一時保存</button>
+            </section>
+            <section class="panel">
+                <h2>② CSV登録・マスターDL</h2>
+                <div class="control-group"><label>釣り場情報.csv</label><input type="file" id="csvSpot" accept=".csv"></div>
+                <div class="control-group"><label>魚テーブル1.csv</label><input type="file" id="csvT1" accept=".csv"></div>
+                <div class="control-group"><label>魚テーブル2.csv</label><input type="file" id="csvT2" accept=".csv"></div>
+                <button class="btn btn-action" onclick="importCSVs()">CSVアップロード登録</button>
+                <hr style="border:0; border-top:1px solid #444; margin:20px 0">
+                <label>マスターデータ更新</label>
+                <p style="font-size:0.8rem; color:#aaa">全データを fisherdata.js 形式で出力します。保存して src/data/ フォルダのファイルを上書きしてください。</p>
+                <button class="btn btn-action" onclick="exportFullMasterData()">fisherdata.js をDL</button>
+            </section>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

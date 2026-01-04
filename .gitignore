@@ -1,0 +1,7 @@
+# .gitignore
+# 作業用CSVファイルを Git 管理から除外
+csv
+
+# OSが生成する一時ファイル
+.DS_Store
+Thumbs.db
