@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Fisher’s Logic Engine (v1.8.2)</title>
+    <title>Fisher’s Logic Engine (v1.9.3)</title>
     <link rel="stylesheet" href="src/ui/style.css">
     <script src="src/data/fisherdata.js"></script>
     <script src="src/logic/engine.js"></script>
@@ -13,7 +13,7 @@
 
 <div class="container">
     <header>
-        <h1>Fisher’s Logic Engine <small style="font-size: 0.5em; color: #888;">v1.8.2</small></h1>
+        <h1>Fisher’s Logic Engine <small style="font-size: 0.5em; color: #888;">v1.9.3</small></h1>
         <div class="tabs">
             <div id="tabSim" class="tab active" onclick="switchView('sim')">シミュレーター</div>
             <div id="tabMgmt" class="tab" onclick="switchView('mgmt')">データ管理窓</div>
@@ -22,8 +22,8 @@
 
     <div id="simView" class="main-layout">
         <aside class="sidebar">
-            <section class="panel">
-                <h2>◇環境設定</h2>
+            <details open class="panel collapsible">
+                <summary><h2>◇環境設定</h2></summary>
                 <div class="control-group"><label>釣り場</label><select id="spotSelect" onchange="updateSpotSelections('sim')"></select></div>
                 <div class="control-group"><label>天気 / 時間</label><select id="envSelect" onchange="executeSimulation()"></select></div>
                 <div class="control-group"><label>釣り餌</label><select id="baitSelect" onchange="executeSimulation()"></select></div>
@@ -35,57 +35,87 @@
                     </select>
                 </div>
                 <div class="control-group"><label>トレードリリース対象</label><select id="slapSelect" onchange="executeSimulation()"></select></div>
-            </section>
+            </details>
+
             <section class="panel">
                 <h2>◇目標・解析設定</h2>
                 <div class="control-group"><label>解析モード</label>
                     <select id="modeSelect" onchange="updateModeUI()">
-                        <option value="manual">モードA：手動設定</option>
-                        <option value="strategy3" selected>モードB：戦略3 (発見追従)</option>
+                        <option value="manual" selected>モードA：手動設定</option>
+                        <option value="strategy3">モードB：戦略設定</option>
+                        <option value="optimize">モードC：最適戦略提案</option>
                     </select>
                 </div>
                 <div class="control-group"><label>ターゲット魚</label><select id="targetSelect" onchange="executeSimulation()"></select></div>
-                <div class="control-group"><label>撒き餌 (Chum)</label><input type="checkbox" id="chumCheck" style="width:auto" onchange="executeSimulation()"> 有効</div>
+                <div class="control-group"><label>撒き餌 (Chum)</label><input type="checkbox" id="chumCheck" onchange="executeSimulation()"> 有効</div>
                 
-                <div id="areaModeA" class="hidden" style="margin-top:15px; border-top:1px solid #444; padding-top:10px;">
+                <div id="areaModeA" style="margin-top:10px; border-top:1px solid #444; padding-top:10px;">
                     <div class="control-group"><label>ルアー種類</label>
                         <select id="lureTypeSelect" onchange="updateModeAUI()">
                             <option value="none">使用しない</option>
-                            <option value="ambitious">アンビシャスルアー (大型)</option>
-                            <option value="modest">モデストルアー (小型)</option>
+                            <option value="ambitious">アンビシャス (大型)</option>
+                            <option value="modest">モデスト (小型)</option>
                         </select>
                     </div>
                     <div id="lureActionConfig" class="hidden">
-                        <div class="control-group"><label>使用回数</label>
-                            <select id="lureCountSelect" onchange="updateModeAUI()">
-                                <option value="1">1回</option>
-                                <option value="2">2回</option>
-                                <option value="3">3回</option>
-                            </select>
+                        <div class="lure-inline-row" style="display:flex; align-items:center; gap:10px;">
+                            <select id="lureCountSelect" onchange="updateModeAUI()" style="width:70px;"></select>
+                            <div id="lureResults" style="display:flex; gap:5px; flex:1;"></div>
                         </div>
-                        <div id="lureResults"></div>
                     </div>
                 </div>
 
-                <button class="btn btn-calc" onclick="executeSimulation()" style="margin-top:10px;">シミュレート実行</button>
+                <button id="execBtn" class="btn btn-calc hidden" onclick="executeSimulation()">シミュレート実行</button>
             </section>
         </aside>
+
         <main>
+            <details class="panel collapsible">
+                <summary><h2>◇内部設定値</h2></summary>
+                <div id="internalParamsContent" class="params-grid" style="font-size:0.85rem; padding:10px;"></div>
+            </details>
+
             <div class="panel">
-                <h2>Simulation Result</h2>
+                <h2>シミュレーション結果</h2>
                 <table id="resultTable">
-                    <thead><tr><th>魚種</th><th>型</th><th>期待確率</th><th>待機時間</th><th>演出</th></tr></thead>
+                    <thead>
+                        <tr><th>魚種</th><th>型</th><th>期待確率</th><th>待機時間</th><th>空白時間</th><th>演出</th></tr>
+                    </thead>
                     <tbody></tbody>
                 </table>
-                <div style="margin-top:20px; padding:15px; background:var(--highlight-bg); border-radius:4px">
+                <div id="yieldArea" style="margin-top:20px; padding:15px; background:var(--highlight-bg); border-radius:4px">
                     <div id="yieldScore" style="font-size:1.6rem; font-weight:bold; color:var(--accent-color)">--</div>
                 </div>
             </div>
+
+            <details class="panel collapsible">
+                <summary><h2>◇計算式の確認</h2></summary>
+                <div style="font-size:0.8rem; color:#aaa; line-height:1.6; padding:10px;">
+                    <p>●周期 ($T_{Cycle}$) = キャスト(1.0s) + 待機($T_{Final}$) + 演出($D_{Hook}$)</p>
+                    <p>●空白時間 ($T_{Blank}$) = キャスト(1.0s) + ルアー硬直($n \times 2.5s$) + 最小演出(2.5s)</p>
+                    <p>※待機($T_{Final}$) は、撒き餌補正後時間とルアー演出時間の長い方が採用されます。</p>
+                </div>
+            </details>
         </main>
     </div>
 
     <div id="mgmtView" class="hidden">
+        <div class="mgmt-grid">
+            <section class="panel">
+                <h2>◇CSVエクスポート</h2>
+                <p style="font-size:0.8rem; color:#888;">現在のデータをCSVとして保存します。</p>
+                <button class="btn btn-secondary" onclick="downloadCSV('spots')">1. 釣り場情報 CSV</button>
+                <button class="btn btn-secondary" onclick="downloadCSV('fish')">2. 魚テーブル2 CSV</button>
+                <button class="btn btn-secondary" onclick="downloadCSV('probs')">3. 再抽選確率 CSV</button>
+            </section>
+            <section class="panel">
+                <h2>◇データインポート・統合</h2>
+                <div class="control-group"><label>対象の釣り場</label><select id="mgmtSpotSelect"></select></div>
+                <div class="control-group"><label>CSVファイルの選択 (複数可)</label><input type="file" id="csvFiles" multiple></div>
+                <button class="btn btn-calc" onclick="processCSVUpload()">fisherdata.js を生成・出力</button>
+            </section>
         </div>
+    </div>
 </div>
 
 </body>

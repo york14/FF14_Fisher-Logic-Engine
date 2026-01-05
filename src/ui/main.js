@@ -9,15 +9,17 @@ function loadData() {
     }
 }
 
-// 解析モード自体の切り替え
+// 解析モード切り替え
 function updateModeUI() {
     const mode = document.getElementById('modeSelect').value;
     document.getElementById('areaModeA').classList.toggle('hidden', mode !== 'manual');
+    document.getElementById('execBtn').classList.toggle('hidden', mode === 'manual');
+    
     if (mode === 'manual') updateModeAUI();
     executeSimulation();
 }
 
-// モードA内のルアー詳細設定
+// モードA：1行ルアー設定UI
 function updateModeAUI() {
     const type = document.getElementById('lureTypeSelect').value;
     const config = document.getElementById('lureActionConfig');
@@ -29,27 +31,43 @@ function updateModeAUI() {
     }
     
     config.classList.remove('hidden');
-    const count = parseInt(document.getElementById('lureCountSelect').value);
+    const countSel = document.getElementById('lureCountSelect');
+    if (countSel.options.length === 0) {
+        [1,2,3].forEach(i => countSel.add(new Option(i+'回', i)));
+    }
+    
     const container = document.getElementById('lureResults');
     container.innerHTML = '';
     
-    for (let i = 1; i <= count; i++) {
-        const div = document.createElement('div');
-        div.style.padding = "8px";
-        div.style.background = "#222";
-        div.style.marginBottom = "5px";
-        div.style.borderRadius = "4px";
-        div.innerHTML = `
-            <label style="font-size:0.7rem;">${i}回目の結果</label>
-            <select class="lure-action-result" onchange="executeSimulation()">
-                <option value="なし">何もなし</option>
-                <option value="発見">発見成功</option>
-                <option value="確定">型確定成功</option>
-            </select>
-        `;
-        container.appendChild(div);
+    for (let i = 1; i <= countSel.value; i++) {
+        const sel = document.createElement('select');
+        sel.className = 'lure-action-result';
+        sel.style.width = "75px";
+        sel.innerHTML = `<option value="なし">-</option><option value="発見">発</option><option value="確定">確</option>`;
+        sel.onchange = executeSimulation;
+        container.appendChild(sel);
     }
     executeSimulation();
+}
+
+function displayInternalParams(spot, weather, bait, slapTarget) {
+    const container = document.getElementById('internalParamsContent');
+    const cond = spot.conditions.find(c => c.weather === weather && c.bait === bait);
+    
+    if (!cond || !cond.dynamics[slapTarget]) {
+        container.innerHTML = "<div>この組み合わせのデータはありません</div>";
+        return;
+    }
+    
+    const d = cond.dynamics[slapTarget];
+    const pct = (v) => (v * 100).toFixed(1) + "%";
+    
+    container.innerHTML = `
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+            <div><strong>発見率</strong>: 1回[${pct(d.pDisc[0])}] 2回[${pct(d.pDisc[1])}] 3回[${pct(d.pDisc[2])}]</div>
+            <div><strong>型確定率</strong>: 1回[${pct(d.pGuar[0])}] 2回[${pct(d.pGuar[1])}] 3回[${pct(d.pGuar[2])}]</div>
+        </div>
+    `;
 }
 
 function executeSimulation() {
@@ -57,18 +75,20 @@ function executeSimulation() {
     const spot = fisherData.spots.find(s => s.id === spotId);
     if (!spot) return;
 
+    const weather = document.getElementById('envSelect').value;
+    const bait = document.getElementById('baitSelect').value;
+    const slapTarget = document.getElementById('slapSelect').value;
+
+    displayInternalParams(spot, weather, bait, slapTarget);
+
     const params = {
-        spot: spot,
-        weather: document.getElementById('envSelect').value,
-        bait: document.getElementById('baitSelect').value,
+        spot, weather, bait, slapTarget,
         skipMode: document.getElementById('skipSelect').value,
-        slapTarget: document.getElementById('slapSelect').value,
         targetName: document.getElementById('targetSelect').value,
         isChum: document.getElementById('chumCheck').checked,
         mode: document.getElementById('modeSelect').value
     };
 
-    // モードAのパラメータ
     if (params.mode === 'manual') {
         const results = [];
         document.querySelectorAll('.lure-action-result').forEach(sel => results.push(sel.value));
@@ -78,6 +98,25 @@ function executeSimulation() {
 
     const result = calculateSimulation(params);
     renderResult(result, params.targetName);
+}
+
+function renderResult(result, targetName) {
+    const tbody = document.querySelector('#resultTable tbody');
+    tbody.innerHTML = '';
+    result.rows.forEach(f => {
+        const tr = document.createElement('tr');
+        if (f.name === targetName) tr.className = 'target-row';
+        tr.innerHTML = `
+            <td>${f.name}${f.isHidden?' (H)':''}</td>
+            <td>${f.type}</td>
+            <td>${(f.rate*100).toFixed(1)}%</td>
+            <td>${f.waitT.toFixed(1)}s</td>
+            <td>${f.blankT.toFixed(1)}s</td>
+            <td>${f.hookType}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+    document.getElementById('yieldScore').innerText = `${result.yield10m} / 10分 (期待: ${result.timePerCatch}s)`;
 }
 
 function updateSpotSelections(mode) {
@@ -96,18 +135,6 @@ function updateSpotSelections(mode) {
     }
 }
 
-function renderResult(result, targetName) {
-    const tbody = document.querySelector('#resultTable tbody');
-    tbody.innerHTML = '';
-    result.rows.forEach(f => {
-        const tr = document.createElement('tr');
-        if (f.name === targetName) tr.className = 'target-row';
-        tr.innerHTML = `<td>${f.name}${f.isHidden?' (H)':''}</td><td>${f.type}</td><td>${(f.rate*100).toFixed(1)}%</td><td>${f.waitT.toFixed(1)}s</td><td>${f.hookType}</td>`;
-        tbody.appendChild(tr);
-    });
-    document.getElementById('yieldScore').innerText = `${result.yield10m} / 10min (1匹期待: ${result.timePerCatch}s)`;
-}
-
 function switchView(view) {
     document.getElementById('simView').classList.toggle('hidden', view !== 'sim');
     document.getElementById('mgmtView').classList.toggle('hidden', view !== 'mgmt');
@@ -118,6 +145,9 @@ function switchView(view) {
 window.onload = () => {
     loadData();
     const s = document.getElementById('spotSelect');
-    s.innerHTML = fisherData.spots.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('');
+    const ms = document.getElementById('mgmtSpotSelect');
+    const options = fisherData.spots.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('');
+    s.innerHTML = options;
+    ms.innerHTML = options;
     updateSpotSelections('sim');
 };

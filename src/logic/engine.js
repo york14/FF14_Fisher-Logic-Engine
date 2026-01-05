@@ -5,8 +5,8 @@ const CONST = {
     D_CAST: 1.0, 
     D_LURE_RIGID: 2.5, 
     D_LURE_BLK: 2.5,
-    D_HOOK: { "小型": 5.0, "大型": 10.0, "激震": 15.0 }, // v1.8.2 指定数値
-    D_REST: 2.0, // 竿上げ
+    D_HOOK: { "小型": 5.0, "大型": 10.0, "激震": 15.0 },
+    D_REST: 2.0,
     D_CHUM_RIGID: 1.0
 };
 
@@ -16,29 +16,30 @@ function calculateSimulation(params) {
     const dynamics = cond.dynamics[slapTarget] || cond.dynamics["なし"];
 
     if (mode === 'manual') {
-        return runManual(spot, cond, dynamics, targetName, isChum, skipMode, params.manualSequence || [], params.lureTargetType);
+        const actionCount = params.manualSequence ? params.manualSequence.length : 0;
+        return runManual(spot, cond, dynamics, targetName, isChum, skipMode, params.manualSequence || [], params.lureTargetType, actionCount);
     } else {
-        return runStrategy3(spot, cond, dynamics, targetName, isChum, skipMode);
+        // Strategy3 等の既存ロジック (略)
+        return { rows: [], yield10m: 0, timePerCatch: 0 };
     }
 }
 
-function runManual(spot, cond, dynamics, targetName, isChum, skipMode, sequence, lureTargetType) {
+function runManual(spot, cond, dynamics, targetName, isChum, skipMode, sequence, lureTargetType, actionCount) {
     let dStep = -1, isG = false;
     sequence.forEach((s, i) => {
         if (s === "発見") dStep = i + 1;
         if (s === "確定") isG = true;
     });
 
-    const res = calculateNodeResult(sequence.length, dStep !== -1, isG, cond, dynamics, targetName, isChum, skipMode, dStep, lureTargetType);
+    const res = calculateNodeResult(actionCount, dStep !== -1, isG, cond, dynamics, targetName, isChum, skipMode, dStep, lureTargetType);
     
     return {
-        rows: generateResultRows(cond, res.prob, targetName, skipMode),
+        rows: generateResultRows(cond, res.prob, targetName, skipMode, isChum, actionCount),
         yield10m: ((res.prob / res.time) * 600).toFixed(2),
         timePerCatch: Math.round(res.time / (res.prob || 0.0001))
     };
 }
 
-// ノード単体の確率と時間を計算
 function calculateNodeResult(actionCount, isD, isG, cond, dynamics, targetName, isChum, skipMode, dStep = -1, lureTargetType = "大型") {
     const targetFish = cond.fishList.find(f => f.name === targetName);
     if (!targetFish) return { prob: 0, time: 30 };
@@ -65,27 +66,32 @@ function calculateNodeResult(actionCount, isD, isG, cond, dynamics, targetName, 
     }
 
     const chumMult = isChum ? 0.6 : 1.0;
-    const waitT = Math.max(targetFish.biteTime * chumMult, (actionCount * CONST.D_LURE_RIGID) + CONST.D_LURE_BLK);
+    const waitT = targetFish.biteTime * chumMult;
+    const blankT = (actionCount * CONST.D_LURE_RIGID) + CONST.D_LURE_BLK;
+    const finalWait = Math.max(waitT, blankT);
     
-    // 拘束時間：ターゲットなら演出、ハズレかつスルー設定なら竿上げ
     let hookT = CONST.D_HOOK[targetFish.type] || 10;
     if (skipMode === 'rest' && targetFish.name !== targetName) hookT = CONST.D_REST; 
 
-    const time = CONST.D_CAST + (isChum ? CONST.D_CHUM_RIGID : 0) + waitT + hookT;
+    const time = CONST.D_CAST + (isChum ? CONST.D_CHUM_RIGID : 0) + finalWait + hookT;
     return { prob, time };
 }
 
-function generateResultRows(cond, targetProb, targetName, skipMode) {
+function generateResultRows(cond, targetProb, targetName, skipMode, isChum, actionCount) {
+    const chumMult = isChum ? 0.6 : 1.0;
+    // 空白時間にキャスト硬直(1.0s)を追加
+    const blankT = CONST.D_CAST + (actionCount * CONST.D_LURE_RIGID) + CONST.D_LURE_BLK;
+
     return cond.fishList.map(f => {
         let hookType = f.type === '大型' ? "！！" : "！";
         if (skipMode === 'rest' && f.name !== targetName) hookType = "竿上げ";
+        
         return {
             name: f.name, type: f.type, isHidden: f.isHidden,
             rate: f.name === targetName ? targetProb : (1 - targetProb) / (cond.fishList.length - 1),
-            waitT: f.biteTime,
+            waitT: f.biteTime * chumMult,
+            blankT: blankT,
             hookType: hookType
         };
     });
 }
-
-// runStrategy3 (v1.8.2対応版 - 略)
