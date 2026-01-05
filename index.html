@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Fisher’s Logic Engine (v1.9.3)</title>
+    <title>Fisher’s Logic Engine (v1.9.4)</title>
     <link rel="stylesheet" href="src/ui/style.css">
     <script src="src/data/fisherdata.js"></script>
     <script src="src/logic/engine.js"></script>
@@ -13,7 +13,7 @@
 
 <div class="container">
     <header>
-        <h1>Fisher’s Logic Engine <small style="font-size: 0.5em; color: #888;">v1.9.3</small></h1>
+        <h1>Fisher’s Logic Engine <small style="font-size: 0.5em; color: #888;">v1.9.4</small></h1>
         <div class="tabs">
             <div id="tabSim" class="tab active" onclick="switchView('sim')">シミュレーター</div>
             <div id="tabMgmt" class="tab" onclick="switchView('mgmt')">データ管理窓</div>
@@ -58,7 +58,7 @@
                         </select>
                     </div>
                     <div id="lureActionConfig" class="hidden">
-                        <div class="lure-inline-row" style="display:flex; align-items:center; gap:10px;">
+                        <div class="lure-inline-row" style="display:flex; align-items:center; gap:10px; margin-top:10px;">
                             <select id="lureCountSelect" onchange="updateModeAUI()" style="width:70px;"></select>
                             <div id="lureResults" style="display:flex; gap:5px; flex:1;"></div>
                         </div>
@@ -72,7 +72,7 @@
         <main>
             <details class="panel collapsible">
                 <summary><h2>◇内部設定値</h2></summary>
-                <div id="internalParamsContent" class="params-grid" style="font-size:0.85rem; padding:10px;"></div>
+                <div id="internalParamsContent" style="font-size:0.85rem; padding:10px; color:#ccc;"></div>
             </details>
 
             <div class="panel">
@@ -93,26 +93,26 @@
                 <div style="font-size:0.8rem; color:#aaa; line-height:1.6; padding:10px;">
                     <p>●周期 ($T_{Cycle}$) = キャスト(1.0s) + 待機($T_{Final}$) + 演出($D_{Hook}$)</p>
                     <p>●空白時間 ($T_{Blank}$) = キャスト(1.0s) + ルアー硬直($n \times 2.5s$) + 最小演出(2.5s)</p>
-                    <p>※待機($T_{Final}$) は、撒き餌補正後時間とルアー演出時間の長い方が採用されます。</p>
                 </div>
             </details>
         </main>
     </div>
 
     <div id="mgmtView" class="hidden">
-        <div class="mgmt-grid">
+        <div class="mgmt-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
             <section class="panel">
                 <h2>◇CSVエクスポート</h2>
-                <p style="font-size:0.8rem; color:#888;">現在のデータをCSVとして保存します。</p>
-                <button class="btn btn-secondary" onclick="downloadCSV('spots')">1. 釣り場情報 CSV</button>
-                <button class="btn btn-secondary" onclick="downloadCSV('fish')">2. 魚テーブル2 CSV</button>
-                <button class="btn btn-secondary" onclick="downloadCSV('probs')">3. 再抽選確率 CSV</button>
+                <p style="font-size:0.8rem; color:#888; margin-bottom:15px;">現在の FISHER_DATA をCSV形式で保存します。</p>
+                <button class="btn btn-secondary" onclick="downloadCSV('spots')" style="margin-bottom:10px;">1. 釣り場情報 CSV を保存</button>
+                <button class="btn btn-secondary" onclick="downloadCSV('fish')" style="margin-bottom:10px;">2. 魚テーブル2 CSV を保存</button>
+                <button class="btn btn-secondary" onclick="downloadCSV('probs')" style="margin-bottom:10px;">3. 再抽選確率 CSV を保存</button>
             </section>
             <section class="panel">
                 <h2>◇データインポート・統合</h2>
                 <div class="control-group"><label>対象の釣り場</label><select id="mgmtSpotSelect"></select></div>
                 <div class="control-group"><label>CSVファイルの選択 (複数可)</label><input type="file" id="csvFiles" multiple></div>
                 <button class="btn btn-calc" onclick="processCSVUpload()">fisherdata.js を生成・出力</button>
+                <p style="font-size:0.75rem; color:#666; margin-top:10px;">※インポート機能は現在開発中です。</p>
             </section>
         </div>
     </div>

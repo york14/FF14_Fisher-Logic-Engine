@@ -1,5 +1,6 @@
 /**
  * src/ui/main.js
+ * UIイベント制御およびエンジン・ハンドラへの橋渡し
  */
 let fisherData = { spots: [] };
 
@@ -9,7 +10,9 @@ function loadData() {
     }
 }
 
-// 解析モード切り替え
+/**
+ * 解析モードの切り替え
+ */
 function updateModeUI() {
     const mode = document.getElementById('modeSelect').value;
     document.getElementById('areaModeA').classList.toggle('hidden', mode !== 'manual');
@@ -19,7 +22,9 @@ function updateModeUI() {
     executeSimulation();
 }
 
-// モードA：1行ルアー設定UI
+/**
+ * モードA：ルアー詳細設定UIの生成
+ */
 function updateModeAUI() {
     const type = document.getElementById('lureTypeSelect').value;
     const config = document.getElementById('lureActionConfig');
@@ -32,8 +37,11 @@ function updateModeAUI() {
     
     config.classList.remove('hidden');
     const countSel = document.getElementById('lureCountSelect');
+    
+    // 初回のみ選択肢を生成
     if (countSel.options.length === 0) {
-        [1,2,3].forEach(i => countSel.add(new Option(i+'回', i)));
+        [1, 2, 3].forEach(i => countSel.add(new Option(i + '回', i)));
+        countSel.value = "1";
     }
     
     const container = document.getElementById('lureResults');
@@ -50,12 +58,42 @@ function updateModeAUI() {
     executeSimulation();
 }
 
+/**
+ * CSVダウンロードの実行
+ */
+function downloadCSV(type) {
+    if (!fisherData || fisherData.spots.length === 0) {
+        alert("データが読み込まれていません。");
+        return;
+    }
+
+    const csvContent = convertToCSV(fisherData, type);
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    const fileName = `fisher_${type}_${new Date().toISOString().slice(0,10)}.csv`;
+    
+    if (window.navigator.msSaveBlob) {
+        window.navigator.msSaveBlob(blob, fileName);
+    } else {
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+/**
+ * 内部設定値の表示更新
+ */
 function displayInternalParams(spot, weather, bait, slapTarget) {
     const container = document.getElementById('internalParamsContent');
     const cond = spot.conditions.find(c => c.weather === weather && c.bait === bait);
     
     if (!cond || !cond.dynamics[slapTarget]) {
-        container.innerHTML = "<div>この組み合わせのデータはありません</div>";
+        container.innerHTML = "<div>この環境条件に対する再抽選確率は設定されていません</div>";
         return;
     }
     
@@ -63,13 +101,16 @@ function displayInternalParams(spot, weather, bait, slapTarget) {
     const pct = (v) => (v * 100).toFixed(1) + "%";
     
     container.innerHTML = `
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
             <div><strong>発見率</strong>: 1回[${pct(d.pDisc[0])}] 2回[${pct(d.pDisc[1])}] 3回[${pct(d.pDisc[2])}]</div>
             <div><strong>型確定率</strong>: 1回[${pct(d.pGuar[0])}] 2回[${pct(d.pGuar[1])}] 3回[${pct(d.pGuar[2])}]</div>
         </div>
     `;
 }
 
+/**
+ * シミュレーション実行
+ */
 function executeSimulation() {
     const spotId = document.getElementById('spotSelect').value;
     const spot = fisherData.spots.find(s => s.id === spotId);
@@ -100,6 +141,9 @@ function executeSimulation() {
     renderResult(result, params.targetName);
 }
 
+/**
+ * 結果テーブルのレンダリング
+ */
 function renderResult(result, targetName) {
     const tbody = document.querySelector('#resultTable tbody');
     tbody.innerHTML = '';
@@ -107,18 +151,21 @@ function renderResult(result, targetName) {
         const tr = document.createElement('tr');
         if (f.name === targetName) tr.className = 'target-row';
         tr.innerHTML = `
-            <td>${f.name}${f.isHidden?' (H)':''}</td>
+            <td>${f.name}${f.isHidden ? ' (H)' : ''}</td>
             <td>${f.type}</td>
-            <td>${(f.rate*100).toFixed(1)}%</td>
+            <td>${(f.rate * 100).toFixed(1)}%</td>
             <td>${f.waitT.toFixed(1)}s</td>
             <td>${f.blankT.toFixed(1)}s</td>
             <td>${f.hookType}</td>
         `;
         tbody.appendChild(tr);
     });
-    document.getElementById('yieldScore').innerText = `${result.yield10m} / 10分 (期待: ${result.timePerCatch}s)`;
+    document.getElementById('yieldScore').innerText = `${result.yield10m} / 10分 (期待獲得間隔: ${result.timePerCatch}s)`;
 }
 
+/**
+ * 釣り場選択に伴うUI更新
+ */
 function updateSpotSelections(mode) {
     const id = document.getElementById(mode === 'sim' ? 'spotSelect' : 'mgmtSpotSelect').value;
     const spot = fisherData.spots.find(s => s.id === id);
@@ -135,6 +182,9 @@ function updateSpotSelections(mode) {
     }
 }
 
+/**
+ * ビュー切り替え
+ */
 function switchView(view) {
     document.getElementById('simView').classList.toggle('hidden', view !== 'sim');
     document.getElementById('mgmtView').classList.toggle('hidden', view !== 'mgmt');
@@ -146,8 +196,10 @@ window.onload = () => {
     loadData();
     const s = document.getElementById('spotSelect');
     const ms = document.getElementById('mgmtSpotSelect');
-    const options = fisherData.spots.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('');
-    s.innerHTML = options;
-    ms.innerHTML = options;
-    updateSpotSelections('sim');
+    if (s && ms && fisherData.spots.length > 0) {
+        const options = fisherData.spots.map(sp => `<option value="${sp.id}">${sp.name}</option>`).join('');
+        s.innerHTML = options;
+        ms.innerHTML = options;
+        updateSpotSelections('sim');
+    }
 };
