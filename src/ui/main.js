@@ -160,7 +160,7 @@ function renderResult(result, targetName) {
         `;
         tbody.appendChild(tr);
     });
-    document.getElementById('yieldScore').innerText = `${result.yield10m} / 10分 (期待獲得間隔: ${result.timePerCatch}s)`;
+    document.getElementById('yieldScore').innerText = `${result.yield10m} / 3分 (期待獲得間隔: ${result.timePerCatch}s)`;
 }
 
 /**
