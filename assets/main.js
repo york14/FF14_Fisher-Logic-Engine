@@ -1,6 +1,6 @@
 /**
- * FLE Simulator メインロジック v1.7
- * GDS v3.14.0 に準拠し、UIの排他制御、表示順の固定、サイクル時間の表示を統合。
+ * FLE Simulator メインロジック v1.9
+ * GDS v3.14.0 に準拠。Nullデータ検知時のエラー表示、型確定の揮発性を実装。
  */
 
 // --- 【GDS 4.1】 システム固定定数の定義 ---
@@ -10,7 +10,7 @@ const GDS = {
     D_BLK: 2.5,    // ルアー後空白
     D_CHUM: 1.0,   // 撒き餌硬直
     D_REST: 2.0,   // 竿上げ硬直
-    C_CHUM: 0.6,   // 撒き餌補正
+    C_CHUM: 0.6,   // 撒き餌補正（待機時間短縮係数）
     M_N1: 1.5,     // 重み補正1
     M_N2: 2.0,     // 重み補正2
     M_N3: 6.0      // 重み補正3
@@ -90,7 +90,6 @@ elCatch.addEventListener('change', function() {
     calculate();
 });
 
-// ルアー設定UIの制御
 elLure.addEventListener('change', () => {
     document.getElementById('lure-steps-area').className = (elLure.value === "なし") ? "hidden" : "";
     genSteps();
@@ -98,8 +97,7 @@ elLure.addEventListener('change', () => {
 elLureN.addEventListener('change', genSteps);
 
 /**
- * ルアーの使用回数に応じた入力欄の生成
- * 用語を「ルアー使用1～3」に修正。
+ * ルアーアクション回数に応じた入力欄の生成
  */
 function genSteps() {
     const n = parseInt(elLureN.value);
@@ -137,39 +135,104 @@ function calculate() {
 
     const debugData = { weightDetails: [], sumW: 0, pHidden: 0, hKey: "", targetTrace: null, error: null };
 
-    // 1. シナリオ判定（発見と型確定の論理）
+    // 1. シナリオ判定
     let i_disc = 0; 
     let discCount = 0;
     let has_guar = false;
+    let scenarioParts = [];
+    let discoveredAnywhere = false;
 
     const stepSelects = document.querySelectorAll('.l-step');
     stepSelects.forEach((s, idx) => {
         const val = s.value;
+        const t = idx + 1;
         if (val === "発見") {
-            if (i_disc === 0) i_disc = idx + 1; // 最初に発見したタイミング
+            if (i_disc === 0) i_disc = t; 
             discCount++;
+            scenarioParts.push(`発見${t}`);
+            discoveredAnywhere = true;
+        } else if (val === "型確定") {
+            scenarioParts.push(`型確定${discoveredAnywhere ? "(発見済)" : ""}${t}`);
+        } else {
+            scenarioParts.push("なし");
         }
         
-        // 型確定の揮発性: 後のアクションで上書きされるため、最後に実行したアクションの結果を参照する
+        // 型確定の揮発性: ルアーを続けて使用すると前の効果は消える
         if (idx === lureN - 1) {
             has_guar = (val === "型確定");
         }
     });
 
-    // 制約バリデーション: 発見は1サイクル1回のみ
     if (discCount > 1) {
-        debugData.error = "制約エラー: 「発見」は1サイクルに1回しか発生しません。";
+        debugData.error = "制約エラー: 発見は1サイクルに1回しか発生しません。";
         showCalculationError(debugData.error);
         return;
     }
+
+    const scenarioText = scenarioParts.join("→");
 
     const hiddenFish = DB.spots[spot].fish.find(f => DB.fish[f].is_hidden) || "なし";
     const probKey = `${spot}|${weather}|${bait}|${hiddenFish}|${slap}|${lureType}`;
     const pData = DB.probabilities[probKey];
 
-    // 2. 隠し魚ヒット率 P_Hidden の特定
+    // --- シナリオ発生確率の算出 (GDS 6.2) および Nullチェック ---
+    let patternProb = 0;
+    if (lureType === "なし") {
+        patternProb = null;
+    } else {
+        if (!pData) {
+            debugData.error = "該当するルアー設定のマスタデータが存在しません。";
+            showCalculationError(debugData.error);
+            return;
+        }
+        patternProb = 1.0;
+        let found = false;
+        let foundAt = 0;
+        for (let idx = 0; idx < lureN; idx++) {
+            const t = idx + 1;
+            const val = stepSelects[idx].value;
+            let p_t = 0;
+            if (!found) {
+                const dRate = pData.discovery[idx];
+                const gRate = pData.guarantee[idx];
+                // 計算過程でNullが出た場合はエラーとして終了
+                if (dRate === null || gRate === null) {
+                    debugData.error = "マスタデータに確率(Discovery/Guarantee)が定義されていません(null)。";
+                    showCalculationError(debugData.error);
+                    return;
+                }
+                if (val === "発見") { p_t = dRate; found = true; foundAt = t; }
+                else if (val === "型確定") { p_t = (1 - dRate) * gRate; }
+                else { p_t = (1 - dRate) * (1 - gRate); }
+            } else {
+                let gIdx = (foundAt === 1) ? (t === 2 ? 0 : 1) : 2;
+                const dgRate = pData.discovered_guarantee[gIdx];
+                if (dgRate === null) {
+                    debugData.error = "マスタデータに確率(Discovered Guarantee)が定義されていません(null)。";
+                    showCalculationError(debugData.error);
+                    return;
+                }
+                if (val === "型確定") p_t = dgRate;
+                else p_t = 1 - dgRate;
+            }
+            patternProb *= p_t;
+        }
+    }
+
+    // 2. 隠し魚ヒット率 P_Hidden の特定と Nullチェック
     debugData.hKey = i_disc > 0 ? `p${i_disc}_${lureN}_${has_guar ? 'yes' : 'no'}` : "通常抽選(未発見)";
-    debugData.pHidden = (pData && i_disc > 0 && pData.hidden_hit_rates[debugData.hKey] !== null) ? pData.hidden_hit_rates[debugData.hKey] : 0;
+    
+    if (i_disc > 0) {
+        const hRate = pData.hidden_hit_rates[debugData.hKey];
+        if (hRate === null) {
+            debugData.error = "マスタデータに隠し魚のヒット率が定義されていません(null)。";
+            showCalculationError(debugData.error);
+            return;
+        }
+        debugData.pHidden = hRate;
+    } else {
+        debugData.pHidden = 0;
+    }
 
     // 3. 通常魚の重み分配計算
     const M_MAP = { 0: 1.0, 1: GDS.M_N1, 2: GDS.M_N2, 3: GDS.M_N3 };
@@ -181,15 +244,10 @@ function calculate() {
     currentWeights.forEach(f => {
         if (f.name === hiddenFish) return;
         const meta = DB.fish[f.name];
-        
         const isMatch = (meta && meta.type === lureJaws);
         let m_i = isMatch ? M_val : 1.0; 
 
-        // 型確定による不適合型の排除
-        if (has_guar && !isMatch) {
-            m_i = 0;
-        }
-
+        if (has_guar && !isMatch) m_i = 0; 
         if (f.name === slap) m_i = 0; 
         
         const finalW = f.w * m_i;
@@ -197,7 +255,6 @@ function calculate() {
         debugData.weightDetails.push({ name: f.name, baseW: f.w, m: m_i, finalW: finalW });
     });
 
-    // 各魚種の個別計算
     const dPre = elChum.checked ? GDS.D_CHUM : 0; 
     const resList = currentWeights.map(f => {
         const meta = DB.fish[f.name];
@@ -215,7 +272,7 @@ function calculate() {
         const dEnd = elCatch.checked ? meta.hook_time : GDS.D_REST;
         const tCycle = dPre + GDS.D_CAST + tFinal + dEnd;
 
-        const resultItem = { name: f.name, vibe: meta.vibration, prob: prob, tCycle: tCycle };
+        const resultItem = { name: f.name, vibe: meta.vibration, prob: prob, tPrime: tPrime, tCycle: tCycle };
         if (f.name === targetFishName) {
             debugData.targetTrace = { tPrime, tMin, tFinal, dEnd, tCycle, prob: prob };
         }
@@ -227,23 +284,26 @@ function calculate() {
     const targetObj = resList.find(r => r.name === targetFishName);
     const efficiency = (avgCycle > 0 && targetObj) ? (180 / avgCycle) * targetObj.prob : 0;
 
-    updateUI(resList, efficiency, avgCycle, targetFishName, spot);
+    updateUI(resList, efficiency, avgCycle, targetFishName, spot, scenarioText, patternProb);
     updateDebugView(debugData, dPre, lureN, efficiency);
 }
 
 /**
  * エラー表示
+ * 計算過程でNullが検知された場合、テーブルを消してこのメッセージを表示します。
  */
 function showCalculationError(msg) {
     document.getElementById('debug-scenario').innerHTML = `<span style="color:var(--accent-red)">${msg}</span>`;
     document.getElementById('res-efficiency').innerHTML = `0.00 <small>匹</small>`;
-    document.getElementById('res-table-body').innerHTML = `<tr><td colspan="4" class="placeholder">${msg}</td></tr>`;
+    document.getElementById('res-table-body').innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">データがありません (${msg})</td></tr>`;
+    document.getElementById('pattern-occurrence').innerText = "";
+    document.getElementById('scenario-text').innerText = "";
 }
 
 /**
  * UI表示更新
  */
-function updateUI(resList, efficiency, avgCycle, targetName, spotName) {
+function updateUI(resList, efficiency, avgCycle, targetName, spotName, scenarioText, patternProb) {
     const tbody = document.getElementById('res-table-body');
     tbody.innerHTML = '';
     
@@ -262,11 +322,20 @@ function updateUI(resList, efficiency, avgCycle, targetName, spotName) {
             tr.style.fontWeight = "bold";
         }
 
+        const waitDisplay = (r.prob > 0) ? `${r.tPrime.toFixed(1)}s` : "-";
         const timeDisplay = (r.prob > 0) ? `${r.tCycle.toFixed(1)}s` : "-";
 
-        tr.innerHTML = `<td>${r.name}</td><td>${r.vibe}</td><td>${(r.prob * 100).toFixed(1)}%</td><td>${timeDisplay}</td>`;
+        tr.innerHTML = `<td>${r.name}</td><td>${r.vibe}</td><td>${(r.prob * 100).toFixed(1)}%</td><td>${waitDisplay}</td><td>${timeDisplay}</td>`;
         tbody.appendChild(tr);
     });
+
+    document.getElementById('scenario-text').innerText = scenarioText ? `シナリオ: ${scenarioText}` : "";
+    const patEl = document.getElementById('pattern-occurrence');
+    if (patternProb === null) {
+        patEl.innerText = `ルアー効果シナリオ発生確率: -%`;
+    } else {
+        patEl.innerText = `ルアー効果シナリオ発生確率: ${(patternProb * 100).toFixed(2)}%`;
+    }
 }
 
 /**
@@ -280,9 +349,11 @@ function renderSimpleFishList(spotName) {
     fishNames.forEach(name => {
         const meta = DB.fish[name];
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${name}</td><td>${meta ? meta.vibration : '--'}</td><td>--%</td><td>--s</td>`;
+        tr.innerHTML = `<td>${name}</td><td>${meta ? meta.vibration : '--'}</td><td>--%</td><td>--s</td><td>--s</td>`;
         tbody.appendChild(tr);
     });
+    document.getElementById('pattern-occurrence').innerText = "";
+    document.getElementById('scenario-text').innerText = "";
 }
 
 /**
