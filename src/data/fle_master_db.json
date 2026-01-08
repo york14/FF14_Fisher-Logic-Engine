@@ -1,0 +1,843 @@
+{
+  "version": "1.1.0",
+  "fish": {
+    "エレクトロベタ": {
+      "type": "small_jaws",
+      "vibration": "!",
+      "hook_time": 5,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "サンダーレッド": {
+      "type": "small_jaws",
+      "vibration": "!",
+      "hook_time": 5,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "ヤースラニボウフィン": {
+      "type": "large_jaws",
+      "vibration": "!!",
+      "hook_time": 10,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "ヘリテージグルーパー": {
+      "type": "large_jaws",
+      "vibration": "!!!",
+      "hook_time": 15,
+      "is_hidden": false,
+      "can_slap": false
+    },
+    "ゴールデングルーパー": {
+      "type": "large_jaws",
+      "vibration": "!!",
+      "hook_time": 10,
+      "is_hidden": true,
+      "can_slap": true
+    }
+  },
+  "spots": {
+    "アレクサンドリア旧市街": {
+      "weather": [
+        "霧晴れ12-16",
+        "それ以外"
+      ],
+      "bait": [
+        "紅サシ",
+        "ポッパールアー"
+      ],
+      "fish": [
+        "エレクトロベタ",
+        "サンダーレッド",
+        "ヤースラニボウフィン",
+        "ヘリテージグルーパー",
+        "ゴールデングルーパー"
+      ]
+    }
+  },
+  "weights": {
+    "アレクサンドリア旧市街|霧晴れ12-16|紅サシ": [
+      {
+        "name": "エレクトロベタ",
+        "w": 200,
+        "t": 15
+      },
+      {
+        "name": "サンダーレッド",
+        "w": 200,
+        "t": 15
+      },
+      {
+        "name": "ヤースラニボウフィン",
+        "w": 160,
+        "t": 20
+      },
+      {
+        "name": "ヘリテージグルーパー",
+        "w": 0,
+        "t": 0
+      },
+      {
+        "name": "ゴールデングルーパー",
+        "w": 0,
+        "t": 30
+      }
+    ],
+    "アレクサンドリア旧市街|霧晴れ12-16|ポッパールアー": [
+      {
+        "name": "エレクトロベタ",
+        "w": 150,
+        "t": 20
+      },
+      {
+        "name": "サンダーレッド",
+        "w": 150,
+        "t": 20
+      },
+      {
+        "name": "ヤースラニボウフィン",
+        "w": 150,
+        "t": 25
+      },
+      {
+        "name": "ヘリテージグルーパー",
+        "w": 5,
+        "t": 30
+      },
+      {
+        "name": "ゴールデングルーパー",
+        "w": 0,
+        "t": 30
+      }
+    ],
+    "アレクサンドリア旧市街|それ以外|紅サシ": [
+      {
+        "name": "エレクトロベタ",
+        "w": 200,
+        "t": 15
+      },
+      {
+        "name": "サンダーレッド",
+        "w": 200,
+        "t": 15
+      },
+      {
+        "name": "ヤースラニボウフィン",
+        "w": 150,
+        "t": 20
+      },
+      {
+        "name": "ヘリテージグルーパー",
+        "w": 0,
+        "t": 0
+      },
+      {
+        "name": "ゴールデングルーパー",
+        "w": 0,
+        "t": 30
+      }
+    ],
+    "アレクサンドリア旧市街|それ以外|ポッパールアー": [
+      {
+        "name": "エレクトロベタ",
+        "w": 150,
+        "t": 20
+      },
+      {
+        "name": "サンダーレッド",
+        "w": 150,
+        "t": 20
+      },
+      {
+        "name": "ヤースラニボウフィン",
+        "w": 150,
+        "t": 25
+      },
+      {
+        "name": "ヘリテージグルーパー",
+        "w": 0,
+        "t": 0
+      },
+      {
+        "name": "ゴールデングルーパー",
+        "w": 0,
+        "t": 30
+      }
+    ]
+  },
+  "probabilities": {
+    "アレクサンドリア旧市街|霧晴れ12-16|紅サシ|ゴールデングルーパー|なし|アンビシャスルアー": {
+      "discovery": [
+        0.2311,
+        0.24719999999999998,
+        0.2742
+      ],
+      "guarantee": [
+        0.032799999999999996,
+        0.08789999999999999,
+        0.12380000000000001
+      ],
+      "discovered_guarantee": [
+        0.10210000000000001,
+        0.21530000000000002,
+        0.2164
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0.1628,
+        "p1_2_yes": 0.07139999999999999,
+        "p1_2_no": 0.07139999999999999,
+        "p1_3_yes": 0.1935,
+        "p1_3_no": 0.044199999999999996,
+        "p2_2_no": 0.2095,
+        "p2_3_yes": 0.0345,
+        "p2_3_no": 0.0571,
+        "p3_3_no": 0.3017
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|紅サシ|ゴールデングルーパー|エレクトロベタ|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|紅サシ|ゴールデングルーパー|サンダーレッド|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|紅サシ|ゴールデングルーパー|ヤースラニボウフィン|アンビシャスルアー": {
+      "discovery": [
+        0.2525,
+        0.302,
+        0.4329
+      ],
+      "guarantee": [
+        0,
+        0,
+        0
+      ],
+      "discovered_guarantee": [
+        0.026099999999999998,
+        0.05,
+        0.036699999999999997
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0.3566,
+        "p1_2_yes": 1,
+        "p1_2_no": 0.1481,
+        "p1_3_yes": 1,
+        "p1_3_no": 0.2281,
+        "p2_2_no": 0.38,
+        "p2_3_yes": 1,
+        "p2_3_no": 0.2857,
+        "p3_3_no": 0.63
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|紅サシ|ゴールデングルーパー|ヘリテージグルーパー|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|紅サシ|ゴールデングルーパー|ゴールデングルーパー|アンビシャスルアー": {
+      "discovery": [
+        0,
+        0,
+        0
+      ],
+      "guarantee": [
+        0.032799999999999996,
+        0.08789999999999999,
+        0.12380000000000001
+      ],
+      "discovered_guarantee": [
+        0.076,
+        0.1653,
+        0.1797
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0,
+        "p1_2_yes": 0,
+        "p1_2_no": 0,
+        "p1_3_yes": 0,
+        "p1_3_no": 0,
+        "p2_2_no": 0,
+        "p2_3_yes": 0,
+        "p2_3_no": 0,
+        "p3_3_no": 0
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|ポッパールアー|ゴールデングルーパー|なし|アンビシャスルアー": {
+      "discovery": [
+        0.2311,
+        0.24719999999999998,
+        0.2742
+      ],
+      "guarantee": [
+        0.032799999999999996,
+        0.08789999999999999,
+        0.12380000000000001
+      ],
+      "discovered_guarantee": [
+        0.10210000000000001,
+        0.21530000000000002,
+        0.2164
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0.1628,
+        "p1_2_yes": 0.07139999999999999,
+        "p1_2_no": 0.07139999999999999,
+        "p1_3_yes": 0.1935,
+        "p1_3_no": 0.044199999999999996,
+        "p2_2_no": 0.2095,
+        "p2_3_yes": 0.0345,
+        "p2_3_no": 0.0571,
+        "p3_3_no": 0.3017
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|ポッパールアー|ゴールデングルーパー|エレクトロベタ|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|ポッパールアー|ゴールデングルーパー|サンダーレッド|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|ポッパールアー|ゴールデングルーパー|ヤースラニボウフィン|アンビシャスルアー": {
+      "discovery": [
+        0.2525,
+        0.302,
+        0.4329
+      ],
+      "guarantee": [
+        0,
+        0,
+        0
+      ],
+      "discovered_guarantee": [
+        0.026099999999999998,
+        0.05,
+        0.036699999999999997
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0.3566,
+        "p1_2_yes": 0.935,
+        "p1_2_no": 0.1481,
+        "p1_3_yes": 0.9434999999999999,
+        "p1_3_no": 0.2281,
+        "p2_2_no": 0.38,
+        "p2_3_yes": 0.9323999999999999,
+        "p2_3_no": 0.2857,
+        "p3_3_no": 0.63
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|ポッパールアー|ゴールデングルーパー|ヘリテージグルーパー|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|霧晴れ12-16|ポッパールアー|ゴールデングルーパー|ゴールデングルーパー|アンビシャスルアー": {
+      "discovery": [
+        0,
+        0,
+        0
+      ],
+      "guarantee": [
+        0.032799999999999996,
+        0.08789999999999999,
+        0.12380000000000001
+      ],
+      "discovered_guarantee": [
+        0.076,
+        0.1653,
+        0.1797
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0,
+        "p1_2_yes": 0,
+        "p1_2_no": 0,
+        "p1_3_yes": 0,
+        "p1_3_no": 0,
+        "p2_2_no": 0,
+        "p2_3_yes": 0,
+        "p2_3_no": 0,
+        "p3_3_no": 0
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|紅サシ|ゴールデングルーパー|なし|アンビシャスルアー": {
+      "discovery": [
+        0.2311,
+        0.24719999999999998,
+        0.2742
+      ],
+      "guarantee": [
+        0.032799999999999996,
+        0.08789999999999999,
+        0.12380000000000001
+      ],
+      "discovered_guarantee": [
+        0.10210000000000001,
+        0.21530000000000002,
+        0.2164
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0.1628,
+        "p1_2_yes": 0.07139999999999999,
+        "p1_2_no": 0.07139999999999999,
+        "p1_3_yes": 0.1935,
+        "p1_3_no": 0.044199999999999996,
+        "p2_2_no": 0.2095,
+        "p2_3_yes": 0.0345,
+        "p2_3_no": 0.0571,
+        "p3_3_no": 0.3017
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|紅サシ|ゴールデングルーパー|エレクトロベタ|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|紅サシ|ゴールデングルーパー|サンダーレッド|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|紅サシ|ゴールデングルーパー|ヤースラニボウフィン|アンビシャスルアー": {
+      "discovery": [
+        0.2525,
+        0.302,
+        0.4329
+      ],
+      "guarantee": [
+        0,
+        0,
+        0
+      ],
+      "discovered_guarantee": [
+        0.026099999999999998,
+        0.05,
+        0.036699999999999997
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0.3566,
+        "p1_2_yes": 1,
+        "p1_2_no": 0.1481,
+        "p1_3_yes": 1,
+        "p1_3_no": 0.2281,
+        "p2_2_no": 0.38,
+        "p2_3_yes": 1,
+        "p2_3_no": 0.2857,
+        "p3_3_no": 0.63
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|紅サシ|ゴールデングルーパー|ヘリテージグルーパー|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|紅サシ|ゴールデングルーパー|ゴールデングルーパー|アンビシャスルアー": {
+      "discovery": [
+        0,
+        0,
+        0
+      ],
+      "guarantee": [
+        0.032799999999999996,
+        0.08789999999999999,
+        0.12380000000000001
+      ],
+      "discovered_guarantee": [
+        0.076,
+        0.1653,
+        0.1797
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0,
+        "p1_2_yes": 0,
+        "p1_2_no": 0,
+        "p1_3_yes": 0,
+        "p1_3_no": 0,
+        "p2_2_no": 0,
+        "p2_3_yes": 0,
+        "p2_3_no": 0,
+        "p3_3_no": 0
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|ポッパールアー|ゴールデングルーパー|なし|アンビシャスルアー": {
+      "discovery": [
+        0.2311,
+        0.24719999999999998,
+        0.2742
+      ],
+      "guarantee": [
+        0.032799999999999996,
+        0.08789999999999999,
+        0.12380000000000001
+      ],
+      "discovered_guarantee": [
+        0.10210000000000001,
+        0.21530000000000002,
+        0.2164
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0.1628,
+        "p1_2_yes": 0.07139999999999999,
+        "p1_2_no": 0.07139999999999999,
+        "p1_3_yes": 0.1935,
+        "p1_3_no": 0.044199999999999996,
+        "p2_2_no": 0.2095,
+        "p2_3_yes": 0.0345,
+        "p2_3_no": 0.0571,
+        "p3_3_no": 0.3017
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|ポッパールアー|ゴールデングルーパー|エレクトロベタ|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|ポッパールアー|ゴールデングルーパー|サンダーレッド|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|ポッパールアー|ゴールデングルーパー|ヤースラニボウフィン|アンビシャスルアー": {
+      "discovery": [
+        0.2525,
+        0.302,
+        0.4329
+      ],
+      "guarantee": [
+        0,
+        0,
+        0
+      ],
+      "discovered_guarantee": [
+        0.026099999999999998,
+        0.05,
+        0.036699999999999997
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0.3566,
+        "p1_2_yes": 1,
+        "p1_2_no": 0.1481,
+        "p1_3_yes": 1,
+        "p1_3_no": 0.2281,
+        "p2_2_no": 0.38,
+        "p2_3_yes": 1,
+        "p2_3_no": 0.2857,
+        "p3_3_no": 0.63
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|ポッパールアー|ゴールデングルーパー|ヘリテージグルーパー|アンビシャスルアー": {
+      "discovery": [
+        null,
+        null,
+        null
+      ],
+      "guarantee": [
+        null,
+        null,
+        null
+      ],
+      "discovered_guarantee": [
+        null,
+        null,
+        null
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": null,
+        "p1_2_yes": null,
+        "p1_2_no": null,
+        "p1_3_yes": null,
+        "p1_3_no": null,
+        "p2_2_no": null,
+        "p2_3_yes": null,
+        "p2_3_no": null,
+        "p3_3_no": null
+      }
+    },
+    "アレクサンドリア旧市街|それ以外|ポッパールアー|ゴールデングルーパー|ゴールデングルーパー|アンビシャスルアー": {
+      "discovery": [
+        0,
+        0,
+        0
+      ],
+      "guarantee": [
+        0.032799999999999996,
+        0.08789999999999999,
+        0.12380000000000001
+      ],
+      "discovered_guarantee": [
+        0.076,
+        0.1653,
+        0.1797
+      ],
+      "hidden_hit_rates": {
+        "p1_1_no": 0,
+        "p1_2_yes": 0,
+        "p1_2_no": 0,
+        "p1_3_yes": 0,
+        "p1_3_no": 0,
+        "p2_2_no": 0,
+        "p2_3_yes": 0,
+        "p2_3_no": 0,
+        "p3_3_no": 0
+      }
+    }
+  }
+}

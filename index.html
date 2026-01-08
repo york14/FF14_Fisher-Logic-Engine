@@ -2,121 +2,235 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Fisher’s Logic Engine (v1.9.4)</title>
-    <link rel="stylesheet" href="src/ui/style.css">
-    <script src="src/data/fisherdata.js"></script>
-    <script src="src/logic/engine.js"></script>
-    <script src="src/logic/csv_handler.js"></script>
-    <script src="src/ui/main.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLE Master Converter v1.1</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --log-bg: #0f172a; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { margin: 0; color: var(--primary); font-size: 2rem; }
+        p { color: #64748b; }
+        .card { background: var(--card); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .file-box { border: 2px dashed #e2e8f0; padding: 15px; border-radius: 8px; transition: border-color 0.2s; }
+        .file-box:hover { border-color: var(--primary); }
+        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
+        input[type="file"] { width: 100%; font-size: 0.8rem; }
+        .btn-group { text-align: center; }
+        button { background: var(--primary); color: white; border: none; padding: 12px 40px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: transform 0.1s, background 0.2s; }
+        button:hover { background: #1d4ed8; }
+        button:active { transform: scale(0.98); }
+        #log { background: var(--log-bg); color: #34d399; padding: 20px; border-radius: 8px; font-family: 'Fira Code', monospace; height: 300px; overflow-y: auto; font-size: 0.85rem; border: 1px solid #1e293b; }
+        .status-err { color: #fb7185; }
+        .status-ok { color: #34d399; }
+        .status-info { color: #60a5fa; }
+    </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>Fisher’s Logic Engine <small style="font-size: 0.5em; color: #888;">v1.9.4</small></h1>
-        <div class="tabs">
-            <div id="tabSim" class="tab active" onclick="switchView('sim')">シミュレーター</div>
-            <div id="tabMgmt" class="tab" onclick="switchView('mgmt')">データ管理窓</div>
-        </div>
+        <h1>Fisherman Logic Engine</h1>
+        <p>Master Data Converter v1.1</p>
     </header>
 
-    <div id="simView" class="main-layout">
-        <aside class="sidebar">
-            <details open class="panel collapsible">
-                <summary><h2>◇環境設定</h2></summary>
-                <div class="control-group"><label>釣り場</label><select id="spotSelect" onchange="updateSpotSelections('sim')"></select></div>
-                <div class="control-group"><label>天気 / 時間</label><select id="envSelect" onchange="executeSimulation()"></select></div>
-                <div class="control-group"><label>釣り餌</label><select id="baitSelect" onchange="executeSimulation()"></select></div>
-                <div class="control-group">
-                    <label>ハズレ時の挙動</label>
-                    <select id="skipSelect" onchange="executeSimulation()">
-                        <option value="rest">ハズレをスルー（竿上げ）</option>
-                        <option value="hook" selected>全部釣り上げる</option>
-                    </select>
-                </div>
-                <div class="control-group"><label>トレードリリース対象</label><select id="slapSelect" onchange="executeSimulation()"></select></div>
-            </details>
-
-            <section class="panel">
-                <h2>◇目標・解析設定</h2>
-                <div class="control-group"><label>解析モード</label>
-                    <select id="modeSelect" onchange="updateModeUI()">
-                        <option value="manual" selected>モードA：手動設定</option>
-                        <option value="strategy3">モードB：戦略設定</option>
-                        <option value="optimize">モードC：最適戦略提案</option>
-                    </select>
-                </div>
-                <div class="control-group"><label>ターゲット魚</label><select id="targetSelect" onchange="executeSimulation()"></select></div>
-                <div class="control-group"><label>撒き餌 (Chum)</label><input type="checkbox" id="chumCheck" onchange="executeSimulation()"> 有効</div>
-                
-                <div id="areaModeA" style="margin-top:10px; border-top:1px solid #444; padding-top:10px;">
-                    <div class="control-group"><label>ルアー種類</label>
-                        <select id="lureTypeSelect" onchange="updateModeAUI()">
-                            <option value="none">使用しない</option>
-                            <option value="ambitious">アンビシャス (大型)</option>
-                            <option value="modest">モデスト (小型)</option>
-                        </select>
-                    </div>
-                    <div id="lureActionConfig" class="hidden">
-                        <div class="lure-inline-row" style="display:flex; align-items:center; gap:10px; margin-top:10px;">
-                            <select id="lureCountSelect" onchange="updateModeAUI()" style="width:70px;"></select>
-                            <div id="lureResults" style="display:flex; gap:5px; flex:1;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <button id="execBtn" class="btn btn-calc hidden" onclick="executeSimulation()">シミュレート実行</button>
-            </section>
-        </aside>
-
-        <main>
-            <details class="panel collapsible">
-                <summary><h2>◇内部設定値</h2></summary>
-                <div id="internalParamsContent" style="font-size:0.85rem; padding:10px; color:#ccc;"></div>
-            </details>
-
-            <div class="panel">
-                <h2>シミュレーション結果</h2>
-                <table id="resultTable">
-                    <thead>
-                        <tr><th>魚種</th><th>型</th><th>期待確率</th><th>待機時間</th><th>空白時間</th><th>演出</th></tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-                <div id="yieldArea" style="margin-top:20px; padding:15px; background:var(--highlight-bg); border-radius:4px">
-                    <div id="yieldScore" style="font-size:1.6rem; font-weight:bold; color:var(--accent-color)">--</div>
-                </div>
+    <div class="card">
+        <div class="grid">
+            <div class="file-box">
+                <label>1. 魚種マスタ (.csv)</label>
+                <input type="file" id="csv-fish" accept=".csv">
             </div>
-
-            <details class="panel collapsible">
-                <summary><h2>◇計算式の確認</h2></summary>
-                <div style="font-size:0.8rem; color:#aaa; line-height:1.6; padding:10px;">
-                    <p>●周期 ($T_{Cycle}$) = キャスト(1.0s) + 待機($T_{Final}$) + 演出($D_{Hook}$)</p>
-                    <p>●空白時間 ($T_{Blank}$) = キャスト(1.0s) + ルアー硬直($n \times 2.5s$) + 最小演出(2.5s)</p>
-                </div>
-            </details>
-        </main>
-    </div>
-
-    <div id="mgmtView" class="hidden">
-        <div class="mgmt-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-            <section class="panel">
-                <h2>◇CSVエクスポート</h2>
-                <p style="font-size:0.8rem; color:#888; margin-bottom:15px;">現在の FISHER_DATA をCSV形式で保存します。</p>
-                <button class="btn btn-secondary" onclick="downloadCSV('spots')" style="margin-bottom:10px;">1. 釣り場情報 CSV を保存</button>
-                <button class="btn btn-secondary" onclick="downloadCSV('fish')" style="margin-bottom:10px;">2. 魚テーブル2 CSV を保存</button>
-                <button class="btn btn-secondary" onclick="downloadCSV('probs')" style="margin-bottom:10px;">3. 再抽選確率 CSV を保存</button>
-            </section>
-            <section class="panel">
-                <h2>◇データインポート・統合</h2>
-                <div class="control-group"><label>対象の釣り場</label><select id="mgmtSpotSelect"></select></div>
-                <div class="control-group"><label>CSVファイルの選択 (複数可)</label><input type="file" id="csvFiles" multiple></div>
-                <button class="btn btn-calc" onclick="processCSVUpload()">fisherdata.js を生成・出力</button>
-                <p style="font-size:0.75rem; color:#666; margin-top:10px;">※インポート機能は現在開発中です。</p>
-            </section>
+            <div class="file-box">
+                <label>2. 釣り場定義 (.csv)</label>
+                <input type="file" id="csv-spots" accept=".csv">
+            </div>
+            <div class="file-box">
+                <label>3. 基礎重み・基礎待機時間 (.csv)</label>
+                <input type="file" id="csv-weights" accept=".csv">
+            </div>
+            <div class="file-box">
+                <label>4. 発見・型確定・隠しヒット率 (.csv)</label>
+                <input type="file" id="csv-probs" accept=".csv">
+            </div>
+        </div>
+        <div class="btn-group">
+            <button id="btn-run">統合JSON (fle_master_db.json) を生成</button>
         </div>
     </div>
+
+    <div class="card">
+        <label>処理ログ</label>
+        <div id="log">CSVファイルを選択して実行してください...</div>
+    </div>
 </div>
+
+<script>
+    const logEl = document.getElementById('log');
+
+    function log(msg, type = '') {
+        const div = document.createElement('div');
+        if(type === 'err') div.className = 'status-err';
+        if(type === 'ok') div.className = 'status-ok';
+        if(type === 'info') div.className = 'status-info';
+        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    /**
+     * 数値パース関数
+     * @param {string} val 
+     * @param {boolean} isNullable 空白時にnullを許容するか
+     */
+    function parseNum(val, isNullable = false) {
+        if (val === undefined || val === null) return isNullable ? null : 0;
+        const s = String(val).trim();
+        if (s === "") return isNullable ? null : 0; // ここで空白をnullにする
+        
+        let num = parseFloat(s.replace(/%/g, ''));
+        if (isNaN(num)) return isNullable ? null : 0;
+        
+        return s.includes('%') ? num / 100 : num;
+    }
+
+    function parseCSV(file) {
+        return new Promise((resolve, reject) => {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                complete: res => resolve(res.data),
+                error: err => reject(err)
+            });
+        });
+    }
+
+    document.getElementById('btn-run').addEventListener('click', async () => {
+        const fFish = document.getElementById('csv-fish').files[0];
+        const fSpot = document.getElementById('csv-spots').files[0];
+        const fWeight = document.getElementById('csv-weights').files[0];
+        const fProb = document.getElementById('csv-probs').files[0];
+
+        if (!fFish || !fSpot || !fWeight || !fProb) {
+            alert("4つのCSVファイルをすべて選択してください。");
+            return;
+        }
+
+        logEl.innerHTML = '';
+        log("変換プロセスを開始します...", "info");
+
+        try {
+            const [dFish, dSpot, dWeight, dProb] = await Promise.all([
+                parseCSV(fFish), parseCSV(fSpot), parseCSV(fWeight), parseCSV(fProb)
+            ]);
+
+            const db = {
+                version: "1.1.0",
+                fish: {},
+                spots: {},
+                weights: {},
+                probabilities: {}
+            };
+
+            // 1. 魚種マスタ
+            dFish.forEach(r => {
+                db.fish[r['魚種']] = {
+                    type: r['型'] === '大型' ? 'large_jaws' : 'small_jaws',
+                    vibration: r['演出'].replace(/！/g, '!'),
+                    hook_time: parseNum(r['釣り上げ動作時間']),
+                    is_hidden: r['隠し判定'] == "1",
+                    can_slap: r['トレード可否'] == "1"
+                };
+            });
+            log(`魚種マスタ: ${Object.keys(db.fish).length} 件処理完了`, "ok");
+
+            // 2. 釣り場定義
+            dSpot.forEach(r => {
+                const s = r['釣り場'];
+                if (!db.spots[s]) db.spots[s] = { weather: [], bait: [], fish: [] };
+                const type = r['データ種別'];
+                const val = r['データ'];
+                if (type === '天気 / 時間') db.spots[s].weather.push(val);
+                else if (type === '餌') db.spots[s].bait.push(val);
+                else if (type === '魚種') db.spots[s].fish.push(val);
+            });
+            log(`釣り場定義: ${Object.keys(db.spots).length} 箇所処理完了`, "ok");
+
+            // 3. 基礎重み・待機時間 (Key: Spot|Weather|Bait)
+            dWeight.forEach(r => {
+                const key = `${r['釣り場']}|${r['天気 / 時間']}|${r['餌']}`;
+                if (!db.weights[key]) db.weights[key] = [];
+                db.weights[key].push({
+                    name: r['魚種'],
+                    w: parseNum(r['基礎重み']),
+                    t: parseNum(r['基礎待機時間'])
+                });
+            });
+            log(`重みテーブル: ${Object.keys(db.weights).length} パターン処理完了`, "ok");
+
+            // 4. 発見・ヒット率 (Key: Spot|Weather|Bait|Hidden|Slap|Lure)
+            // ここでは確率パラメータに isNullable = true を適用
+            dProb.forEach(r => {
+                const key = `${r['釣り場']}|${r['天気 / 時間']}|${r['餌']}|${r['対象隠し魚']}|${r['トレード対象']}|${r['ルアー種類']}`;
+                db.probabilities[key] = {
+                    discovery: [
+                        parseNum(r['発見率1'], true), 
+                        parseNum(r['発見率2'], true), 
+                        parseNum(r['発見率3'], true)
+                    ],
+                    guarantee: [
+                        parseNum(r['未発見型確定率1'], true), 
+                        parseNum(r['未発見型確定率2'], true), 
+                        parseNum(r['未発見型確定率3'], true)
+                    ],
+                    discovered_guarantee: [
+                        parseNum(r['発見1型確定率2'], true), 
+                        parseNum(r['発見1型確定率3'], true), 
+                        parseNum(r['発見2型確定率3'], true)
+                    ],
+                    hidden_hit_rates: {
+                        p1_1_no: parseNum(r['発見1型確1なし隠しヒット率1'], true),
+                        p1_2_yes: parseNum(r['発見1型確2あり隠しヒット率2'], true),
+                        p1_2_no: parseNum(r['発見1型確2なし隠しヒット率2'], true),
+                        p1_3_yes: parseNum(r['発見1型確3あり隠しヒット率3'], true),
+                        p1_3_no: parseNum(r['発見1型確3なし隠しヒット率3'], true),
+                        p2_2_no: parseNum(r['発見2型確2なし隠しヒット率2'], true),
+                        p2_3_yes: parseNum(r['発見2型確3あり隠しヒット率3'], true),
+                        p2_3_no: parseNum(r['発見2型確3なし隠しヒット率3'], true),
+                        p3_3_no: parseNum(r['発見3型確3なし隠しヒット率3'], true)
+                    }
+                };
+            });
+            log(`確率テーブル: ${Object.keys(db.probabilities).length} パターン処理完了 (空白は null として保持)`, "ok");
+
+            // JSON出力と保存
+            const jsonStr = JSON.stringify(db, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+
+            if (window.showSaveFilePicker) {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: 'fle_master_db.json',
+                    types: [{ description: 'JSON File', accept: {'application/json': ['.json']} }]
+                });
+                const wr = await handle.createWritable();
+                await wr.write(blob);
+                await wr.close();
+                log("保存完了: fle_master_db.json", "info");
+            } else {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'fle_master_db.json'; a.click();
+                URL.revokeObjectURL(url);
+                log("ブラウザのダウンロードフォルダへ出力しました。", "info");
+            }
+
+        } catch (e) {
+            log(`致命的なエラー: ${e.message}`, "err");
+            console.error(e);
+        }
+    });
+</script>
 
 </body>
 </html>
