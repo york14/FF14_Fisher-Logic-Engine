@@ -1,6 +1,6 @@
 /**
- * FLE Simulator メインロジック v1.10
- * 隠し魚不在時のUI制御と、マスタデータ整合性の強化。
+ * FLE Simulator メインロジック v1.11
+ * 不足データ（Null）の厳密検知、および隠し魚不在時のUI制御を実装。
  */
 
 // --- 【GDS 4.1】 システム固定定数の定義 ---
@@ -18,6 +18,7 @@ const GDS = {
 
 let DB = null; 
 
+// UI要素の取得
 const elSpot = document.getElementById('sel-spot');
 const elWeather = document.getElementById('sel-weather');
 const elBait = document.getElementById('sel-bait');
@@ -29,6 +30,9 @@ const elLureSteps = document.getElementById('step-selectors');
 const elChum = document.getElementById('chk-chum');
 const elCatch = document.getElementById('chk-catch');
 
+/**
+ * データ読み込み処理
+ */
 document.getElementById('json-upload').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -50,17 +54,24 @@ function initSpot() {
     });
 }
 
+/**
+ * 釣り場選択時の連動処理
+ */
 elSpot.addEventListener('change', () => {
     const s = DB.spots[elSpot.value];
     if (!s) return;
+
     fill(elWeather, s.weather);
     fill(elBait, s.bait);
     fill(elTarget, s.fish);
+
+    // トレードリリース候補（隠し魚を含む全てを対象）
     const slappable = s.fish.filter(f => DB.fish[f] && DB.fish[f].can_slap);
     fill(elSlap, slappable, "トレードなし");
-    
-    // 釣り場が変わったらルアー入力欄を再生成（発見の選択肢制御のため）
+
+    // 釣り場が変わったらルアー入力欄を再生成
     if (elLure.value !== "なし") genSteps();
+
     calculate(); 
 });
 
@@ -88,7 +99,7 @@ elLureN.addEventListener('change', genSteps);
 
 /**
  * ルアーアクション回数に応じた入力欄の生成
- * 【修正】釣り場に隠し魚がいない場合、「発見」を選択肢から除外します。
+ * 釣り場に隠し魚がいない場合、「発見」を選択肢から除外します。
  */
 function genSteps() {
     if (!DB || !elSpot.value) return;
@@ -115,6 +126,9 @@ function genSteps() {
 
 [elWeather, elBait, elTarget, elSlap, elChum, elLureN].forEach(e => e.addEventListener('change', calculate));
 
+/**
+ * 【メイン計算エンジン】
+ */
 function calculate() {
     if (!DB || !elSpot.value) return;
 
@@ -126,6 +140,7 @@ function calculate() {
     const lureType = elLure.value;
     const lureN = (lureType === "なし") ? 0 : parseInt(elLureN.value);
 
+    // 未選択項目がある場合は簡易表示
     if (!weather || !bait) {
         renderSimpleFishList(spot);
         return;
@@ -133,6 +148,7 @@ function calculate() {
 
     const debugData = { weightDetails: [], sumW: 0, pHidden: 0, hKey: "", targetTrace: null, error: null };
 
+    // 1. シナリオ判定
     let i_disc = 0; 
     let discCount = 0;
     let has_guar = false;
@@ -165,19 +181,24 @@ function calculate() {
     }
 
     const scenarioText = scenarioParts.join("→");
+
+    // 検索キーの構築
     const hiddenFish = DB.spots[spot].fish.find(f => DB.fish[f].is_hidden) || "なし";
     const probKey = `${spot}|${weather}|${bait}|${hiddenFish}|${slap}|${lureType}`;
     const pData = DB.probabilities[probKey];
 
+    // --- シナリオ発生確率の算出 (GDS 6.2) および Nullチェック ---
     let patternProb = 0;
     if (lureType === "なし") {
         patternProb = null;
     } else {
+        // データ自体の存在チェック
         if (!pData) {
-            debugData.error = "該当するルアー設定のマスタデータが存在しません。";
+            debugData.error = `マスタに該当データがありません。キー: [${probKey}]`;
             showCalculationError(debugData.error);
             return;
         }
+
         patternProb = 1.0;
         let found = false;
         let foundAt = 0;
@@ -188,8 +209,9 @@ function calculate() {
             if (!found) {
                 const dRate = pData.discovery[idx];
                 const gRate = pData.guarantee[idx];
+                // 【新規】計算過程のNullチェック
                 if (dRate === null || gRate === null) {
-                    debugData.error = "マスタデータに確率(Discovery/Guarantee)が定義されていません(null)。";
+                    debugData.error = `マスタ内にNullがあります。項目: [未発見時 確率${t}]`;
                     showCalculationError(debugData.error);
                     return;
                 }
@@ -199,8 +221,9 @@ function calculate() {
             } else {
                 let gIdx = (foundAt === 1) ? (t === 2 ? 0 : 1) : 2;
                 const dgRate = pData.discovered_guarantee[gIdx];
+                // 【新規】計算過程のNullチェック
                 if (dgRate === null) {
-                    debugData.error = "マスタデータに確率(Discovered Guarantee)が定義されていません(null)。";
+                    debugData.error = `マスタ内にNullがあります。項目: [発見済時 型確定率${t}]`;
                     showCalculationError(debugData.error);
                     return;
                 }
@@ -211,11 +234,12 @@ function calculate() {
         }
     }
 
+    // 2. 隠し魚ヒット率 P_Hidden の特定と Nullチェック
     debugData.hKey = i_disc > 0 ? `p${i_disc}_${lureN}_${has_guar ? 'yes' : 'no'}` : "通常抽選(未発見)";
     if (i_disc > 0) {
         const hRate = pData.hidden_hit_rates[debugData.hKey];
         if (hRate === null) {
-            debugData.error = "マスタデータに隠し魚のヒット率が定義されていません(null)。";
+            debugData.error = `マスタ内にNullがあります。項目: [隠し魚ヒット率 ${debugData.hKey}]`;
             showCalculationError(debugData.error);
             return;
         }
@@ -224,6 +248,7 @@ function calculate() {
         debugData.pHidden = 0;
     }
 
+    // 3. 通常魚の重み分配計算
     const M_MAP = { 0: 1.0, 1: GDS.M_N1, 2: GDS.M_N2, 3: GDS.M_N3 };
     const M_val = M_MAP[lureN];
     const lureJaws = (lureType === "アンビシャスルアー") ? "large_jaws" : (lureType === "モデストルアー" ? "small_jaws" : null);
@@ -241,6 +266,7 @@ function calculate() {
         debugData.weightDetails.push({ name: f.name, baseW: f.w, m: m_i, finalW: finalW });
     });
 
+    // 4. タイムライン計算
     const dPre = elChum.checked ? GDS.D_CHUM : 0; 
     const resList = currentWeights.map(f => {
         const meta = DB.fish[f.name];
@@ -272,14 +298,21 @@ function calculate() {
     updateDebugView(debugData, dPre, lureN, efficiency);
 }
 
+/**
+ * エラー表示
+ * 計算過程でNullが検知された場合、テーブルを消してこのメッセージを表示します。
+ */
 function showCalculationError(msg) {
     document.getElementById('debug-scenario').innerHTML = `<span style="color:var(--accent-red)">${msg}</span>`;
     document.getElementById('res-efficiency').innerHTML = `0.00 <small>匹</small>`;
-    document.getElementById('res-table-body').innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">データがありません (${msg})</td></tr>`;
+    document.getElementById('res-table-body').innerHTML = `<tr><td colspan=\"5\" style=\"text-align:center; padding:20px; color:var(--text-muted);\">データがありません<br><small>${msg}</small></td></tr>`;
     document.getElementById('pattern-occurrence').innerText = "";
     document.getElementById('scenario-text').innerText = "";
 }
 
+/**
+ * UI表示更新
+ */
 function updateUI(resList, efficiency, avgCycle, targetName, spotName, scenarioText, patternProb) {
     const tbody = document.getElementById('res-table-body');
     tbody.innerHTML = '';
@@ -305,6 +338,9 @@ function updateUI(resList, efficiency, avgCycle, targetName, spotName, scenarioT
     else patEl.innerText = `ルアー効果シナリオ発生確率: ${(patternProb * 100).toFixed(2)}%`;
 }
 
+/**
+ * 釣り場選択直後の暫定表示
+ */
 function renderSimpleFishList(spotName) {
     const fishNames = DB.spots[spotName].fish;
     const tbody = document.getElementById('res-table-body');
@@ -319,6 +355,9 @@ function renderSimpleFishList(spotName) {
     document.getElementById('scenario-text').innerText = "";
 }
 
+/**
+ * デバッグビューの更新
+ */
 function updateDebugView(debug, dPre, lureN, efficiency) {
     if (debug.error) return;
 
