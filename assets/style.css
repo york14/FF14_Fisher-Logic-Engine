@@ -1,0 +1,35 @@
+/* FLE Simulator Stylesheet */
+:root {
+    --primary: #3b82f6; --bg-dark: #0f172a; --panel-bg: #1e293b;
+    --text-main: #f1f5f9; --text-muted: #94a3b8; --border: #334155;
+    --accent-green: #10b981; --accent-red: #ef4444;
+}
+body { margin: 0; background-color: var(--bg-dark); color: var(--text-main); font-family: sans-serif; }
+.app-container { display: flex; flex-direction: column; height: 100vh; }
+.app-header { background: #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); }
+.main-layout { display: grid; grid-template-columns: 320px 320px 1fr; gap: 15px; padding: 15px; flex-grow: 1; overflow: hidden; }
+.panel { background: var(--panel-bg); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; overflow-y: auto; }
+
+/* デバッグ用装飾 */
+.debug-section { margin-bottom: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
+.debug-section label { font-weight: bold; color: var(--primary); font-size: 0.75rem; display: block; margin-bottom: 5px; }
+.mini-table { font-size: 0.7rem; background: #0f172a; padding: 5px; border-radius: 4px; overflow-x: auto; }
+.mini-table table { width: 100%; border: none; }
+.mini-table td, .mini-table th { padding: 2px 4px; border-bottom: 1px solid #334155; text-align: left; }
+.info-box { background: #0f172a; padding: 8px; border-radius: 4px; font-size: 0.75rem; line-height: 1.4; color: #34d399; }
+.formula-box { background: #0f172a; border-left: 4px solid var(--primary); padding: 8px; font-family: monospace; font-size: 0.7rem; color: #cbd5e1; }
+.math-step { margin-bottom: 4px; border-bottom: 1px dashed #334155; padding-bottom: 2px; }
+
+h3 { margin-top: 0; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary); }
+.input-group { margin-bottom: 12px; }
+label { display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); }
+select { width: 100%; padding: 8px; background: #0f172a; color: white; border: 1px solid var(--border); border-radius: 4px; }
+.toggle-group { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 0.85rem; }
+.metric-card { background: #334155; padding: 12px; border-radius: 6px; text-align: center; margin-bottom: 10px; }
+.metric-card.highlight { border: 2px solid var(--accent-green); }
+.metric-card .value { font-size: 1.5rem; font-weight: bold; color: var(--accent-green); display: block; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th { background: #334155; text-align: left; padding: 8px; position: sticky; top: 0; }   
+td { padding: 8px; border-bottom: 1px solid var(--border); }
+.btn-load { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.hidden { display: none; }

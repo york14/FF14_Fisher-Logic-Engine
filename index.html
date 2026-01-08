@@ -2,235 +2,113 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FLE Master Converter v1.1</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <style>
-        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --log-bg: #0f172a; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; margin: 0; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        header { text-align: center; margin-bottom: 30px; }
-        h1 { margin: 0; color: var(--primary); font-size: 2rem; }
-        p { color: #64748b; }
-        .card { background: var(--card); border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .file-box { border: 2px dashed #e2e8f0; padding: 15px; border-radius: 8px; transition: border-color 0.2s; }
-        .file-box:hover { border-color: var(--primary); }
-        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; }
-        input[type="file"] { width: 100%; font-size: 0.8rem; }
-        .btn-group { text-align: center; }
-        button { background: var(--primary); color: white; border: none; padding: 12px 40px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; transition: transform 0.1s, background 0.2s; }
-        button:hover { background: #1d4ed8; }
-        button:active { transform: scale(0.98); }
-        #log { background: var(--log-bg); color: #34d399; padding: 20px; border-radius: 8px; font-family: 'Fira Code', monospace; height: 300px; overflow-y: auto; font-size: 0.85rem; border: 1px solid #1e293b; }
-        .status-err { color: #fb7185; }
-        .status-ok { color: #34d399; }
-        .status-info { color: #60a5fa; }
-    </style>
+    <title>FLE Simulator v1.5 - Debug Enhanced</title>
+    <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-
-<div class="container">
-    <header>
-        <h1>Fisherman Logic Engine</h1>
-        <p>Master Data Converter v1.1</p>
+<div class="app-container">
+    <header class="app-header">
+        <h1>FISHERMAN LOGIC ENGINE <small>v1.5</small></h1>
+        <div>
+            <span id="db-status" style="color:var(--accent-red); font-size:0.8rem; margin-right:10px;">OFFLINE</span>
+            <button class="btn-load" onclick="document.getElementById('json-upload').click()">Load JSON</button>
+            <input type="file" id="json-upload" class="hidden" accept=".json">
+        </div>
     </header>
 
-    <div class="card">
-        <div class="grid">
-            <div class="file-box">
-                <label>1. 魚種マスタ (.csv)</label>
-                <input type="file" id="csv-fish" accept=".csv">
+    <main class="main-layout">
+        <aside class="panel">
+            <h3>📍 環境・スキル</h3>
+            <div class="input-group">
+                <label>釣り場</label>
+                <select id="sel-spot"><option value="">JSONをロードしてください</option></select>
             </div>
-            <div class="file-box">
-                <label>2. 釣り場定義 (.csv)</label>
-                <input type="file" id="csv-spots" accept=".csv">
+            <div class="input-group">
+                <label>天気/時間</label>
+                <select id="sel-weather" disabled></select>
             </div>
-            <div class="file-box">
-                <label>3. 基礎重み・基礎待機時間 (.csv)</label>
-                <input type="file" id="csv-weights" accept=".csv">
+            <div class="input-group">
+                <label>餌</label>
+                <select id="sel-bait" disabled></select>
             </div>
-            <div class="file-box">
-                <label>4. 発見・型確定・隠しヒット率 (.csv)</label>
-                <input type="file" id="csv-probs" accept=".csv">
+            <div class="input-group">
+                <label>ターゲット魚</label>
+                <select id="sel-target" disabled></select>
             </div>
-        </div>
-        <div class="btn-group">
-            <button id="btn-run">統合JSON (fle_master_db.json) を生成</button>
-        </div>
-    </div>
+            
+            <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+            
+            <div class="toggle-group">
+                <input type="checkbox" id="chk-chum"> <span>撒き餌 (Chum)</span>
+            </div>
+            <div class="toggle-group">
+                <input type="checkbox" id="chk-catch"> <span>全部釣り上げる</span>
+            </div>
+            
+            <div class="input-group">
+                <label>トレードリリース</label>
+                <select id="sel-slap" disabled></select>
+            </div>
+            <div class="input-group">
+                <label>ルアー種類</label>
+                <select id="sel-lure">
+                    <option value="なし">使用しない</option>
+                    <option value="アンビシャスルアー">アンビシャスルアー</option>
+                    <option value="モデストルアー">モデストルアー</option>
+                </select>
+            </div>
 
-    <div class="card">
-        <label>処理ログ</label>
-        <div id="log">CSVファイルを選択して実行してください...</div>
-    </div>
+            <div id="lure-steps-area" class="hidden">
+                <div class="input-group">
+                    <label>ルアー回数</label>
+                    <select id="sel-lure-n">
+                        <option value="1">1回</option><option value="2">2回</option><option value="3">3回</option>
+                    </select>
+                </div>
+                <div id="step-selectors"></div>
+            </div>
+        </aside>
+
+        <article class="panel debug-panel">
+            <h3>⚙️ デバッグ・解析ビュー</h3>
+            
+            <div class="debug-section">
+                <label>【GDS定数】</label>
+                <div id="debug-constants" class="mini-table"></div>
+            </div>
+
+            <div class="debug-section">
+                <label>【シナリオ解析】</label>
+                <div id="debug-scenario" class="info-box"></div>
+            </div>
+
+            <div class="debug-section">
+                <label>【重み・確率分配の内訳】</label>
+                <div id="debug-weights" class="mini-table"></div>
+            </div>
+
+            <div class="debug-section">
+                <label>【数式の実行トレース】</label>
+                <div id="debug-math" class="formula-box"></div>
+            </div>
+        </article>
+
+        <section class="panel">
+            <div class="metric-card highlight">
+                <span style="font-size:0.8rem;">3分間期待釣果 (Target)</span>
+                <span id="res-efficiency" class="value">0.00 <small>匹</small></span>
+            </div>
+            <h3>📊 ヒット率一覧</h3>
+            <table>
+                <thead><tr><th>魚種</th><th>演出</th><th>確率</th><th>待機</th></tr></thead>
+                <tbody id="res-table-body"></tbody>
+            </table>
+            <div style="margin-top:15px; font-size:0.8rem; color:var(--text-muted);">
+                平均サイクル時間: <span id="res-cycle">0.0</span>s
+            </div>
+        </section>
+    </main>
 </div>
-
-<script>
-    const logEl = document.getElementById('log');
-
-    function log(msg, type = '') {
-        const div = document.createElement('div');
-        if(type === 'err') div.className = 'status-err';
-        if(type === 'ok') div.className = 'status-ok';
-        if(type === 'info') div.className = 'status-info';
-        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        logEl.appendChild(div);
-        logEl.scrollTop = logEl.scrollHeight;
-    }
-
-    /**
-     * 数値パース関数
-     * @param {string} val 
-     * @param {boolean} isNullable 空白時にnullを許容するか
-     */
-    function parseNum(val, isNullable = false) {
-        if (val === undefined || val === null) return isNullable ? null : 0;
-        const s = String(val).trim();
-        if (s === "") return isNullable ? null : 0; // ここで空白をnullにする
-        
-        let num = parseFloat(s.replace(/%/g, ''));
-        if (isNaN(num)) return isNullable ? null : 0;
-        
-        return s.includes('%') ? num / 100 : num;
-    }
-
-    function parseCSV(file) {
-        return new Promise((resolve, reject) => {
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                complete: res => resolve(res.data),
-                error: err => reject(err)
-            });
-        });
-    }
-
-    document.getElementById('btn-run').addEventListener('click', async () => {
-        const fFish = document.getElementById('csv-fish').files[0];
-        const fSpot = document.getElementById('csv-spots').files[0];
-        const fWeight = document.getElementById('csv-weights').files[0];
-        const fProb = document.getElementById('csv-probs').files[0];
-
-        if (!fFish || !fSpot || !fWeight || !fProb) {
-            alert("4つのCSVファイルをすべて選択してください。");
-            return;
-        }
-
-        logEl.innerHTML = '';
-        log("変換プロセスを開始します...", "info");
-
-        try {
-            const [dFish, dSpot, dWeight, dProb] = await Promise.all([
-                parseCSV(fFish), parseCSV(fSpot), parseCSV(fWeight), parseCSV(fProb)
-            ]);
-
-            const db = {
-                version: "1.1.0",
-                fish: {},
-                spots: {},
-                weights: {},
-                probabilities: {}
-            };
-
-            // 1. 魚種マスタ
-            dFish.forEach(r => {
-                db.fish[r['魚種']] = {
-                    type: r['型'] === '大型' ? 'large_jaws' : 'small_jaws',
-                    vibration: r['演出'].replace(/！/g, '!'),
-                    hook_time: parseNum(r['釣り上げ動作時間']),
-                    is_hidden: r['隠し判定'] == "1",
-                    can_slap: r['トレード可否'] == "1"
-                };
-            });
-            log(`魚種マスタ: ${Object.keys(db.fish).length} 件処理完了`, "ok");
-
-            // 2. 釣り場定義
-            dSpot.forEach(r => {
-                const s = r['釣り場'];
-                if (!db.spots[s]) db.spots[s] = { weather: [], bait: [], fish: [] };
-                const type = r['データ種別'];
-                const val = r['データ'];
-                if (type === '天気 / 時間') db.spots[s].weather.push(val);
-                else if (type === '餌') db.spots[s].bait.push(val);
-                else if (type === '魚種') db.spots[s].fish.push(val);
-            });
-            log(`釣り場定義: ${Object.keys(db.spots).length} 箇所処理完了`, "ok");
-
-            // 3. 基礎重み・待機時間 (Key: Spot|Weather|Bait)
-            dWeight.forEach(r => {
-                const key = `${r['釣り場']}|${r['天気 / 時間']}|${r['餌']}`;
-                if (!db.weights[key]) db.weights[key] = [];
-                db.weights[key].push({
-                    name: r['魚種'],
-                    w: parseNum(r['基礎重み']),
-                    t: parseNum(r['基礎待機時間'])
-                });
-            });
-            log(`重みテーブル: ${Object.keys(db.weights).length} パターン処理完了`, "ok");
-
-            // 4. 発見・ヒット率 (Key: Spot|Weather|Bait|Hidden|Slap|Lure)
-            // ここでは確率パラメータに isNullable = true を適用
-            dProb.forEach(r => {
-                const key = `${r['釣り場']}|${r['天気 / 時間']}|${r['餌']}|${r['対象隠し魚']}|${r['トレード対象']}|${r['ルアー種類']}`;
-                db.probabilities[key] = {
-                    discovery: [
-                        parseNum(r['発見率1'], true), 
-                        parseNum(r['発見率2'], true), 
-                        parseNum(r['発見率3'], true)
-                    ],
-                    guarantee: [
-                        parseNum(r['未発見型確定率1'], true), 
-                        parseNum(r['未発見型確定率2'], true), 
-                        parseNum(r['未発見型確定率3'], true)
-                    ],
-                    discovered_guarantee: [
-                        parseNum(r['発見1型確定率2'], true), 
-                        parseNum(r['発見1型確定率3'], true), 
-                        parseNum(r['発見2型確定率3'], true)
-                    ],
-                    hidden_hit_rates: {
-                        p1_1_no: parseNum(r['発見1型確1なし隠しヒット率1'], true),
-                        p1_2_yes: parseNum(r['発見1型確2あり隠しヒット率2'], true),
-                        p1_2_no: parseNum(r['発見1型確2なし隠しヒット率2'], true),
-                        p1_3_yes: parseNum(r['発見1型確3あり隠しヒット率3'], true),
-                        p1_3_no: parseNum(r['発見1型確3なし隠しヒット率3'], true),
-                        p2_2_no: parseNum(r['発見2型確2なし隠しヒット率2'], true),
-                        p2_3_yes: parseNum(r['発見2型確3あり隠しヒット率3'], true),
-                        p2_3_no: parseNum(r['発見2型確3なし隠しヒット率3'], true),
-                        p3_3_no: parseNum(r['発見3型確3なし隠しヒット率3'], true)
-                    }
-                };
-            });
-            log(`確率テーブル: ${Object.keys(db.probabilities).length} パターン処理完了 (空白は null として保持)`, "ok");
-
-            // JSON出力と保存
-            const jsonStr = JSON.stringify(db, null, 2);
-            const blob = new Blob([jsonStr], { type: 'application/json' });
-
-            if (window.showSaveFilePicker) {
-                const handle = await window.showSaveFilePicker({
-                    suggestedName: 'fle_master_db.json',
-                    types: [{ description: 'JSON File', accept: {'application/json': ['.json']} }]
-                });
-                const wr = await handle.createWritable();
-                await wr.write(blob);
-                await wr.close();
-                log("保存完了: fle_master_db.json", "info");
-            } else {
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = 'fle_master_db.json'; a.click();
-                URL.revokeObjectURL(url);
-                log("ブラウザのダウンロードフォルダへ出力しました。", "info");
-            }
-
-        } catch (e) {
-            log(`致命的なエラー: ${e.message}`, "err");
-            console.error(e);
-        }
-    });
-</script>
-
+<script src="assets/main.js"></script>
 </body>
 </html>
