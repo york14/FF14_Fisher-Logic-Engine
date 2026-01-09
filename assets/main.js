@@ -1,26 +1,21 @@
 /**
- * FLE Simulator メインロジック v2.0
- * ステップ2：戦略評価モードの導入と「L3固定戦略」の合算ロジック実装。
- * フェーズ1の全機能（リサイズ、解析表示、高速描画）を維持した完全版。
+ * FLE Simulator メインロジック v1.5
+ * 修正11：デバッグビューの重み表において、隠し魚を常に合計行の下に表示するよう調整。
  */
 
-// --- 【GDS 4.1】 システム固定定数の定義 ---
 const GDS = {
     D_CAST: 1.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0, C_CHUM: 0.6,
     M_N1: 1.5, M_N2: 2.0, M_N3: 6.0
 };
 
-let DB = null; 
-let currentMode = 'manual'; // 'manual' or 'strategy'
+let DB = null;
 
-// UI要素の取得
 const elSpot = document.getElementById('sel-spot');
 const elWeather = document.getElementById('sel-weather');
 const elBait = document.getElementById('sel-bait');
 const elTarget = document.getElementById('sel-target');
 const elSlap = document.getElementById('sel-slap');
-const elLureManual = document.getElementById('sel-lure');
-const elLureStrat = document.getElementById('sel-lure-strat');
+const elLure = document.getElementById('sel-lure');
 const elLureN = document.getElementById('sel-lure-n');
 const elLureSteps = document.getElementById('step-selectors');
 const elChum = document.getElementById('chk-chum');
@@ -28,374 +23,78 @@ const elCatch = document.getElementById('chk-catch');
 const elLayout = document.getElementById('main-layout');
 
 /**
- * モード切替の処理
- */
-function switchMode(mode) {
-    currentMode = mode;
-    document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
-    
-    // UIコンテナの表示制御
-    document.getElementById('manual-controls').classList.toggle('hidden', mode !== 'manual');
-    document.getElementById('strategy-controls').classList.toggle('hidden', mode !== 'strategy');
-    
-    // 戦略モード時は数式トレースセクションを隠す
-    const debugMath = document.getElementById('debug-math').parentElement;
-    if (debugMath) debugMath.classList.toggle('hidden', mode === 'strategy');
-    
-    calculate();
-}
-
-/**
- * 指定された単一シナリオの結果を評価する (コアエンジン)
- * @param {Object} params { lureCount, discoveryStep, isGuaranteed }
- * @returns {Object} 期待値計算に必要な中間データ
- */
-function evaluateScenario(params) {
-    const { lureCount, discoveryStep, isGuaranteed } = params;
-    const spot = elSpot.value;
-    const weather = elWeather.value;
-    const bait = elBait.value;
-    const targetFishName = elTarget.value;
-    const tradeSlapFish = elSlap.value;
-    
-    // モードに応じたルアー種類の取得
-    const lureType = (currentMode === 'manual') ? elLureManual.value : elLureStrat.value;
-
-    const spotData = DB.spots[spot];
-    const hiddenFishName = spotData.fish.find(name => DB.fish[name] && DB.fish[name].is_hidden) || "なし";
-    const probKey = `${spot}|${weather}|${bait}|${hiddenFishName}|${tradeSlapFish}|${lureType}`;
-    const pData = DB.probabilities[probKey];
-    if (!pData) return null;
-
-    // 1. シナリオ発生確率 P(Scenario) の計算
-    let pScenario = 1.0;
-    let found = false, foundAt = 0;
-    let scenarioChain = [];
-    for (let t = 1; t <= lureCount; t++) {
-        let p_t = 0;
-        const isDiscoveryStep = (discoveryStep === t);
-        const isStepGuar = (t === lureCount && isGuaranteed); // 最終回のみ判定
-
-        if (!found) {
-            const dRate = pData.discovery[t-1], gRate = pData.guarantee[t-1];
-            if (isDiscoveryStep) { p_t = dRate; found = true; foundAt = t; }
-            else if (isStepGuar) { p_t = (1 - dRate) * gRate; }
-            else { p_t = (1 - dRate) * (1 - gRate); }
-        } else {
-            const gIdx = getDiscoveredGuaranteeIndex(foundAt, t);
-            if (gIdx === -1) return null;
-            const dgRate = pData.discovered_guarantee[gIdx];
-            p_t = isStepGuar ? dgRate : (1 - dgRate);
-        }
-        pScenario *= p_t;
-        scenarioChain.push(p_t);
-    }
-
-    // 2. 隠し魚ヒット率の特定
-    const hKey = discoveryStep > 0 ? `p${discoveryStep}_${lureCount}_${isGuaranteed ? 'yes' : 'no'}` : "通常抽選(未発見)";
-    const pHidden = discoveryStep > 0 ? (pData.hidden_hit_rates[hKey] || 0) : 0;
-
-    // 3. 重み計算と個別確率の算出
-    const M_MAP = { 0: 1.0, 1: GDS.M_N1, 2: GDS.M_N2, 3: GDS.M_N3 };
-    const lureJaws = (lureType === "アンビシャスルアー") ? "large_jaws" : (lureType === "モデストルアー" ? "small_jaws" : null);
-    const spotWeights = DB.weights[`${spot}|${weather}|${bait}`] || [];
-
-    let sumWeight = 0;
-    let weightDetails = [];
-
-    spotWeights.forEach(f => {
-        const meta = DB.fish[f.name];
-        const isHidden = (f.name === hiddenFishName);
-        if (!isHidden) {
-            const isMatch = (meta.type === lureJaws);
-            let mMultiplier = isMatch ? M_MAP[lureCount] : 1.0;
-            if (isGuaranteed && !isMatch) mMultiplier = 0;
-            if (f.name === tradeSlapFish) mMultiplier = 0;
-            
-            const finalWeight = f.w * mMultiplier;
-            sumWeight += finalWeight;
-            weightDetails.push({ name: f.name, baseWeight: f.w, m: mMultiplier, finalWeight, isHidden: false });
-        } else {
-            weightDetails.push({ name: f.name, baseWeight: 0, m: 0, finalWeight: 0, isHidden: true });
-        }
-    });
-
-    // 4. 結果リスト（ヒット率と時間）の生成
-    const preActionDuration = elChum.checked ? GDS.D_CHUM : 0;
-    const minLureWaitTime = GDS.D_CAST + (lureCount * GDS.D_LURE) + GDS.D_BLK;
-
-    let targetProb = 0;
-    let targetTrace = null;
-    let avgCycleTime = 0;
-    const resultList = weightDetails.map(d => {
-        const meta = DB.fish[d.name];
-        const sw = spotWeights.find(s => s.name === d.name);
-        
-        let prob = d.isHidden ? pHidden : (sumWeight > 0 ? (d.finalWeight / sumWeight) * (1 - pHidden) : 0);
-        
-        const correctedBiteTime = sw.t * (elChum.checked ? GDS.C_CHUM : 1.0);
-        const effectiveWaitTime = Math.max(correctedBiteTime, minLureWaitTime);
-        const endActionDuration = elCatch.checked ? meta.hook_time : GDS.D_REST;
-        const totalCycleTime = preActionDuration + GDS.D_CAST + effectiveWaitTime + endActionDuration;
-
-        avgCycleTime += prob * totalCycleTime;
-        if (d.name === targetFishName) targetProb = prob;
-
-        const item = { 
-            name: d.name, vibe: meta.vibration, prob, correctedBiteTime, minLureWaitTime, 
-            effectiveWaitTime, endActionDuration, totalCycleTime 
-        };
-        if (d.name === targetFishName) targetTrace = item;
-        return item;
-    });
-
-    return { 
-        pScenario, scenarioChain, targetProb, avgCycleTime, resultList, 
-        weightDetails, sumWeight, pHidden, hKey, targetTrace 
-    };
-}
-
-/**
- * 計算のエントリポイント
- */
-function calculate() {
-    if (!DB || !elSpot.value) return;
-    if (currentMode === 'strategy') calculateStrategy();
-    else calculateManual();
-}
-
-/**
- * モード1：手動設定（1つのシナリオを詳細解析）
- */
-function calculateManual() {
-    const lureN = (elLureManual.value === "なし") ? 0 : parseInt(elLureN.value);
-    const weather = elWeather.value;
-    const bait = elBait.value;
-
-    if (!weather || !bait) {
-        renderSimpleFishList(elSpot.value);
-        return;
-    }
-
-    let discoveryStep = 0, isGuaranteed = false;
-    const stepSelects = document.querySelectorAll('.l-step');
-    stepSelects.forEach((s, i) => {
-        if (s.value === "発見" && discoveryStep === 0) discoveryStep = i + 1;
-        if (i === lureN - 1) isGuaranteed = (s.value === "型確定");
-    });
-
-    const res = evaluateScenario({ lureCount: lureN, discoveryStep, isGuaranteed });
-    if (!res) { showCalculationError("データ未登録"); return; }
-
-    // UIの更新
-    const targetFish = DB.fish[elTarget.value];
-    const dEndTarget = elCatch.checked ? (targetFish ? targetFish.hook_time : GDS.D_REST) : GDS.D_REST;
-    const efficiency = (res.targetProb > 0) ? (res.avgCycleTime - (res.targetProb * dEndTarget)) / res.targetProb : 0;
-
-    updateUI(res.resultList, efficiency, res.avgCycleTime, elTarget.value, elSpot.value, "", res.pScenario);
-    updateDebugView(res, elChum.checked ? GDS.D_CHUM : 0, lureN, efficiency, res.avgCycleTime, res.pScenario);
-}
-
-/**
- * モード2：戦略評価（全シナリオを加重平均で合算）
- */
-function calculateStrategy() {
-    const lureType = elLureStrat.value;
-    const stratPreset = document.getElementById('sel-strategy-preset').value;
-
-    if (lureType === "なし" || stratPreset === "none") {
-        showCalculationError("戦略またはルアーを選択してください。");
-        return;
-    }
-
-    // 戦略「必ず3回使う」の末端シナリオの定義
-    const scenarios = [
-        { discoveryStep: 1, lureCount: 3, isGuaranteed: true },
-        { discoveryStep: 1, lureCount: 3, isGuaranteed: false },
-        { discoveryStep: 2, lureCount: 3, isGuaranteed: true },
-        { discoveryStep: 2, lureCount: 3, isGuaranteed: false },
-        { discoveryStep: 3, lureCount: 3, isGuaranteed: false },
-        { discoveryStep: 0, lureCount: 3, isGuaranteed: true },
-        { discoveryStep: 0, lureCount: 3, isGuaranteed: false }
-    ];
-
-    let totalP_Target = 0;
-    let totalT_Cycle = 0;
-
-    scenarios.forEach(s => {
-        const res = evaluateScenario(s);
-        if (res) {
-            totalP_Target += res.pScenario * res.targetProb;
-            totalT_Cycle += res.pScenario * res.avgCycleTime;
-        }
-    });
-
-    const targetFish = DB.fish[elTarget.value];
-    const dEndTarget = elCatch.checked ? (targetFish ? targetFish.hook_time : GDS.D_REST) : GDS.D_REST;
-    const efficiency = (totalP_Target > 0) ? (totalT_Cycle - (totalP_Target * dEndTarget)) / totalP_Target : 0;
-
-    updateStrategyUI(efficiency, totalT_Cycle, totalP_Target);
-}
-
-/**
- * 戦略モード専用のUI更新
- */
-function updateStrategyUI(efficiency, cycle, hitRate) {
-    document.getElementById('res-efficiency').innerHTML = (efficiency > 0) ? `${efficiency.toFixed(1)} <small>秒</small>` : `- <small>秒</small>`;
-    document.getElementById('res-cycle').innerText = cycle.toFixed(1);
-    document.getElementById('pattern-occurrence').innerText = `戦略成立確率: 100.00% (全シナリオ合算)`;
-    document.getElementById('scenario-text').innerText = `戦略: 全アクション実行（L3固定）`;
-    
-    const tbody = document.getElementById('res-table-body');
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-muted);">
-        戦略モードでは全体の期待値のみ算出されます。<br>
-        ターゲット獲得率: ${(hitRate * 100).toFixed(2)}%
-    </td></tr>`;
-}
-
-/**
- * 手動モード用：UI更新ロジック (DocumentFragment最適化済)
- */
-function updateUI(resultList, efficiency, avgCycleTime, targetName, spotName, scenarioText, pScenario) {
-    const elTableBody = document.getElementById('res-table-body');
-    const elFragment = document.createDocumentFragment();
-
-    document.getElementById('res-efficiency').innerHTML = (efficiency > 0) ? `${efficiency.toFixed(1)} <small>秒</small>` : `- <small>秒</small>`;
-    document.getElementById('res-cycle').innerText = avgCycleTime.toFixed(1);
-    
-    const spotFishOrder = DB.spots[spotName].fish;
-    spotFishOrder.forEach(name => {
-        const item = resultList.find(res => res.name === name);
-        if (!item) return;
-
-        const elTr = document.createElement('tr');
-        if (item.name === targetName) { 
-            elTr.style.backgroundColor = "rgba(59, 130, 246, 0.2)"; 
-            elTr.style.fontWeight = "bold"; 
-        }
-        const waitDisp = (item.prob > 0) ? `${item.correctedBiteTime.toFixed(1)}s` : "-";
-        const cycleDisp = (item.prob > 0) ? `${item.totalCycleTime.toFixed(1)}s` : "-";
-        
-        elTr.innerHTML = `<td>${name}</td><td>${item.vibe}</td><td>${(item.prob * 100).toFixed(1)}%</td><td>${waitDisp}</td><td>${cycleDisp}</td>`;
-        elFragment.appendChild(elTr);
-    });
-
-    elTableBody.innerHTML = '';
-    elTableBody.appendChild(elFragment);
-    document.getElementById('pattern-occurrence').innerText = `ルアー効果シナリオ発生確率: ${(pScenario * 100).toFixed(2)}%`;
-}
-
-/**
- * 手動モード用：デバッグビュー更新
- */
-function updateDebugView(res, preDuration, lureCount, efficiency, avgCycleTime, pScenario) {
-    document.getElementById('debug-constants').innerHTML = `D_Cast:${GDS.D_CAST}s | D_Lure:${GDS.D_LURE}s | D_Blk:${GDS.D_BLK}s | C_Chum:${GDS.C_CHUM}x`;
-    
-    let scenarioHtml = `特定キー: <strong>${res.hKey}</strong><br>`;
-    scenarioHtml += `発生率: ${res.scenarioChain.map(p => p.toFixed(3)).join(' × ')} = <strong>${(pScenario * 100).toFixed(2)}%</strong><br>`;
-    scenarioHtml += `隠しヒット率 $P_{Hidden}$: <strong>${(res.pHidden * 100).toFixed(2)}%</strong>`;
-    document.getElementById('debug-scenario').innerHTML = scenarioHtml;
-
-    let weightTable = '<table><tr><th>魚種</th><th>基礎w</th><th>M</th><th>補正w</th><th>率</th></tr>';
-    res.weightDetails.filter(d => !d.isHidden).forEach(d => {
-        const p = (res.sumWeight > 0) ? (d.finalWeight / res.sumWeight) * (1 - res.pHidden) : 0;
-        weightTable += `<tr><td>${d.name}</td><td>${d.baseWeight}</td><td>x${d.m}</td><td>${d.finalWeight.toFixed(1)}</td><td>${(p * 100).toFixed(1)}%</td></tr>`;
-    });
-    weightTable += `<tr><td colspan="3">通常魚計 $\\sum W$</td><td><strong>${res.sumWeight.toFixed(1)}</strong></td><td>-</td></tr>`;
-    
-    const hidden = res.weightDetails.find(d => d.isHidden);
-    if (hidden && res.pHidden > 0) {
-        weightTable += `<tr><td>${hidden.name} (隠し)</td><td>-</td><td>-</td><td>-</td><td><strong>${(res.pHidden * 100).toFixed(1)}%</strong></td></tr>`;
-    }
-    document.getElementById('debug-weights').innerHTML = weightTable + '</table>';
-
-    if (res.targetTrace) {
-        const t = res.targetTrace;
-        const effDisp = (efficiency > 0) ? `${efficiency.toFixed(1)}秒` : "- (釣れない)";
-        document.getElementById('debug-math').innerHTML = `
-            <div class="math-step">実効待機 $T_{Final}$: max(${t.correctedBiteTime.toFixed(1)}, ${t.minLureWaitTime.toFixed(1)}) = <strong>${t.effectiveWaitTime.toFixed(1)}s</strong></div>
-            <div class="math-step">$T_{Cycle}$: ${preDuration}(Pre) + ${GDS.D_CAST}(Cast) + ${t.effectiveWaitTime.toFixed(1)}(Wait) + ${t.endActionDuration}(End) = <strong>${t.totalCycleTime.toFixed(1)}s</strong></div>
-            <div class="math-step" style="color:var(--accent-green)">期待時間: ${(avgCycleTime - (t.prob * t.endActionDuration)).toFixed(2)} / ${t.prob.toFixed(3)} = <strong>${effDisp}</strong></div>
-        `;
-    }
-}
-
-/**
- * リサイズ機能
+ * リサイズ機能の初期化
  */
 function initResizers() {
-    const elResLeft = document.getElementById('resizer-left');
-    const elResRight = document.getElementById('resizer-right');
+    const elResizerLeft = document.getElementById('resizer-left');
+    const elResizerRight = document.getElementById('resizer-right');
     let isDragging = false;
     let currentResizer = null;
 
-    const onMouseDown = (e) => { isDragging = true; currentResizer = e.target; document.body.style.userSelect = 'none'; };
+    const onMouseDown = (e) => {
+        isDragging = true;
+        currentResizer = e.target;
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+    };
+
     const onMouseMove = (e) => {
         if (!isDragging) return;
-        const rect = elLayout.getBoundingClientRect();
-        const relX = e.clientX - rect.left;
-        const cols = window.getComputedStyle(elLayout).getPropertyValue('grid-template-columns').split(' ');
-        if (currentResizer === elResLeft) cols[0] = `${Math.max(200, Math.min(500, relX))}px`;
-        else if (currentResizer === elResResRight) cols[2] = `${Math.max(300, Math.min(800, relX - parseInt(cols[0]) - 8))}px`;
-        elLayout.style.gridTemplateColumns = cols.join(' ');
-    };
-    const onMouseUp = () => { isDragging = false; document.body.style.userSelect = 'auto'; };
+        const containerRect = elLayout.getBoundingClientRect();
+        const relativeX = e.clientX - containerRect.left;
+        const style = window.getComputedStyle(elLayout);
+        const columns = style.getPropertyValue('grid-template-columns').split(' ');
+        const barWidth = 8;
 
-    elResLeft.addEventListener('mousedown', onMouseDown);
-    elResRight.addEventListener('mousedown', onMouseDown);
+        if (currentResizer === elResizerLeft) {
+            const newWidth = Math.max(200, Math.min(500, relativeX));
+            columns[0] = `${newWidth}px`;
+        } else if (currentResizer === elResizerRight) {
+            const leftWidth = parseInt(columns[0]);
+            const newMiddleWidth = Math.max(300, Math.min(800, relativeX - leftWidth - barWidth));
+            columns[2] = `${newMiddleWidth}px`;
+        }
+        elLayout.style.gridTemplateColumns = columns.join(' ');
+    };
+
+    const onMouseUp = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        currentResizer = null;
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+    };
+
+    elResizerLeft.addEventListener('mousedown', onMouseDown);
+    elResizerRight.addEventListener('mousedown', onMouseDown);
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
 }
 
-// --- 初期化・データロード系 ---
+initResizers();
 
-function initSpot() {
-    elSpot.innerHTML = ''; 
-    const names = Object.keys(DB.spots);
-    names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; elSpot.appendChild(o); });
-    if (names.length > 0) elSpot.dispatchEvent(new Event('change'));
-}
+function toggleDebugView() {
+    const elPanel = document.getElementById('debug-panel');
+    const elMsg = document.getElementById('debug-toggle-msg');
+    const isCollapsed = elLayout.classList.contains('debug-collapsed');
 
-elSpot.addEventListener('change', () => {
-    const data = DB.spots[elSpot.value];
-    if (!data) return;
-    fillSelector(elWeather, data.weather);
-    fillSelector(elBait, data.bait);
-    fillSelector(elTarget, data.fish);
-    fillSelector(elSlap, data.fish.filter(f => DB.fish[f] && DB.fish[f].can_slap), "なし");
-    genLureStepsUI(); 
-    calculate(); 
-});
-
-function fillSelector(el, list, def) {
-    el.innerHTML = def ? `<option value="なし">${def}</option>` : '';
-    list.forEach(i => { const o = document.createElement('option'); o.value = i; o.textContent = i; el.appendChild(o); });
-    el.disabled = false;
-}
-
-function genLureStepsUI() {
-    if (!DB || !elSpot.value) return;
-    elLureSteps.innerHTML = ''; 
-    if (elLureManual.value === "なし") return;
-    const hasHidden = DB.spots[elSpot.value].fish.some(f => DB.fish[f] && DB.fish[f].is_hidden);
-    const n = parseInt(elLureN.value);
-    for(let i = 1; i <= n; i++) {
-        const d = document.createElement('div'); d.className = 'input-group';
-        let opts = `<option value="なし">なし</option>`;
-        if (hasHidden) opts += `<option value="発見">発見</option>`;
-        opts += `<option value="型確定">型確定</option>`;
-        d.innerHTML = `<label>ルアー使用${i}</label><select class="l-step">${opts}</select>`;
-        elLureSteps.appendChild(d);
-        d.querySelector('select').addEventListener('change', calculate);
+    if (isCollapsed) {
+        elLayout.classList.remove('debug-collapsed');
+        elPanel.classList.remove('collapsed');
+        elMsg.textContent = "(クリックで閉じる)";
+    } else {
+        elLayout.classList.add('debug-collapsed');
+        elPanel.classList.add('collapsed');
+        elMsg.textContent = "(展開)";
     }
 }
 
-document.getElementById('json-upload').addEventListener('change', (e) => {
-    const file = e.target.files[0];
+document.getElementById('json-upload').addEventListener('change', (event) => {
+    const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-        DB = JSON.parse(ev.target.result);
+    reader.onload = (fileEvent) => {
+        DB = JSON.parse(fileEvent.target.result);
         document.getElementById('db-status').textContent = "ONLINE";
         document.getElementById('db-status').style.color = "#22c55e";
         initSpot();
@@ -403,46 +102,316 @@ document.getElementById('json-upload').addEventListener('change', (e) => {
     reader.readAsText(file);
 });
 
-function toggleDebugView() {
-    const panel = document.getElementById('debug-panel');
-    const msg = document.getElementById('debug-toggle-msg');
-    const isColl = elLayout.classList.toggle('debug-collapsed');
-    panel.classList.toggle('collapsed', isColl);
-    msg.textContent = isColl ? "(展開)" : "(クリックで閉じる)";
-}
-
-function showCalculationError(msg) {
-    document.getElementById('debug-scenario').innerHTML = `<span style="color:var(--accent-red)">${msg}</span>`;
-    document.getElementById('res-efficiency').innerHTML = `- <small>秒</small>`;
-    document.getElementById('res-table-body').innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">${msg}</td></tr>`;
-}
-
-function renderSimpleFishList(spotName) {
-    const names = DB.spots[spotName].fish;
-    const body = document.getElementById('res-table-body');
-    const frag = document.createDocumentFragment();
-    names.forEach(n => {
-        const meta = DB.fish[n];
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${n}</td><td>${meta ? meta.vibration : '--'}</td><td>--%</td><td>--s</td><td>--s</td>`;
-        frag.appendChild(tr);
+function initSpot() {
+    elSpot.innerHTML = '';
+    const spotNames = Object.keys(DB.spots);
+    spotNames.forEach(name => {
+        const elOption = document.createElement('option');
+        elOption.value = name; elOption.textContent = name; elSpot.appendChild(elOption);
     });
-    body.innerHTML = ''; body.appendChild(frag);
+    if (spotNames.length > 0) {
+        elSpot.dispatchEvent(new Event('change'));
+    }
 }
 
-function getDiscoveredGuaranteeIndex(discStep, currStep) {
-    if (discStep === 1) return (currStep === 2) ? 0 : 1;
-    if (discStep === 2) return 2;
-    return -1;
+elSpot.addEventListener('change', () => {
+    const spotData = DB.spots[elSpot.value];
+    if (!spotData) return;
+    fillSelector(elWeather, spotData.weather);
+    fillSelector(elBait, spotData.bait);
+    fillSelector(elTarget, spotData.fish);
+    const slappableFish = spotData.fish.filter(fishName => DB.fish[fishName] && DB.fish[fishName].can_slap);
+    fillSelector(elSlap, slappableFish, "なし");
+    genLureStepsUI();
+    calculate();
+});
+
+function fillSelector(el, itemList, defaultLabel) {
+    el.innerHTML = defaultLabel ? `<option value="なし">${defaultLabel}</option>` : '';
+    itemList.forEach(item => {
+        const elOption = document.createElement('option');
+        elOption.value = item; elOption.textContent = item; el.appendChild(elOption);
+    });
+    el.disabled = false;
 }
 
-// イベント設定
-document.querySelectorAll('.mode-tab').forEach(t => t.addEventListener('click', () => switchMode(t.dataset.mode)));
-[elSpot, elWeather, elBait, elTarget, elSlap, elChum, elCatch, elLureManual, elLureStrat, elLureN].forEach(el => el.addEventListener('change', calculate));
-elLureManual.addEventListener('change', () => {
-    document.getElementById('lure-steps-area').className = (elLureManual.value === "なし") ? "hidden" : "";
+elCatch.addEventListener('change', function () {
+    if (this.checked) {
+        elSlap.value = "なし";
+        elSlap.disabled = true;
+    } else {
+        elSlap.disabled = false;
+    }
+    calculate();
+});
+
+elLure.addEventListener('change', () => {
+    document.getElementById('lure-steps-area').className = (elLure.value === "なし") ? "hidden" : "";
     genLureStepsUI();
 });
 elLureN.addEventListener('change', genLureStepsUI);
 
-initResizers();
+function genLureStepsUI() {
+    if (!DB || !elSpot.value) return;
+    const lureType = elLure.value;
+    elLureSteps.innerHTML = '';
+    if (lureType === "なし") return;
+    const hasHiddenFish = DB.spots[elSpot.value].fish.some(fishName => DB.fish[fishName] && DB.fish[fishName].is_hidden);
+    const lureCount = parseInt(elLureN.value);
+    for (let i = 1; i <= lureCount; i++) {
+        const elDiv = document.createElement('div');
+        elDiv.className = 'input-group';
+        let optionsHtml = `<option value="なし">なし</option>`;
+        if (hasHiddenFish) optionsHtml += `<option value="発見">発見</option>`;
+        optionsHtml += `<option value="型確定">型確定</option>`;
+        elDiv.innerHTML = `<label>ルアー使用${i} 結果</label><select class="l-step">${optionsHtml}</select>`;
+        elLureSteps.appendChild(elDiv);
+        elDiv.querySelector('select').addEventListener('change', calculate);
+    }
+    calculate();
+}
+
+function getDiscoveredGuaranteeIndex(discoveryStep, currentStep) {
+    if (discoveryStep === 1) return (currentStep === 2) ? 0 : 1;
+    if (discoveryStep === 2) return 2;
+    return -1;
+}
+
+[elWeather, elBait, elTarget, elSlap, elChum, elLureN].forEach(el => el.addEventListener('change', calculate));
+
+function calculate() {
+    if (!DB || !elSpot.value) return;
+    const currentSpot = elSpot.value;
+    const currentWeather = elWeather.value;
+    const currentBait = elBait.value;
+    const targetFishName = elTarget.value;
+    const tradeSlapFish = elSlap.value;
+    const lureType = elLure.value;
+    const lureCount = (lureType === "なし") ? 0 : parseInt(elLureN.value);
+
+    if (!currentWeather || !currentBait) {
+        renderSimpleFishList(currentSpot);
+        return;
+    }
+
+    const spotData = DB.spots[currentSpot];
+    const hiddenFishName = spotData.fish.find(name => DB.fish[name] && DB.fish[name].is_hidden) || "なし";
+    const debugData = { weightDetails: [], sumWeight: 0, pHidden: 0, hKey: "", targetTrace: null, error: null, scenarioChain: [], hiddenFishName };
+
+    let discoveryStep = 0, discoveryCount = 0, isGuaranteed = false, scenarioParts = [], discoveredAnywhere = false;
+
+    if (lureCount > 0) {
+        const elStepSelects = document.querySelectorAll('.l-step');
+        elStepSelects.forEach((elSelect, index) => {
+            const stepValue = elSelect.value;
+            const stepNumber = index + 1;
+            if (stepValue === "発見") {
+                if (discoveryStep === 0) discoveryStep = stepNumber;
+                discoveryCount++; scenarioParts.push(`発見${stepNumber}`); discoveredAnywhere = true;
+            }
+            else if (stepValue === "型確定") { scenarioParts.push(`型確定${discoveredAnywhere ? "(発見済)" : ""}${stepNumber}`); }
+            else { scenarioParts.push("なし"); }
+            if (index === lureCount - 1) { isGuaranteed = (stepValue === "型確定"); }
+        });
+        if (discoveryCount > 1) { debugData.error = "制約エラー: 発見は1サイクルに1回しか発生しません。"; showCalculationError(debugData.error); return; }
+    }
+
+    const scenarioText = scenarioParts.join("→");
+    const probabilityKey = `${currentSpot}|${currentWeather}|${currentBait}|${hiddenFishName}|${tradeSlapFish}|${lureType}`;
+    const probData = DB.probabilities[probabilityKey];
+
+    let scenarioProbability = 0;
+    if (lureType === "なし") { scenarioProbability = null; }
+    else {
+        if (!probData) { debugData.error = `データ未登録 [${probabilityKey}]`; showCalculationError(debugData.error); return; }
+        scenarioProbability = 1.0;
+        let found = false, foundAt = 0;
+        const elStepSelects = document.querySelectorAll('.l-step');
+        for (let index = 0; index < lureCount; index++) {
+            const stepValue = elStepSelects[index]?.value || "なし";
+            const currentStepNumber = index + 1;
+            let stepProbability = 0;
+            if (!found) {
+                const discoveryRate = probData.discovery[index], guaranteeRate = probData.guarantee[index];
+                if (discoveryRate === null || guaranteeRate === null) { debugData.error = `確率データ欠損(ステップ${currentStepNumber})`; showCalculationError(debugData.error); return; }
+                if (stepValue === "発見") { stepProbability = discoveryRate; found = true; foundAt = currentStepNumber; }
+                else if (stepValue === "型確定") { stepProbability = (1 - discoveryRate) * guaranteeRate; }
+                else { stepProbability = (1 - discoveryRate) * (1 - guaranteeRate); }
+            } else {
+                const guaranteeIndex = getDiscoveredGuaranteeIndex(foundAt, currentStepNumber);
+                if (guaranteeIndex === -1) { debugData.error = `インデックス異常(ステップ${currentStepNumber})`; showCalculationError(debugData.error); return; }
+                const discoveredGuaranteeRate = probData.discovered_guarantee[guaranteeIndex];
+                if (discoveredGuaranteeRate === null) { debugData.error = `発見済データ欠損(ステップ${currentStepNumber})`; showCalculationError(debugData.error); return; }
+                if (stepValue === "型確定") stepProbability = discoveredGuaranteeRate; else stepProbability = 1 - discoveredGuaranteeRate;
+            }
+            scenarioProbability *= stepProbability;
+            debugData.scenarioChain.push(stepProbability);
+        }
+    }
+
+    debugData.hKey = discoveryStep > 0 ? `p${discoveryStep}_${lureCount}_${isGuaranteed ? 'yes' : 'no'}` : "通常抽選(未発見)";
+    if (discoveryStep > 0) {
+        if (!probData) { debugData.error = `無効な発見フラグ。`; showCalculationError(debugData.error); return; }
+        const hiddenHitRate = probData.hidden_hit_rates[debugData.hKey];
+        if (hiddenHitRate === null) { debugData.error = `隠しヒット率データ欠損 [${debugData.hKey}]`; showCalculationError(debugData.error); return; }
+        debugData.pHidden = hiddenHitRate;
+    } else { debugData.pHidden = 0; }
+
+    const M_MAP = { 0: 1.0, 1: GDS.M_N1, 2: GDS.M_N2, 3: GDS.M_N3 };
+    const lureJawsType = (lureType === "アンビシャスルアー") ? "large_jaws" : (lureType === "モデストルアー" ? "small_jaws" : null);
+    const spotWeights = DB.weights[`${currentSpot}|${currentWeather}|${currentBait}`] || [];
+
+    for (const fishWeightData of spotWeights) {
+        const fishMeta = DB.fish[fishWeightData.name];
+        if (!fishMeta) { debugData.error = `魚種マスタ未登録: [${fishWeightData.name}]`; showCalculationError(debugData.error); return; }
+
+        const isHidden = (fishWeightData.name === hiddenFishName);
+
+        if (!isHidden) {
+            const isLureMatch = (fishMeta.type === lureJawsType);
+            let mMultiplier = isLureMatch ? M_MAP[lureCount] : 1.0;
+            if (isGuaranteed && !isLureMatch) mMultiplier = 0;
+            if (fishWeightData.name === tradeSlapFish) mMultiplier = 0;
+            const finalWeight = fishWeightData.w * mMultiplier;
+
+            debugData.sumWeight += finalWeight;
+            debugData.weightDetails.push({
+                name: fishWeightData.name, baseWeight: fishWeightData.w,
+                m: mMultiplier, finalWeight: finalWeight, isHidden: false
+            });
+        } else {
+            debugData.weightDetails.push({
+                name: fishWeightData.name, baseWeight: 0,
+                m: 0, finalWeight: 0, isHidden: true
+            });
+        }
+    }
+
+    const preActionDuration = elChum.checked ? GDS.D_CHUM : 0;
+    const resultList = spotWeights.map(fishWeightData => {
+        const fishMeta = DB.fish[fishWeightData.name];
+        if (!fishMeta) return null;
+
+        const isHidden = (fishWeightData.name === hiddenFishName);
+        let hitProbability = 0;
+
+        if (isHidden) {
+            hitProbability = debugData.pHidden;
+        } else {
+            const weightDetail = debugData.weightDetails.find(detail => detail.name === fishWeightData.name);
+            hitProbability = (debugData.sumWeight > 0 && weightDetail) ? (weightDetail.finalWeight / debugData.sumWeight) * (1 - debugData.pHidden) : 0;
+        }
+
+        const correctedBiteTime = fishWeightData.t * (elChum.checked ? GDS.C_CHUM : 1.0);
+        const minLureWaitTime = GDS.D_CAST + (lureCount * GDS.D_LURE) + GDS.D_BLK;
+        const effectiveWaitTime = Math.max(correctedBiteTime, minLureWaitTime);
+        const endActionDuration = elCatch.checked ? fishMeta.hook_time : GDS.D_REST;
+        const totalCycleTime = preActionDuration + GDS.D_CAST + effectiveWaitTime + endActionDuration;
+
+        const resultItem = {
+            name: fishWeightData.name, vibe: fishMeta.vibration, prob: hitProbability,
+            baseBiteTime: fishWeightData.t, correctedBiteTime, minLureWaitTime,
+            effectiveWaitTime, endActionDuration, totalCycleTime
+        };
+        if (fishWeightData.name === targetFishName) debugData.targetTrace = resultItem;
+        return resultItem;
+    }).filter(item => item !== null);
+
+    let averageCycleTime = 0;
+    resultList.forEach(item => { averageCycleTime += item.prob * item.totalCycleTime; });
+    const targetResult = resultList.find(item => item.name === targetFishName);
+    let hitExpectationSeconds = (averageCycleTime > 0 && targetResult && targetResult.prob > 0) ? (averageCycleTime - (targetResult.prob * targetResult.endActionDuration)) / targetResult.prob : 0;
+
+    updateUI(resultList, hitExpectationSeconds, averageCycleTime, targetFishName, currentSpot, scenarioText, scenarioProbability);
+    updateDebugView(debugData, preActionDuration, lureCount, hitExpectationSeconds, averageCycleTime, scenarioProbability);
+}
+
+function showCalculationError(message) {
+    document.getElementById('debug-scenario').innerHTML = `<span style="color:var(--accent-red)">${message}</span>`;
+    document.getElementById('debug-math').innerHTML = `<div class="math-step">計算不能</div>`;
+    document.getElementById('res-efficiency').innerHTML = `- <small>秒</small>`;
+    const elTableBody = document.getElementById('res-table-body');
+    elTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">データがありません<br><small>${message}</small></td></tr>`;
+    document.getElementById('pattern-occurrence').innerText = "";
+    document.getElementById('scenario-text').innerText = "";
+}
+
+function updateUI(resultList, hitExpectationSeconds, averageCycleTime, targetFishName, currentSpotName, scenarioText, scenarioProbability) {
+    const elTableBody = document.getElementById('res-table-body');
+    const elFragment = document.createDocumentFragment();
+    document.getElementById('res-efficiency').innerHTML = (hitExpectationSeconds > 0) ? `${hitExpectationSeconds.toFixed(1)} <small>秒</small>` : `- <small>秒</small>`;
+    document.getElementById('res-cycle').innerText = averageCycleTime.toFixed(1);
+    const spotFishOrder = DB.spots[currentSpotName].fish;
+    spotFishOrder.forEach(name => {
+        const item = resultList.find(res => res.name === name);
+        if (!item) return;
+        const elTr = document.createElement('tr');
+        if (item.name === targetFishName) { elTr.style.backgroundColor = "rgba(59, 130, 246, 0.2)"; elTr.style.fontWeight = "bold"; }
+        const waitDisplay = (item.prob > 0) ? `${item.correctedBiteTime.toFixed(1)}s` : "-";
+        const cycleDisplay = (item.prob > 0) ? `${item.totalCycleTime.toFixed(1)}s` : "-";
+        elTr.innerHTML = `<td>${name}</td><td>${item.vibe}</td><td>${(item.prob * 100).toFixed(1)}%</td><td>${waitDisplay}</td><td>${cycleDisplay}</td>`;
+        elFragment.appendChild(elTr);
+    });
+    elTableBody.innerHTML = ''; elTableBody.appendChild(elFragment);
+    document.getElementById('scenario-text').innerText = scenarioText ? `シナリオ: ${scenarioText}` : "";
+    const elPatternOccurrence = document.getElementById('pattern-occurrence');
+    elPatternOccurrence.innerText = (scenarioProbability === null) ? `ルアー効果シナリオ発生確率: -%` : `ルアー効果シナリオ発生確率: ${(scenarioProbability * 100).toFixed(2)}%`;
+}
+
+function renderSimpleFishList(spotName) {
+    const fishNames = DB.spots[spotName].fish;
+    const elTableBody = document.getElementById('res-table-body');
+    const elFragment = document.createDocumentFragment();
+    fishNames.forEach(name => {
+        const meta = DB.fish[name];
+        const elTr = document.createElement('tr');
+        elTr.innerHTML = `<td>${name}</td><td>${meta ? meta.vibration : '--'}</td><td>--%</td><td>--s</td><td>--s</td>`;
+        elFragment.appendChild(elTr);
+    });
+    elTableBody.innerHTML = ''; elTableBody.appendChild(elFragment);
+}
+
+/**
+ * デバッグビューの更新
+ * 【修正】表示時のみ隠し魚を特別扱いし、合計行の下に強制配置する。
+ */
+function updateDebugView(debugData, preActionDuration, lureCount, efficiencyValue, averageCycleTime, scenarioProbability) {
+    if (debugData.error) return;
+    document.getElementById('debug-constants').innerHTML = `D_Cast:${GDS.D_CAST}s | D_Lure:${GDS.D_LURE}s | D_Blk:${GDS.D_BLK}s | C_Chum:${GDS.C_CHUM}x`;
+
+    let scenarioInfoHtml = `特定キー: <strong>${debugData.hKey}</strong><br>`;
+    if (scenarioProbability !== null) scenarioInfoHtml += `シナリオ発生率 $P(Pattern)$: ${debugData.scenarioChain.map(p => p.toFixed(3)).join(' × ')} = <strong>${(scenarioProbability * 100).toFixed(2)}%</strong><br>`;
+    scenarioInfoHtml += `隠しヒット率 $P_{Hidden}$: <strong>${(debugData.pHidden * 100).toFixed(2)}%</strong>`;
+    document.getElementById('debug-scenario').innerHTML = scenarioInfoHtml;
+
+    let weightTableHtml = '<table><tr><th>魚種</th><th>基礎w</th><th>M</th><th>補正w</th><th>率</th></tr>';
+
+    // 【修正】まず通常魚だけを先にループして出力
+    const normalFishList = debugData.weightDetails.filter(d => !d.isHidden);
+    normalFishList.forEach(detail => {
+        const prob = (debugData.sumWeight > 0) ? (detail.finalWeight / debugData.sumWeight) * (1 - debugData.pHidden) : 0;
+        weightTableHtml += `<tr><td>${detail.name}</td><td>${detail.baseWeight}</td><td>x${detail.m}</td><td>${detail.finalWeight.toFixed(1)}</td><td>${(prob * 100).toFixed(1)}%</td></tr>`;
+    });
+
+    // 通常魚合計行（ここが通常魚と隠し魚の境界線になる）
+    weightTableHtml += `<tr><td colspan="3">通常魚計 $\\sum W$</td><td><strong>${debugData.sumWeight.toFixed(1)}</strong></td><td>-</td></tr>`;
+
+    // 【修正】最後に隠し魚がいれば、合計行の下に出力
+    const hiddenFishDetail = debugData.weightDetails.find(d => d.isHidden);
+    if (hiddenFishDetail && debugData.pHidden > 0) {
+        weightTableHtml += `<tr><td>${hiddenFishDetail.name} (隠し)</td><td>-</td><td>-</td><td>-</td><td><strong>${(debugData.pHidden * 100).toFixed(1)}%</strong></td></tr>`;
+    }
+
+    weightTableHtml += '</table>';
+    document.getElementById('debug-weights').innerHTML = weightTableHtml;
+
+    if (debugData.targetTrace) {
+        const trace = debugData.targetTrace;
+        const efficiencyDisplay = (efficiencyValue > 0) ? `${efficiencyValue.toFixed(1)}秒` : "- (釣れない)";
+        document.getElementById('debug-math').innerHTML = `
+            <div class="math-step">【1. 待機時間と制約】<br>補正待機 $T'_{Bite}$: ${trace.correctedBiteTime.toFixed(1)}s (基礎:${trace.baseBiteTime.toFixed(1)}s × ${elChum.checked ? GDS.C_CHUM : 1.0})<br>ルアー制約 $T_{Min}$: ${GDS.D_CAST} + (${lureCount}×${GDS.D_LURE}) + ${GDS.D_BLK} = ${trace.minLureWaitTime.toFixed(1)}s<br>実効待機 $T_{Final}$: max(${trace.correctedBiteTime.toFixed(1)}, ${trace.minLureWaitTime.toFixed(1)}) = <strong>${trace.effectiveWaitTime.toFixed(1)}s</strong></div>
+            <div class="math-step">【2. 1サイクル時間】<br>$T_{Cycle}$: ${preActionDuration}(Pre) + ${GDS.D_CAST}(Cast) + ${trace.effectiveWaitTime.toFixed(1)}(Wait) + ${trace.endActionDuration}(End) = <strong>${trace.totalCycleTime.toFixed(1)}s</strong></div>
+            <div class="math-step" style="color:var(--accent-green)">【3. 期待時間導出 ($E[T_{Hit}]$)】<br>失敗コスト期待値: ${averageCycleTime.toFixed(2)}s - (${trace.prob.toFixed(3)} × ${trace.endActionDuration.toFixed(1)}s) = ${(averageCycleTime - (trace.prob * trace.endActionDuration)).toFixed(2)}s<br>ヒット期待時間: ${(averageCycleTime - (trace.prob * trace.endActionDuration)).toFixed(2)} / ${trace.prob.toFixed(3)} = <strong>${efficiencyDisplay}</strong></div>
+        `;
+    }
+}
