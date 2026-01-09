@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>FLE Simulator v2.0 - Strategy Enhanced</title>
+    <title>FLE Simulator v1.5 - Phase 1</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -18,57 +18,6 @@
 
     <main class="main-layout" id="main-layout">
         <aside class="panel" id="panel-left">
-            <h3>⚙️ シミュレーションモード</h3>
-            <div class="mode-tabs">
-                <div class="mode-tab active" data-mode="manual">手動設定</div>
-                <div class="mode-tab" data-mode="strategy">戦略評価</div>
-            </div>
-
-            <div id="manual-controls">
-                <div class="input-group">
-                    <label>ルアー種類</label>
-                    <select id="sel-lure">
-                        <option value="なし">使用しない</option>
-                        <option value="アンビシャスルアー">アンビシャスルアー</option>
-                        <option value="モデストルアー">モデストルアー</option>
-                    </select>
-                </div>
-                <div id="lure-steps-area" class="hidden">
-                    <div class="input-group">
-                        <label>ルアー回数</label>
-                        <select id="sel-lure-n">
-                            <option value="1">1回</option>
-                            <option value="2">2回</option>
-                            <option value="3">3回</option>
-                        </select>
-                    </div>
-                    <div id="step-selectors"></div>
-                </div>
-            </div>
-
-            <div id="strategy-controls" class="hidden">
-                <div class="input-group">
-                    <label>ルアー種類</label>
-                    <select id="sel-lure-strat">
-                        <option value="なし">使用しない</option>
-                        <option value="アンビシャスルアー">アンビシャスルアー</option>
-                        <option value="モデストルアー">モデストルアー</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>戦略プリセット</label>
-                    <select id="sel-strategy-preset">
-                        <option value="none">-- 戦略を選択 --</option>
-                        <option value="l3_fixed">必ず3回使う（L3固定）</option>
-                    </select>
-                </div>
-                <div class="info-box" style="font-size:0.7rem; color:var(--text-muted);">
-                    戦略モードでは、その打ち手で発生しうる全パターンの期待値を自動で合算します。
-                </div>
-            </div>
-
-            <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
-
             <h3>📍 環境・スキル</h3>
             <div class="input-group">
                 <label>釣り場</label>
@@ -87,6 +36,8 @@
                 <select id="sel-target" disabled></select>
             </div>
             
+            <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+            
             <div class="toggle-group">
                 <input type="checkbox" id="chk-chum"> <span>撒き餌 (Chum)</span>
             </div>
@@ -97,6 +48,24 @@
             <div class="input-group">
                 <label>トレードリリース</label>
                 <select id="sel-slap" disabled></select>
+            </div>
+            <div class="input-group">
+                <label>ルアー種類</label>
+                <select id="sel-lure">
+                    <option value="なし">使用しない</option>
+                    <option value="アンビシャスルアー">アンビシャスルアー</option>
+                    <option value="モデストルアー">モデストルアー</option>
+                </select>
+            </div>
+
+            <div id="lure-steps-area" class="hidden">
+                <div class="input-group">
+                    <label>ルアー回数</label>
+                    <select id="sel-lure-n">
+                        <option value="1">1回</option><option value="2">2回</option><option value="3">3回</option>
+                    </select>
+                </div>
+                <div id="step-selectors"></div>
             </div>
         </aside>
 
@@ -120,7 +89,7 @@
 
                 <div class="debug-section">
                     <label>【重み・確率分配の内訳】</label>
-                    <div id="debug-weights" class=\"mini-table\"></div>
+                    <div id="debug-weights" class="mini-table"></div>
                 </div>
 
                 <div class="debug-section">
@@ -139,15 +108,7 @@
             </div>
             <h3>📊 結果テーブル</h3>
             <table>
-                <thead>
-                    <tr>
-                        <th>魚種</th>
-                        <th>演出</th>
-                        <th>ヒット率</th>
-                        <th>待機時間</th>
-                        <th>サイクル時間</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>魚種</th><th>演出</th><th>ヒット率</th><th>待機時間</th><th>サイクル時間</th></tr></thead>
                 <tbody id="res-table-body"></tbody>
             </table>
             <div id="scenario-text" style="margin-top:10px; font-size:0.85rem; color:var(--text-muted);"></div>
