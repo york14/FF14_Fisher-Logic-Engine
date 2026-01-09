@@ -1,4 +1,4 @@
-/* FLE Simulator Stylesheet v1.24 */
+/* FLE Simulator Stylesheet v2.0 - Phase 2 Initial */
 :root {
     --primary: #3b82f6; --bg-dark: #0f172a; --panel-bg: #1e293b;
     --text-main: #f1f5f9; --text-muted: #94a3b8; --border: #334155;
@@ -9,54 +9,25 @@ body { margin: 0; background-color: var(--bg-dark); color: var(--text-main); fon
 .app-container { display: flex; flex-direction: column; height: 100vh; }
 .app-header { background: #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); z-index: 10; }
 
-.main-layout { 
-    display: grid; 
-    grid-template-columns: 320px 8px 500px 8px 1fr; 
-    padding: 0; 
-    flex-grow: 1; 
-    overflow: hidden; 
-}
+.main-layout { display: grid; grid-template-columns: 320px 8px 500px 8px 1fr; padding: 0; flex-grow: 1; overflow: hidden; }
 
-/* リサイザーの視覚的改善 */
-.resizer {
-    background-color: var(--border);
-    cursor: col-resize;
-    transition: background-color 0.2s;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* モード切替タブ */
+.mode-tabs { display: flex; margin-bottom: 15px; border-bottom: 1px solid var(--border); }
+.mode-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-size: 0.8rem; color: var(--text-muted); border-bottom: 2px solid transparent; transition: 0.2s; }
+.mode-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: bold; background: rgba(59, 130, 246, 0.1); }
 
-/* 中央に「⋮」を表示 */
-.resizer::after {
-    content: '⋮';
-    color: var(--text-muted);
-    font-size: 1.2rem;
-    pointer-events: none;
-}
-
-.resizer:hover {
-    background-color: var(--primary);
-}
+.resizer { background-color: var(--border); cursor: col-resize; transition: background-color 0.2s; position: relative; display: flex; align-items: center; justify-content: center; }
+.resizer::after { content: '⋮'; color: var(--text-muted); font-size: 1.2rem; pointer-events: none; }
+.resizer:hover { background-color: var(--primary); }
 
 .panel { background: var(--panel-bg); padding: 15px; display: flex; flex-direction: column; overflow-y: auto; }
-
 .debug-panel { overflow: hidden; position: relative; }
 .debug-panel.collapsed #debug-content { display: none; }
 .debug-panel h3 { cursor: pointer; user-select: none; white-space: nowrap; margin-top: 0; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary); }
 
-.main-layout.debug-collapsed {
-    grid-template-columns: 320px 8px 40px 8px 1fr !important;
-}
-.main-layout.debug-collapsed .debug-panel h3 {
-    writing-mode: vertical-rl;
-    padding: 10px 0;
-    border: none;
-    height: 100%;
-}
+.main-layout.debug-collapsed { grid-template-columns: 320px 8px 40px 8px 1fr !important; }
+.main-layout.debug-collapsed .debug-panel h3 { writing-mode: vertical-rl; padding: 10px 0; border: none; height: 100%; }
 
-/* 装飾・数式関連 */
 .debug-section { margin-bottom: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
 .mini-table { font-size: 0.7rem; color: var(--text-muted); }
 .mini-table table { width: 100%; border-collapse: collapse; }
@@ -65,7 +36,6 @@ body { margin: 0; background-color: var(--bg-dark); color: var(--text-main); fon
 .formula-box { background: #0f172a; border-left: 4px solid var(--primary); padding: 8px; font-family: monospace; font-size: 0.7rem; color: #cbd5e1; }
 .math-step { margin-bottom: 4px; border-bottom: 1px dashed #334155; padding-bottom: 2px; }
 
-/* UI要素 */
 .input-group { margin-bottom: 12px; }
 label { display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); }
 select { width: 100%; padding: 8px; background: #0f172a; color: white; border: 1px solid var(--border); border-radius: 4px; }
@@ -74,8 +44,7 @@ select { width: 100%; padding: 8px; background: #0f172a; color: white; border: 1
 .metric-card.highlight { border-left: 4px solid var(--accent-green); }
 .metric-card .value { display: block; font-size: 1.8rem; font-weight: bold; color: var(--accent-green); }
 
-/* テーブル */
 table { width: 100%; max-width: 900px; border-collapse: collapse; font-size: 0.9rem; }
 th { text-align: left; color: var(--text-muted); font-weight: normal; border-bottom: 2px solid var(--border); padding: 8px; }
 td { padding: 8px; border-bottom: 1px solid var(--border); }
-.hidden { display: none; }
+.hidden { display: none !important; }
