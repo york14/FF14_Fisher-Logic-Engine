@@ -2,37 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>FLE Simulator v1.5 - Debug Enhanced</title>
+    <title>FLE Simulator v1.5 - Phase 1 Final</title>
     <link rel="stylesheet" href="assets/style.css">
-    <style>
-        /* 横方向開閉のためのレイアウト調整 */
-        .main-layout {
-            display: grid;
-            grid-template-columns: 320px 320px 1fr;
-            transition: grid-template-columns 0.3s ease;
-        }
-        .main-layout.debug-collapsed {
-            grid-template-columns: 320px 40px 1fr;
-        }
-        .debug-panel {
-            overflow: hidden;
-            position: relative;
-        }
-        .debug-panel.collapsed #debug-content {
-            display: none;
-        }
-        .debug-panel h3 {
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
-        }
-        .main-layout.debug-collapsed .debug-panel h3 {
-            writing-mode: vertical-rl;
-            padding: 10px 0;
-            border: none;
-            height: 100%;
-        }
-    </style>
 </head>
 <body>
 <div class="app-container">
@@ -50,7 +21,7 @@
             <h3>📍 環境・スキル</h3>
             <div class="input-group">
                 <label>釣り場</label>
-                <select id="sel-spot"><option value="">JSONをロードしてください</option></select>
+                <select id="sel-spot"></select>
             </div>
             <div class="input-group">
                 <label>天気/時間</label>

@@ -2,37 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>FLE Simulator v1.5 - Debug Enhanced</title>
+    <title>FLE Simulator v1.5 - Phase 1 Final</title>
     <link rel="stylesheet" href="assets/style.css">
-    <style>
-        /* 横方向開閉のためのレイアウト調整 */
-        .main-layout {
-            display: grid;
-            grid-template-columns: 320px 320px 1fr;
-            transition: grid-template-columns 0.3s ease;
-        }
-        .main-layout.debug-collapsed {
-            grid-template-columns: 320px 40px 1fr;
-        }
-        .debug-panel {
-            overflow: hidden;
-            position: relative;
-        }
-        .debug-panel.collapsed #debug-content {
-            display: none;
-        }
-        .debug-panel h3 {
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
-        }
-        .main-layout.debug-collapsed .debug-panel h3 {
-            writing-mode: vertical-rl;
-            padding: 10px 0;
-            border: none;
-            height: 100%;
-        }
-    </style>
 </head>
 <body>
 <div class="app-container">
@@ -46,11 +17,11 @@
     </header>
 
     <main class="main-layout" id="main-layout">
-        <aside class="panel">
+        <aside class="panel" id="panel-left">
             <h3>📍 環境・スキル</h3>
             <div class="input-group">
                 <label>釣り場</label>
-                <select id="sel-spot"><option value="">JSONをロードしてください</option></select>
+                <select id="sel-spot"></select>
             </div>
             <div class="input-group">
                 <label>天気/時間</label>
@@ -98,6 +69,8 @@
             </div>
         </aside>
 
+        <div class="resizer" id="resizer-left"></div>
+
         <article class="panel debug-panel" id="debug-panel">
             <h3 onclick="toggleDebugView()">
                 ⚙️ デバッグ・解析ビュー <small id="debug-toggle-msg" style="font-size:0.6rem; color:var(--text-muted);">(クリックで閉じる)</small>
@@ -126,10 +99,12 @@
             </div>
         </article>
 
-        <section class="panel">
+        <div class="resizer" id="resizer-right"></div>
+
+        <section class="panel" id="panel-right">
             <div class="metric-card highlight">
                 <span style="font-size:0.8rem;">ターゲットヒット期待時間</span>
-                <span id="res-efficiency" class="value">0.0 <small>秒</small></span>
+                <span id="res-efficiency" class="value">- <small>秒</small></span>
             </div>
             <h3>📊 結果テーブル</h3>
             <table>

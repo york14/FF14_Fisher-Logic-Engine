@@ -1,35 +1,81 @@
-/* FLE Simulator Stylesheet */
+/* FLE Simulator Stylesheet v1.24 */
 :root {
     --primary: #3b82f6; --bg-dark: #0f172a; --panel-bg: #1e293b;
     --text-main: #f1f5f9; --text-muted: #94a3b8; --border: #334155;
     --accent-green: #10b981; --accent-red: #ef4444;
 }
+
 body { margin: 0; background-color: var(--bg-dark); color: var(--text-main); font-family: sans-serif; }
 .app-container { display: flex; flex-direction: column; height: 100vh; }
-.app-header { background: #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); }
-.main-layout { display: grid; grid-template-columns: 320px 320px 1fr; gap: 15px; padding: 15px; flex-grow: 1; overflow: hidden; }
-.panel { background: var(--panel-bg); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; overflow-y: auto; }
+.app-header { background: #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); z-index: 10; }
 
-/* デバッグ用装飾 */
+.main-layout { 
+    display: grid; 
+    grid-template-columns: 320px 8px 500px 8px 1fr; 
+    padding: 0; 
+    flex-grow: 1; 
+    overflow: hidden; 
+}
+
+/* リサイザーの視覚的改善 */
+.resizer {
+    background-color: var(--border);
+    cursor: col-resize;
+    transition: background-color 0.2s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 中央に「⋮」を表示 */
+.resizer::after {
+    content: '⋮';
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    pointer-events: none;
+}
+
+.resizer:hover {
+    background-color: var(--primary);
+}
+
+.panel { background: var(--panel-bg); padding: 15px; display: flex; flex-direction: column; overflow-y: auto; }
+
+.debug-panel { overflow: hidden; position: relative; }
+.debug-panel.collapsed #debug-content { display: none; }
+.debug-panel h3 { cursor: pointer; user-select: none; white-space: nowrap; margin-top: 0; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary); }
+
+.main-layout.debug-collapsed {
+    grid-template-columns: 320px 8px 40px 8px 1fr !important;
+}
+.main-layout.debug-collapsed .debug-panel h3 {
+    writing-mode: vertical-rl;
+    padding: 10px 0;
+    border: none;
+    height: 100%;
+}
+
+/* 装飾・数式関連 */
 .debug-section { margin-bottom: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
-.debug-section label { font-weight: bold; color: var(--primary); font-size: 0.75rem; display: block; margin-bottom: 5px; }
-.mini-table { font-size: 0.7rem; background: #0f172a; padding: 5px; border-radius: 4px; overflow-x: auto; }
-.mini-table table { width: 100%; border: none; }
-.mini-table td, .mini-table th { padding: 2px 4px; border-bottom: 1px solid #334155; text-align: left; }
+.mini-table { font-size: 0.7rem; color: var(--text-muted); }
+.mini-table table { width: 100%; border-collapse: collapse; }
+.mini-table th, .mini-table td { border: 1px solid var(--border); padding: 2px 4px; text-align: left; }
 .info-box { background: #0f172a; padding: 8px; border-radius: 4px; font-size: 0.75rem; line-height: 1.4; color: #34d399; }
 .formula-box { background: #0f172a; border-left: 4px solid var(--primary); padding: 8px; font-family: monospace; font-size: 0.7rem; color: #cbd5e1; }
 .math-step { margin-bottom: 4px; border-bottom: 1px dashed #334155; padding-bottom: 2px; }
 
-h3 { margin-top: 0; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary); }
+/* UI要素 */
 .input-group { margin-bottom: 12px; }
 label { display: block; font-size: 0.8rem; margin-bottom: 4px; color: var(--text-muted); }
 select { width: 100%; padding: 8px; background: #0f172a; color: white; border: 1px solid var(--border); border-radius: 4px; }
 .toggle-group { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 0.85rem; }
-.metric-card { background: #334155; padding: 12px; border-radius: 6px; text-align: center; margin-bottom: 10px; }
-.metric-card.highlight { border: 2px solid var(--accent-green); }
-.metric-card .value { font-size: 1.5rem; font-weight: bold; color: var(--accent-green); display: block; }
-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-th { background: #334155; text-align: left; padding: 8px; position: sticky; top: 0; }   
+.metric-card { background: #334155; padding: 12px; border-radius: 6px; margin-bottom: 15px; }
+.metric-card.highlight { border-left: 4px solid var(--accent-green); }
+.metric-card .value { display: block; font-size: 1.8rem; font-weight: bold; color: var(--accent-green); }
+
+/* テーブル */
+table { width: 100%; max-width: 900px; border-collapse: collapse; font-size: 0.9rem; }
+th { text-align: left; color: var(--text-muted); font-weight: normal; border-bottom: 2px solid var(--border); padding: 8px; }
 td { padding: 8px; border-bottom: 1px solid var(--border); }
-.btn-load { background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
 .hidden { display: none; }
