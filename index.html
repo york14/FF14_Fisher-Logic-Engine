@@ -2,123 +2,114 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>FLE Simulator v1.5 - Phase 1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLE Simulator v2.0</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-<div class="app-container">
-    <header class="app-header">
-        <h1>FISHERMAN LOGIC ENGINE <small>v1.5</small></h1>
-        <div>
-            <span id="db-status" style="color:var(--accent-red); font-size:0.8rem; margin-right:10px;">OFFLINE</span>
-            <button class="btn-load" onclick="document.getElementById('json-upload').click()">Load JSON</button>
-            <input type="file" id="json-upload" class="hidden" accept=".json">
-        </div>
-    </header>
+    <div class="app-container">
+        <div class="panel settings-panel">
+            <h2>Simulation Settings</h2>
 
-    <main class="main-layout" id="main-layout">
-        <aside class="panel" id="panel-left">
-            <h3>📍 環境・スキル</h3>
-            <div class="input-group">
-                <label>釣り場</label>
-                <select id="sel-spot"></select>
-            </div>
-            <div class="input-group">
-                <label>天気/時間</label>
-                <select id="sel-weather" disabled></select>
-            </div>
-            <div class="input-group">
-                <label>餌</label>
-                <select id="sel-bait" disabled></select>
-            </div>
-            <div class="input-group">
-                <label>ターゲット魚</label>
-                <select id="sel-target" disabled></select>
+            <div class="control-group" style="background: #e3f2fd; padding: 10px; border-radius: 4px; border: 1px solid #90caf9; margin-bottom: 20px;">
+                <label for="jsonUpload" style="color:#0d47a1; margin-bottom:5px;">📂 マスタデータ (JSON)</label>
+                <input type="file" id="jsonUpload" accept=".json">
             </div>
             
-            <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
-            
-            <div class="toggle-group">
-                <input type="checkbox" id="chk-chum"> <span>撒き餌 (Chum)</span>
+            <div class="section-title">基本設定 (Common)</div>
+            <div class="control-group">
+                <label for="currentSpot">釣り場 (Spot)</label>
+                <select id="currentSpot" disabled><option>データを読み込んでください</option></select>
             </div>
-            <div class="toggle-group">
-                <input type="checkbox" id="chk-catch"> <span>全部釣り上げる</span>
+            <div class="control-group">
+                <label for="currentWeather">天気 (Weather)</label>
+                <select id="currentWeather" disabled></select>
             </div>
-            
-            <div class="input-group">
-                <label>トレードリリース</label>
-                <select id="sel-slap" disabled></select>
+            <div class="control-group">
+                <label for="currentBait">餌 (Bait)</label>
+                <select id="currentBait" disabled></select>
             </div>
-            <div class="input-group">
-                <label>ルアー種類</label>
-                <select id="sel-lure">
-                    <option value="なし">使用しない</option>
-                    <option value="アンビシャスルアー">アンビシャスルアー</option>
-                    <option value="モデストルアー">モデストルアー</option>
-                </select>
+            <div class="control-group">
+                <label for="targetFishName">ターゲット (Target)</label>
+                <select id="targetFishName" disabled></select>
+            </div>
+            <div class="control-group checkbox-group">
+                <input type="checkbox" id="isCatchAll" disabled>
+                <label for="isCatchAll">外道も全て釣る (Catch All)</label>
             </div>
 
-            <div id="lure-steps-area" class="hidden">
-                <div class="input-group">
-                    <label>ルアー回数</label>
-                    <select id="sel-lure-n">
-                        <option value="1">1回</option><option value="2">2回</option><option value="3">3回</option>
+            <hr class="divider">
+
+            <div class="tabs">
+                <button class="tab-btn active" data-mode="manual">手動設定</button>
+                <button class="tab-btn" data-mode="strategy">戦略評価</button>
+            </div>
+
+            <div id="manual-settings" class="mode-content active">
+                <div class="section-title">手動パラメータ</div>
+                
+                <div class="control-group">
+                    <label for="manualLureScenario">ルアーシナリオ (Lure)</label>
+                    <select id="manualLureScenario" disabled>
+                        </select>
+                </div>
+                <div class="control-group">
+                    <label for="manualTradeSlap">トレード対象 (Trade)</label>
+                    <select id="manualTradeSlap" disabled>
+                        <option value="none">なし</option>
                     </select>
                 </div>
-                <div id="step-selectors"></div>
-            </div>
-        </aside>
-
-        <div class="resizer" id="resizer-left"></div>
-
-        <article class="panel debug-panel" id="debug-panel">
-            <h3 onclick="toggleDebugView()">
-                ⚙️ デバッグ・解析ビュー <small id="debug-toggle-msg" style="font-size:0.6rem; color:var(--text-muted);">(クリックで閉じる)</small>
-            </h3>
-            
-            <div id="debug-content">
-                <div class="debug-section">
-                    <label>【GDS定数】</label>
-                    <div id="debug-constants" class="mini-table"></div>
-                </div>
-
-                <div class="debug-section">
-                    <label>【シナリオ解析】</label>
-                    <div id="debug-scenario" class="info-box"></div>
-                </div>
-
-                <div class="debug-section">
-                    <label>【重み・確率分配の内訳】</label>
-                    <div id="debug-weights" class="mini-table"></div>
-                </div>
-
-                <div class="debug-section">
-                    <label>【数式の実行トレース】</label>
-                    <div id="debug-math" class="formula-box"></div>
+                <div class="control-group">
+                    <label for="manualChum">撒き餌 (Chum)</label>
+                    <select id="manualChum" disabled>
+                        <option value="no">未使用</option>
+                        <option value="yes">使用する</option>
+                    </select>
                 </div>
             </div>
-        </article>
 
-        <div class="resizer" id="resizer-right"></div>
+            <div id="strategy-settings" class="mode-content">
+                <div class="section-title">戦略比較 (A vs B)</div>
+                
+                <div class="control-group">
+                    <label for="strategyPresetA" style="color:#4a90e2">戦略 A (Blue)</label>
+                    <select id="strategyPresetA" disabled></select>
+                </div>
+                <div class="control-group">
+                    <label for="strategyPresetB" style="color:#e94e77">戦略 B (Red)</label>
+                    <select id="strategyPresetB" disabled></select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="strategyTradeSlap">共通トレード (Trade)</label>
+                    <select id="strategyTradeSlap" disabled>
+                        <option value="none">なし</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="strategyChum">共通撒き餌 (Chum)</label>
+                    <select id="strategyChum" disabled>
+                        <option value="no">未使用</option>
+                        <option value="yes">使用する</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
-        <section class="panel" id="panel-right">
-            <div class="metric-card highlight">
-                <span style="font-size:0.8rem;">ターゲットヒット期待時間</span>
-                <span id="res-efficiency" class="value">- <small>秒</small></span>
+        <div class="panel debug-panel">
+            <h2>Calculation Details</h2>
+            <div id="debug-content" class="debug-content">
+                <div class="placeholder">Please upload "logic_master.json" to start.</div>
             </div>
-            <h3>📊 結果テーブル</h3>
-            <table>
-                <thead><tr><th>魚種</th><th>演出</th><th>ヒット率</th><th>待機時間</th><th>サイクル時間</th></tr></thead>
-                <tbody id="res-table-body"></tbody>
-            </table>
-            <div id="scenario-text" style="margin-top:10px; font-size:0.85rem; color:var(--text-muted);"></div>
-            <div id="pattern-occurrence" style="margin-top:2px; font-size:0.9rem; color:var(--primary); font-weight:bold;"></div>
-            <div style="margin-top:15px; font-size:0.8rem; color:var(--text-muted);">
-                平均サイクル時間: <span id="res-cycle">0.0</span>s
-            </div>
-        </section>
-    </main>
-</div>
-<script src="assets/main.js"></script>
+        </div>
+
+        <div class="panel results-panel">
+            <h2>Results</h2>
+            <div id="results-container">
+                </div>
+        </div>
+    </div>
+
+    <script src="assets/main.js"></script>
 </body>
 </html>
