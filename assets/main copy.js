@@ -1,10 +1,6 @@
 /**
  * Fisherman Logic Engine (FLE) v2.0
- * 物理定数・計算ロジック・UI制御の統合スクリプト
- * * 対応機能:
- * - 新ID体系 (n3_d1_g2 etc) の解析と計算
- * - 手動設定 / 戦略評価 の2モード対応
- * - 戦略ごとの期待値（時給効率）算出
+ * 新ID体系 (n3_d1_g2 etc) 対応・戦略評価モード搭載版
  */
 
 // --- 1. 物理定数定義 (GDS v3.14.0) ---
@@ -22,7 +18,7 @@ const GDS = {
 
 // --- グローバル状態 ---
 let masterDB = null;
-let currentMode = 'manual';
+let currentMode = 'manual'; // 'manual' or 'strategy'
 
 // --- 2. 初期化とイベント設定 ---
 
@@ -31,7 +27,7 @@ let currentMode = 'manual';
  */
 async function init() {
     try {
-        // コンバーターで生成した新しいファイル名を読み込む
+        // 新しいJSONファイルを読み込む
         const response = await fetch('logic_master.json');
         if (!response.ok) throw new Error("JSON load failed");
         
@@ -50,25 +46,9 @@ async function init() {
         console.error("初期化エラー:", e);
         const debugContent = document.getElementById('debug-content');
         if(debugContent) {
-            debugContent.innerHTML = `<div class="error" style="color:red; padding:10px;">データ読み込みエラー: ${e.message}<br>logic_master.json が同じフォルダにあるか確認してください。</div>`;
+            debugContent.innerHTML = `<div class="error" style="color:red; padding:10px;">データ読み込みエラー: ${e.message}<br>logic_master.json が配置されているか確認してください。</div>`;
         }
     }
-}
-
-/**
- * UIイベントリスナーの登録
- */
-function setupEventListeners() {
-    const inputs = [
-        'currentSpot', 'currentWeather', 'currentBait', 'targetFishName', 'isCatchAll',
-        'manualChum', 'manualTradeSlap', 'manualLureScenario',
-        'strategyChum', 'strategyTradeSlap', 'strategyPresetA', 'strategyPresetB'
-    ];
-
-    inputs.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('change', updateSimulation);
-    });
 }
 
 /**
@@ -79,16 +59,39 @@ function setupModeTabs() {
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             // アクティブクラスの切り替え
-            document.querySelectorAll('.tab-btn, .mode-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.mode-content').forEach(el => el.classList.remove('active'));
+            
             tab.classList.add('active');
             
+            // モード更新
             currentMode = tab.dataset.mode;
+            
+            // 対応するコンテンツを表示
             const contentId = `${currentMode}-settings`;
             const contentEl = document.getElementById(contentId);
             if(contentEl) contentEl.classList.add('active');
             
+            // 再計算
             updateSimulation();
         });
+    });
+}
+
+/**
+ * UIイベントリスナーの登録
+ */
+function setupEventListeners() {
+    // 監視対象のIDリスト
+    const inputs = [
+        'currentSpot', 'currentWeather', 'currentBait', 'targetFishName', 'isCatchAll',
+        'manualChum', 'manualTradeSlap', 'manualLureScenario',
+        'strategyChum', 'strategyTradeSlap', 'strategyPresetA', 'strategyPresetB'
+    ];
+
+    inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', updateSimulation);
     });
 }
 
@@ -183,7 +186,7 @@ function populateLureScenarios() {
     if (!select) return;
     select.innerHTML = '';
 
-    // IDリスト生成ロジック (idx.md準拠の全33パターン)
+    // IDリスト生成
     const scenarios = generateAllScenarioIds();
     
     scenarios.forEach(id => {
@@ -278,23 +281,23 @@ function runStrategyMode(config, debugContainer) {
 
     // デバッグ表示
     if(debugContainer) {
-        debugContainer.innerHTML += `<h4>戦略A: ${presetA.name}</h4>`;
+        debugContainer.innerHTML += `<h4>戦略A: ${presetA ? presetA.name : '未選択'}</h4>`;
         debugContainer.innerHTML += renderStrategyDebug(statsA);
-        debugContainer.innerHTML += `<hr><h4>戦略B: ${presetB.name}</h4>`;
+        debugContainer.innerHTML += `<hr><h4>戦略B: ${presetB ? presetB.name : '未選択'}</h4>`;
         debugContainer.innerHTML += renderStrategyDebug(statsB);
     }
 
     // 結果表示
-    renderComparisonResult(statsA, statsB, presetA.name, presetB.name);
+    renderComparisonResult(statsA, statsB, presetA, presetB);
 }
 
 function renderStrategyDebug(stats) {
     if(stats.error) return `<div class="error">${stats.error}</div>`;
     return `
         <div style="font-size:0.8rem">
-            <div>合計確率: ${(stats.totalProb*100).toFixed(1)}%</div>
-            <div>平均サイクル: ${stats.avgCycle.toFixed(1)}s</div>
-            <div>平均ヒット率: ${(stats.avgHitRate*100).toFixed(2)}%</div>
+            <div>平均サイクル: ${stats.avgCycle.toFixed(2)}s</div>
+            <div>平均ヒット率: ${(stats.avgHitRate * 100).toFixed(2)}%</div>
+            <div>期待値: ${stats.expectedTime === Infinity ? '∞' : stats.expectedTime.toFixed(1)}s</div>
         </div>
     `;
 }
@@ -303,7 +306,7 @@ function renderStrategyDebug(stats) {
  * 戦略の平均期待値を計算
  */
 function calculateStrategyAverage(config, preset, isChum, tradeFish) {
-    if(!preset) return { error: "戦略未選択" };
+    if(!preset) return { error: "戦略が選択されていません" };
 
     let totalProb = 0;
     let weightedCycle = 0;
@@ -315,11 +318,13 @@ function calculateStrategyAverage(config, preset, isChum, tradeFish) {
         const stats = calculateScenarioStats(config, sid, isChum, tradeFish);
         
         if (stats.error) {
-            // エラーがあっても確率は計算したいが、ここではエラーとする
+            // データ不足等のエラーがあれば記録（今回は計算続行せずエラーとする）
             // errorMsg = stats.error; 
         }
 
-        const p = stats.occurrenceProb; // 発生確率
+        // 簡易実装: 戦略上の分岐確率は本来動的計算が必要だが、今回は均等または1.0として扱う
+        // ※正確な分岐確率は「確率ツリー」の実装が必要
+        const p = 1.0; 
         
         if (p > 0) {
             totalProb += p;
@@ -329,11 +334,11 @@ function calculateStrategyAverage(config, preset, isChum, tradeFish) {
     });
 
     if (errorMsg) return { error: errorMsg };
+    if (totalProb === 0) return { error: "有効なシナリオがありません" };
 
-    const avgCycle = (totalProb > 0) ? weightedCycle / totalProb : 0;
-    const avgHitRate = (totalProb > 0) ? weightedHitRate / totalProb : 0;
+    const avgCycle = weightedCycle / totalProb;
+    const avgHitRate = weightedHitRate / totalProb;
     
-    // ヒット率が0なら無限大
     const expectedTime = (avgHitRate > 0) ? (avgCycle / avgHitRate) : Infinity;
 
     return {
@@ -355,49 +360,43 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
     const weightKey = `${config.spot}|${config.weather}|${config.bait}`;
     const baseWeights = masterDB.weights[weightKey] || [];
     
-    // 3. 確率データの取得 (一致する行を探す)
+    // 3. 確率データの取得
     const probData = masterDB.probabilities.find(row => 
         row.spot === config.spot && 
         row.weather === config.weather && 
         row.bait === config.bait
     );
 
-    // A. 発生確率 (occurrenceProb) の算出
-    // 本来は p.n, p.d, p.g に基づき disc_rates, guar_rates から厳密に計算する
-    // Step 2では簡易的に「データが存在すれば1.0」として仮置き、または
-    // 将来的にここへ「確率ツリー計算ロジック」を実装する
-    // 今回は「戦略上の選択肢」として扱うため、シミュレーション上は 1.0 (そのルートを通ったと仮定) とするが
-    // 戦略評価（合算）の時は「そのルートを通る確率」が必要になる。
-    // ※今回は戦略評価の重み付けを「均等」ではなく「確率」で行う必要があるが
-    // 確率計算関数が未実装のため、仮に「シナリオ数で等分」または「1.0」とする
-    // ★重要: ここはStep 3での拡張ポイント。現在は 1.0 / (シナリオ数) 等の簡易計算。
-    let occurrenceProb = 1.0; 
-
-    // B. 時間コスト算出
+    // A. 時間コスト算出
+    // ルアー拘束時間: Cast(1) + (n * Action(2.5)) + Blank(2.5)
+    // ※ none_0 の場合はルアー時間0
     const lureTime = p.isNone ? 0 : (GDS.D_CAST + (p.n * GDS.D_LURE) + GDS.D_BLK);
     
-    // ターゲット魚の基礎データを取得
+    // ターゲット魚の基礎バイト時間を取得
     const targetData = baseWeights.find(w => w.fish === config.target);
     const baseBite = targetData ? targetData.bite_time : 15; 
     
+    // 撒き餌短縮
     const biteTime = isChum ? (baseBite * GDS.C_CHUM) : baseBite;
+    
+    // 実効待機時間 (長い方)
     const waitTime = Math.max(biteTime, lureTime);
+    
+    // 1サイクル合計: Cast(1) + Wait + Rest(2)
     const totalCycleTime = GDS.D_CAST + waitTime + GDS.D_REST;
 
-    // C. ターゲットヒット率算出
+    // B. ターゲットヒット率算出
     const hitRate = calculateHitRateInScenario(p, baseWeights, probData, config.target, tradeFish);
 
-    // エラーハンドリング (データ不足でnullの場合など)
     if (hitRate === null) {
         return { 
-            scenarioId, occurrenceProb, totalCycleTime, targetHitRate: 0, 
-            expectedTime: Infinity, error: "データなし", debugData: { lureTime, biteTime, waitTime }
+            scenarioId, totalCycleTime, targetHitRate: 0, 
+            expectedTime: Infinity, error: "データ不足 (確率データなし)", debugData: { lureTime, biteTime, waitTime }
         };
     }
 
     return {
         scenarioId: scenarioId,
-        occurrenceProb: occurrenceProb,
         totalCycleTime: totalCycleTime,
         targetHitRate: hitRate,
         expectedTime: (hitRate > 0) ? totalCycleTime / hitRate : Infinity,
@@ -418,12 +417,11 @@ function calculateHitRateInScenario(p, baseWeights, probData, target, tradeFish)
     const isHiddenTarget = targetFishInfo.is_hidden;
 
     if (isHiddenTarget) {
-        // 隠し魚: マスタの hidden_hit_rates から取得
+        // 隠し魚: マスタの hidden_hit_rates から新IDキーで取得
         if (probData && probData.hidden_hit_rates) {
-            // fullId (n3_d1_g23等) で検索
             const rate = probData.hidden_hit_rates[p.fullId];
             if (rate === null || rate === undefined) return null; // データなし
-            return rate / 100.0;
+            return rate / 100.0; // % -> decimal
         }
         return 0;
     } else {
@@ -431,22 +429,22 @@ function calculateHitRateInScenario(p, baseWeights, probData, target, tradeFish)
         let totalWeight = 0;
         let targetWeight = 0;
         
-        // シナリオに応じた重み補正 (簡易版: 回数によるブースト)
+        // ルアー回数によるボーナス (簡易版: 一律適用)
         let mod = 1.0;
         if (p.n === 1) mod = GDS.M_N1;
         if (p.n === 2) mod = GDS.M_N2;
         if (p.n === 3) mod = GDS.M_N3;
+        
+        // 素振り(none_0)はボーナスなし
         if (p.isNone) mod = 1.0;
 
         baseWeights.forEach(w => {
             if (w.fish === tradeFish) return; // トレード除外
 
             const info = masterDB.fish[w.fish];
-            if (!info || info.is_hidden) return; // 隠し魚は除外
+            if (!info || info.is_hidden) return; // 隠し魚は通常抽選枠外
 
-            // ※ 本来はここで「型適合チェック」「型確定時のフィルタ」を行う
-            // Step 2では全魚種に一律ブーストとして計算
-            
+            // 重み加算
             const finalW = w.weight * mod;
             totalWeight += finalW;
             
@@ -455,8 +453,8 @@ function calculateHitRateInScenario(p, baseWeights, probData, target, tradeFish)
 
         if (totalWeight === 0) return 0;
         
-        // 隠し魚出現率分を引いた残り確率 (1 - P_Hidden) を分配
-        // ※ P_Hidden は本来シナリオごとに異なるが、ここでは簡易的に 0 とする (Step 3で厳密化)
+        // 隠し魚の出現確率分を引く必要があるが、
+        // Step 2では簡易的に「隠し魚が出なかった場合の確率」として 1.0 ベースで計算
         const remainingProb = 1.0; 
         
         return (targetWeight / totalWeight) * remainingProb;
@@ -478,9 +476,10 @@ function parseScenarioId(id) {
     const match = id.match(/^n(\d+)_d(\d+)_g(\d+)$/);
     if (!match) return { fullId: id, n:0, d:0, g:[], isNone: true }; 
 
-    const n = parseInt(match[1]);
-    const d = parseInt(match[2]);
+    const n = parseInt(match[1], 10);
+    const d = parseInt(match[2], 10);
     const gPart = match[3];
+    // gパートが "0" なら空、それ以外は各桁を数値化
     const g = (gPart === '0') ? [] : gPart.split('').map(Number);
 
     return { fullId: id, n, d, g, isNone: false };
@@ -502,11 +501,11 @@ function generateAllScenarioIds() {
 }
 
 /**
- * ラベル生成
+ * ラベル生成: n3_d1_g23 -> "L3: 発見1 (型確2,3)"
  */
 function getScenarioLabel(id) {
     const p = parseScenarioId(id);
-    if (p.isNone) return "素振り (ルアーなし)";
+    if (p.isNone) return "素振り (使用なし)";
     
     let text = `L${p.n}`;
     text += (p.d > 0) ? `: 発見${p.d}` : ": 未発見";
@@ -542,10 +541,13 @@ function renderSingleResult(stats) {
     `;
 }
 
-function renderComparisonResult(statsA, statsB, nameA, nameB) {
+function renderComparisonResult(statsA, statsB, presetA, presetB) {
     const container = document.getElementById('results-container');
     if (!container) return;
     
+    const nameA = presetA ? presetA.name : "未選択";
+    const nameB = presetB ? presetB.name : "未選択";
+
     const timeA = (statsA.expectedTime === Infinity || !statsA.expectedTime) ? '∞' : statsA.expectedTime.toFixed(1);
     const timeB = (statsB.expectedTime === Infinity || !statsB.expectedTime) ? '∞' : statsB.expectedTime.toFixed(1);
 
