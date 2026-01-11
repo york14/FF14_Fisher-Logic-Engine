@@ -1,6 +1,6 @@
 /**
- * Fisherman Logic Engine (FLE) v2.1
- * Update: Right Panel Toggle, Strategy Layout Refresh, Hit Rate Ranking
+ * Fisherman Logic Engine (FLE) v2.2
+ * Update: Step A - Logic Hardening & Code Cleanup
  */
 
 const GDS = {
@@ -25,7 +25,6 @@ function setupEventListeners() {
     const rightPanel = document.getElementById('panel-right');
     const rightTitle = rightPanel.querySelector('h3');
 
-    // タイトル全体のクリックでも開閉させる（ボタンだけでなく）
     rightTitle.addEventListener('click', () => {
         rightPanel.classList.toggle('collapsed');
         rightToggle.textContent = rightPanel.classList.contains('collapsed') ? '▼' : '▶';
@@ -160,7 +159,6 @@ function updateSimulation() {
 
 // --- モード1: 手動 ---
 function runManualMode(config) {
-    // コンテナ内を書き換え
     const resultContent = document.getElementById('result-content');
 
     resultContent.innerHTML = `
@@ -246,6 +244,7 @@ function calculateStrategySet(config, setConfig, preset) {
     const scenarios = [];
     let weightedHitRate = 0;
     let weightedCycle = 0;
+    let weightedWait = 0;
     let totalProb = 0;
     let error = null;
 
@@ -266,6 +265,8 @@ function calculateStrategySet(config, setConfig, preset) {
         totalProb += pScenario;
         weightedHitRate += (pScenario * stats.targetHitRate);
         weightedCycle += (pScenario * stats.avgCycleTime);
+        const waitTime = stats.debugData.waitTime || 0;
+        weightedWait += (pScenario * waitTime);
 
         scenarios.push({
             id: sid,
@@ -299,6 +300,7 @@ function calculateStrategySet(config, setConfig, preset) {
         totalProb,
         avgHitRate: weightedHitRate,
         avgCycle: weightedCycle,
+        avgWait: weightedWait,
         avgCastCount: avgCastCount,
         expectedTime,
         error: null
@@ -314,17 +316,12 @@ function renderStrategyComparison(resA, resB, config) {
         const time = (res.error || res.expectedTime === Infinity) ? '∞' : res.expectedTime.toFixed(1);
         const hit = (res.error) ? '-' : (res.avgHitRate * 100).toFixed(2) + '%';
         const cycle = (res.error) ? '-' : res.avgCycle.toFixed(1) + ' sec';
-        const cast = (res.error || res.avgCastCount === Infinity) ? '-' : res.avgCastCount.toFixed(1);
 
-        // 発生確率トップ3
         let top3ProbHtml = '';
-        // Hit率トップ3
         let top3HitHtml = '';
 
         if (!res.error && res.scenarios) {
-            // 発生確率順
             const sortedProb = [...res.scenarios].sort((a, b) => b.prob - a.prob).slice(0, 3);
-            // Hit率順
             const sortedHit = [...res.scenarios].sort((a, b) => b.hit - a.hit).slice(0, 3);
 
             const buildTop3Item = (s) => {
@@ -373,19 +370,23 @@ function renderStrategyComparison(resA, resB, config) {
         </div>
     `;
 
-    // 右: 詳細内訳リスト
     let debugHtml = `<div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>`;
     debugHtml += renderStrategyDebugTable(resA, "Set A", "var(--accent-a)");
     debugHtml += renderStrategyDebugTable(resB, "Set B", "var(--accent-b)");
     right.innerHTML = debugHtml;
 
-    // 定数表示
-    const c = GDS;
+    // 【修正A-3】時間計算変数の整理 (定数表示部分)
+    const tCast = GDS.D_CAST;
+    const tLureAction = GDS.D_LURE;
+    const tLureBlock = GDS.D_BLK;
+    const tChum = GDS.D_CHUM;
+    const tRest = GDS.D_REST;
+
     document.getElementById('debug-constants').innerHTML =
         `<div style="display:flex; flex-direction:column; gap:5px; font-size:0.75rem;">
-            <div>D_Cast (キャスト): ${c.D_CAST}s / D_Lure (ルアー): ${c.D_LURE}s</div>
-            <div>D_Blk (空白): ${c.D_BLK}s / D_Chum (撒き餌): ${c.D_CHUM}s</div>
-            <div>D_Rest (竿上げ): ${c.D_REST}s</div>
+            <div>D_Cast (キャスト動作): ${tCast}s / D_Lure (ルアー動作): ${tLureAction}s</div>
+            <div>D_Blk (ルアー後硬直): ${tLureBlock}s / D_Chum (撒き餌動作): ${tChum}s</div>
+            <div>D_Rest (竿上げ動作): ${tRest}s</div>
         </div>`;
 }
 
@@ -410,7 +411,6 @@ function renderStrategyDebugTable(res, label, color) {
             </thead>
             <tbody>`;
 
-    // 確率順にソートして表示
     const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob);
 
     sorted.forEach(s => {
@@ -437,19 +437,23 @@ function renderStrategyDebugTable(res, label, color) {
     return html;
 }
 
-// --- 以下、既存ロジック ---
+// --- コアロジック (Refactored) ---
 function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
     const p = parseScenarioId(scenarioId);
     const weightKey = `${config.spot}|${config.weather}|${config.bait}`;
     const baseWeights = masterDB.weights[weightKey] || [];
 
-    const probData = masterDB.probabilities.find(row =>
-        row.spot === config.spot &&
-        row.weather === config.weather &&
-        row.bait === config.bait &&
-        (config.lureType === 'none' || row.lure_type === config.lureType) &&
-        row.trade_target === tradeFish
-    );
+    // 【修正A-1】ルアー未使用時の誤参照防止
+    let probData = null;
+    if (config.lureType !== 'none') {
+        probData = masterDB.probabilities.find(row =>
+            row.spot === config.spot &&
+            row.weather === config.weather &&
+            row.bait === config.bait &&
+            row.lure_type === config.lureType && // lureTypeチェックを厳密化
+            row.trade_target === tradeFish
+        );
+    }
 
     const rawRates = probData ? { disc: probData.disc_rates, guar: probData.guar_rates_nodisc } : null;
 
@@ -457,7 +461,14 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         return { error: "条件に合う確率データがありません", debugData: { rates: rawRates } };
     }
 
-    const lureTime = p.isNone ? 0 : (GDS.D_CAST + (p.n * GDS.D_LURE) + GDS.D_BLK);
+    // 【修正A-3】時間計算変数の整理
+    const tCast = GDS.D_CAST;
+    const tLureAction = GDS.D_LURE;
+    const tLureBlock = GDS.D_BLK;
+    const tChum = GDS.D_CHUM;
+    const tRest = GDS.D_REST;
+
+    const lureTime = p.isNone ? 0 : (tCast + (p.n * tLureAction) + tLureBlock);
 
     // シナリオ確率
     let scenarioProb = 1.0;
@@ -546,15 +557,18 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         const biteTime = isChum ? (baseBite * GDS.C_CHUM) : baseBite;
         const waitTime = Math.max(biteTime, lureTime);
         const isTarget = (fName === config.target);
-        const actualHookTime = (isTarget || config.isCatchAll) ? fInfo.hook_time : GDS.D_REST;
-        const cycleTime = GDS.D_CAST + waitTime + actualHookTime + (isChum ? GDS.D_CHUM : 0);
+        const actualHookTime = (isTarget || config.isCatchAll) ? fInfo.hook_time : tRest;
+        const cycleTime = tCast + waitTime + actualHookTime + (isChum ? tChum : 0);
         sumProbTotalCycle += (hitProb * cycleTime);
         allFishStats.push({ name: fName, vibration: fInfo.vibration, hitRate: hitProb, baseBite, biteTime, lureTime, waitTime, hookTime: actualHookTime, cycleTime, isTarget });
     });
 
+    // 【修正A-2】Nullガード強化
     const targetStat = allFishStats.find(s => s.isTarget);
     const targetHitRate = targetStat ? targetStat.hitRate : 0;
-    const expectedTime = (targetHitRate > 0) ? (sumProbTotalCycle - (targetHitRate * (targetStat.hookTime))) / targetHitRate : Infinity;
+    const targetHookTime = targetStat ? targetStat.hookTime : 0; // targetStatがnullなら0を返す
+
+    const expectedTime = (targetHitRate > 0) ? (sumProbTotalCycle - (targetHitRate * targetHookTime)) / targetHitRate : Infinity;
 
     return {
         allFishStats, totalWeight, weightDetails, pHidden, hiddenFishName, targetHitRate,
@@ -562,7 +576,7 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         expectedTime,
         scenarioStr: scenarioStrParts.join('→'),
         scenarioProb: scenarioProb,
-        debugData: { p, rates: rawRates, lureTime, biteTime: targetStat?.biteTime, waitTime: targetStat?.waitTime, targetCycle: targetStat?.cycleTime, targetHook: targetStat?.hookTime }
+        debugData: { p, rates: rawRates, lureTime, biteTime: targetStat?.biteTime, waitTime: targetStat?.waitTime, targetCycle: targetStat?.cycleTime, targetHook: targetHookTime }
     };
 }
 
@@ -792,19 +806,37 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
     document.getElementById('debug-calc-expect').innerHTML = expectHtml;
 }
 
+// 【修正A-4】イベントリスナー管理改善
 function initResizers() {
-    const leftPanel = document.getElementById('panel-left');
-    const rightPanel = document.getElementById('panel-right');
-    const resizerLeft = document.getElementById('resizer-left');
-    const resizerRight = document.getElementById('resizer-right');
+    const setupResizer = (resizerId, panelId, direction) => {
+        const resizer = document.getElementById(resizerId);
+        const panel = document.getElementById(panelId);
+        if (!resizer || !panel) return;
 
-    resizerLeft.addEventListener('mousedown', (e) => { e.preventDefault(); document.addEventListener('mousemove', resizeL); document.addEventListener('mouseup', stopL); });
-    const resizeL = (e) => { if (e.clientX > 200 && e.clientX < 500) leftPanel.style.width = e.clientX + 'px'; };
-    const stopL = () => { document.removeEventListener('mousemove', resizeL); document.removeEventListener('mouseup', stopL); };
+        // イベントハンドラを定義
+        const onMouseMove = (e) => {
+            if (direction === 'left') {
+                if (e.clientX > 300 && e.clientX < 600) panel.style.width = e.clientX + 'px';
+            } else {
+                const w = document.body.clientWidth - e.clientX;
+                if (w > 320 && w < 600) panel.style.width = w + 'px';
+            }
+        };
 
-    resizerRight.addEventListener('mousedown', (e) => { e.preventDefault(); document.addEventListener('mousemove', resizeR); document.addEventListener('mouseup', stopR); });
-    const resizeR = (e) => { const w = document.body.clientWidth - e.clientX; if (w > 200 && w < 500) rightPanel.style.width = w + 'px'; };
-    const stopR = () => { document.removeEventListener('mousemove', resizeR); document.removeEventListener('mouseup', stopR); };
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        resizer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    };
+
+    setupResizer('resizer-left', 'panel-left', 'left');
+    setupResizer('resizer-right', 'panel-right', 'right');
 }
 
 init();
