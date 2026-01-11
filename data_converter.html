@@ -45,41 +45,15 @@
 
     <script>
         // idx.md に基づく日本語カラム名からシステムIDへのマッピング
-        // 値が配列の場合は、1つのCSV値を複数のIDにコピーする
         const PROB_COLUMN_MAP = {
-            // --- 発見1回目 ---
             "発見1型確1なし隠しヒット率1": "n1_d1_g0",
             "発見1型確2あり隠しヒット率2": "n2_d1_g2",
             "発見1型確2なし隠しヒット率2": "n2_d1_g0",
-            
-            // [修正] 発見1, 終了3, 型確あり (g3 または g23)
             "発見1型確3あり隠しヒット率3": ["n3_d1_g3", "n3_d1_g23"],
-            
-            // [修正] 発見1, 終了3, 型確なし (g0 または g2) ※g2は2回目型確だが3回目時点では「型確あり」判定に含まれるか要定義。
-            // idx.mdの定義上、「型確あり」は「終了時に型確状態であるか」を指すため、g23は「あり」。
-            // ここでは「型確3あり」= 3回目に型確したか、ではなく「最終的に型確済みか」と解釈するのが一般的だが、
-            // カラム名が「型確3あり/なし」なので「3回目に型確が発生したか」の可能性もある。
-            // しかし、FF14の仕様上「型確定」は永続ステータスなので、過去に型確していれば「あり」となる。
-            // したがって、n3_d1_g2（2回目で型確済み）は、3回目終了時点では「型確あり」の挙動に近くなるはずだが、
-            // CSVのカラム定義が「型確3あり」＝「3回目で型確演出が出た」という意味なら以下で正しい。
-            // いったん idx.md のマッピングに従い、以下のように割り当てる。
-            
             "発見1型確3なし隠しヒット率3": ["n3_d1_g0", "n3_d1_g2"], 
-            // ※ g2 (2回目型確) は「3回目には型確演出が出ない」ので「なし」側に含める
-            
-            // --- 発見2回目 ---
-            // [修正] 発見2, 終了2, 型確なし (1回目に型確していても2回目発見なら型確なし扱い？いや、永続だが演出定義依存)
-            // 演出ベースなら「2回目に型確が出ない」＝ g0 または g1(過去)
             "発見2型確2なし隠しヒット率2": ["n2_d2_g0", "n2_d2_g1"],
-            
-            // [修正] 発見2, 終了3, 型確3あり
             "発見2型確3あり隠しヒット率3": ["n3_d2_g3", "n3_d2_g13"],
-            
-            // [修正] 発見2, 終了3, 型確3なし
             "発見2型確3なし隠しヒット率3": ["n3_d2_g0", "n3_d2_g1"],
-            
-            // --- 発見3回目 ---
-            // [修正] 発見3, 終了3, 型確3なし (発見時は型確しないので、全ての発見3パターン)
             "発見3型確3なし隠しヒット率3": ["n3_d3_g0", "n3_d3_g1", "n3_d3_g2", "n3_d3_g12"]
         };
 
@@ -89,14 +63,12 @@
             status.className = "";
 
             try {
-                // ファイル読込
                 const fishData = await readFile('csvFish');
                 const spotData = await readFile('csvSpots');
                 const weightData = await readFile('csvWeights');
                 const probData = await readFile('csvProbs');
                 const strategyData = await readFile('csvStrategies');
 
-                // パースと変換処理
                 const masterDB = {
                     version: "2.0.0",
                     updated_at: new Date().toISOString(),
@@ -107,7 +79,6 @@
                     strategy_presets: processStrategies(strategyData)
                 };
 
-                // JSONダウンロード
                 downloadJSON(masterDB, 'logic_master.json');
                 
                 status.innerHTML = "✅ <strong>成功:</strong> logic_master.json を生成しました。<br>ブラウザのダウンロードフォルダを確認してください。";
@@ -171,6 +142,12 @@
 
         function processProbabilities(csv) {
             const rows = parseCSV(csv);
+            
+            // 【修正】値があれば数値化、なければ null を返すヘルパー
+            const valOrNull = (val) => {
+                return (val !== undefined && val !== null && val.trim() !== "") ? parseFloat(val) : null;
+            };
+
             return rows.map(r => {
                 const entry = {
                     spot: r['釣り場'],
@@ -180,30 +157,26 @@
                     trade_target: r['トレード対象'],
                     lure_type: r['ルアー種類'],
                     
+                    // 【修正】|| 0 を削除し、null が入るように変更
                     disc_rates: [
-                        parseFloat(r['発見率1'] || 0), parseFloat(r['発見率2'] || 0), parseFloat(r['発見率3'] || 0)
+                        valOrNull(r['発見率1']), valOrNull(r['発見率2']), valOrNull(r['発見率3'])
                     ],
                     guar_rates_nodisc: [
-                        parseFloat(r['未発見型確定率1'] || 0), parseFloat(r['未発見型確定率2'] || 0), parseFloat(r['未発見型確定率3'] || 0)
+                        valOrNull(r['未発見型確定率1']), valOrNull(r['未発見型確定率2']), valOrNull(r['未発見型確定率3'])
                     ],
                     guar_rates_after_disc: {
-                        d1_g2: parseFloat(r['発見1型確定率2'] || 0),
-                        d1_g3: parseFloat(r['発見1型確定率3'] || 0),
-                        d2_g3: parseFloat(r['発見2型確定率3'] || 0)
+                        d1_g2: valOrNull(r['発見1型確定率2']),
+                        d1_g3: valOrNull(r['発見1型確定率3']),
+                        d2_g3: valOrNull(r['発見2型確定率3'])
                     },
                     hidden_hit_rates: {}
                 };
 
-                // マッピング処理（1対多対応）
                 for (const [jpCol, newIds] of Object.entries(PROB_COLUMN_MAP)) {
                     if (r[jpCol] !== undefined) {
-                        const val = parseFloat(r[jpCol]);
-                        
-                        // IDが配列なら展開して格納、文字列ならそのまま格納
+                        const val = valOrNull(r[jpCol]); // ここもヘルパーを利用
                         if (Array.isArray(newIds)) {
-                            newIds.forEach(id => {
-                                entry.hidden_hit_rates[id] = val;
-                            });
+                            newIds.forEach(id => { entry.hidden_hit_rates[id] = val; });
                         } else {
                             entry.hidden_hit_rates[newIds] = val;
                         }

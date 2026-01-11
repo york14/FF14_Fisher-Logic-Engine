@@ -2,114 +2,178 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FLE Simulator v2.0</title>
+    <title>FLE Simulator v2.0 - Manual Mode</title>
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-    <div class="app-container">
-        <div class="panel settings-panel">
-            <h2>Simulation Settings</h2>
+<div class="app-container">
+    <header class="app-header">
+        <h1>FISHERMAN LOGIC ENGINE <small>v2.0</small></h1>
+        <div>
+            <span id="db-status" style="color:var(--accent-red);">OFFLINE</span>
+            <button class="btn-load" onclick="document.getElementById('jsonUpload').click()">Load JSON</button>
+            <input type="file" id="jsonUpload" class="hidden" accept=".json">
+        </div>
+    </header>
 
-            <div class="control-group" style="background: #e3f2fd; padding: 10px; border-radius: 4px; border: 1px solid #90caf9; margin-bottom: 20px;">
-                <label for="jsonUpload" style="color:#0d47a1; margin-bottom:5px;">📂 マスタデータ (JSON)</label>
-                <input type="file" id="jsonUpload" accept=".json">
-            </div>
+    <div class="main-layout" id="main-layout">
+        <aside class="panel" id="panel-left">
+            <h3>📍 設定 (Manual)</h3>
             
-            <div class="section-title">基本設定 (Common)</div>
-            <div class="control-group">
-                <label for="currentSpot">釣り場 (Spot)</label>
-                <select id="currentSpot" disabled><option>データを読み込んでください</option></select>
+            <div class="input-group">
+                <label>釣り場 (Spot)</label>
+                <select id="currentSpot" disabled><option>Load JSON first</option></select>
             </div>
-            <div class="control-group">
-                <label for="currentWeather">天気 (Weather)</label>
+            <div class="input-group">
+                <label>天気/時間 (Condition)</label>
                 <select id="currentWeather" disabled></select>
             </div>
-            <div class="control-group">
-                <label for="currentBait">餌 (Bait)</label>
+            <div class="input-group">
+                <label>餌 (Bait)</label>
                 <select id="currentBait" disabled></select>
             </div>
-            <div class="control-group">
-                <label for="targetFishName">ターゲット (Target)</label>
+            <div class="input-group">
+                <label>ターゲット魚 (Target)</label>
                 <select id="targetFishName" disabled></select>
             </div>
-            <div class="control-group checkbox-group">
+            <div class="input-group checkbox-group" style="margin-bottom: 20px;">
                 <input type="checkbox" id="isCatchAll" disabled>
                 <label for="isCatchAll">外道も全て釣る (Catch All)</label>
             </div>
 
-            <hr class="divider">
+            <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
 
-            <div class="tabs">
-                <button class="tab-btn active" data-mode="manual">手動設定</button>
-                <button class="tab-btn" data-mode="strategy">戦略評価</button>
+            <div class="input-group">
+                <label>トレード対象 (Slap)</label>
+                <select id="manualTradeSlap" disabled>
+                    <option value="なし">なし</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label>撒き餌 (Chum)</label>
+                <select id="manualChum" disabled>
+                    <option value="no">未使用</option>
+                    <option value="yes">使用する</option>
+                </select>
             </div>
 
-            <div id="manual-settings" class="mode-content active">
-                <div class="section-title">手動パラメータ</div>
-                
-                <div class="control-group">
-                    <label for="manualLureScenario">ルアーシナリオ (Lure)</label>
-                    <select id="manualLureScenario" disabled>
-                        </select>
-                </div>
-                <div class="control-group">
-                    <label for="manualTradeSlap">トレード対象 (Trade)</label>
-                    <select id="manualTradeSlap" disabled>
-                        <option value="none">なし</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label for="manualChum">撒き餌 (Chum)</label>
-                    <select id="manualChum" disabled>
-                        <option value="no">未使用</option>
-                        <option value="yes">使用する</option>
-                    </select>
-                </div>
+            <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+
+            <div class="input-group">
+                <label>使用ルアー (Lure Type)</label>
+                <select id="lureType" disabled>
+                    <option value="none">使用しない</option>
+                    <option value="アンビシャスルアー">アンビシャスルアー</option>
+                    <option value="モデストルアー">モデストルアー</option>
+                </select>
             </div>
 
-            <div id="strategy-settings" class="mode-content">
-                <div class="section-title">戦略比較 (A vs B)</div>
-                
-                <div class="control-group">
-                    <label for="strategyPresetA" style="color:#4a90e2">戦略 A (Blue)</label>
-                    <select id="strategyPresetA" disabled></select>
-                </div>
-                <div class="control-group">
-                    <label for="strategyPresetB" style="color:#e94e77">戦略 B (Red)</label>
-                    <select id="strategyPresetB" disabled></select>
+            <div id="lure-settings-container">
+                <div class="input-group">
+                    <label>回数 (Count)</label>
+                    <select id="lureCount" disabled>
+                        <option value="1">1回</option>
+                        <option value="2" selected>2回</option>
+                        <option value="3">3回</option>
+                    </select>
                 </div>
                 
-                <div class="control-group">
-                    <label for="strategyTradeSlap">共通トレード (Trade)</label>
-                    <select id="strategyTradeSlap" disabled>
-                        <option value="none">なし</option>
+                <div class="input-group">
+                    <label>1回目 (Step 1)</label>
+                    <select id="lureStep1" class="step-select" disabled>
+                        <option value="none">何もなし</option>
+                        <option value="disc">発見</option>
+                        <option value="guar">型確定</option>
                     </select>
                 </div>
-                <div class="control-group">
-                    <label for="strategyChum">共通撒き餌 (Chum)</label>
-                    <select id="strategyChum" disabled>
-                        <option value="no">未使用</option>
-                        <option value="yes">使用する</option>
+                <div class="input-group">
+                    <label>2回目 (Step 2)</label>
+                    <select id="lureStep2" class="step-select" disabled>
+                        <option value="none">何もなし</option>
+                        <option value="disc">発見</option>
+                        <option value="guar">型確定</option>
                     </select>
                 </div>
-            </div>
-        </div>
-
-        <div class="panel debug-panel">
-            <h2>Calculation Details</h2>
-            <div id="debug-content" class="debug-content">
-                <div class="placeholder">Please upload "logic_master.json" to start.</div>
-            </div>
-        </div>
-
-        <div class="panel results-panel">
-            <h2>Results</h2>
-            <div id="results-container">
+                <div class="input-group">
+                    <label>3回目 (Step 3)</label>
+                    <select id="lureStep3" class="step-select" disabled>
+                        <option value="none">何もなし</option>
+                        <option value="disc">発見</option>
+                        <option value="guar">型確定</option>
+                    </select>
                 </div>
-        </div>
+                
+                <div id="lure-error-msg" style="color: var(--accent-red); font-weight: bold; font-size: 0.85rem; margin-top: 10px; display: none;">
+                    ※発見は１度まで
+                </div>
+            </div>
+        </aside>
+
+        <div class="resizer" id="resizer-left"></div>
+
+        <section class="panel" id="panel-center">
+            <h3>📊 結果</h3>
+            
+            <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
+                <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待</div>
+                <div id="main-result-time" style="font-size:2rem; font-weight:bold; color:var(--primary);">-</div>
+                <div id="main-result-hit" style="font-size:0.9rem;">Hit: -</div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>魚種</th>
+                        <th>演出</th>
+                        <th>ヒット率</th>
+                        <th>待機時間</th>
+                        <th>サイクル時間</th>
+                    </tr>
+                </thead>
+                <tbody id="res-table-body"></tbody>
+            </table>
+            
+            <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+                <div id="scenario-str" style="margin-bottom: 4px;"></div>
+                <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;"></div>
+                <div id="avg-cycle-time">平均サイクル時間: -</div>
+            </div>
+        </section>
+
+        <div class="resizer" id="resizer-right"></div>
+
+        <article class="panel" id="panel-right">
+            <h3>🔍 詳細</h3>
+            <div id="debug-content-wrapper">
+                <div class="debug-section">
+                    <label>【定数】</label>
+                    <div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div>
+                </div>
+
+                <div class="debug-section">
+                    <label>【シナリオ解析】</label>
+                    <div id="debug-scenario" class="formula-box"></div>
+                </div>
+
+                <div class="debug-section">
+                    <label>【重み・確率分配の内訳】</label>
+                    <div id="debug-weights" style="font-size:0.75rem;"></div>
+                </div>
+
+                <div class="debug-section">
+                    <label>【ターゲットのサイクル時間内訳】</label>
+                    <div id="debug-calc-target" class="formula-box"></div>
+                </div>
+
+                <div class="debug-section">
+                    <label>【期待値計算の詳細】</label>
+                    <div id="debug-calc-expect" class="formula-box"></div>
+                </div>
+            </div>
+        </article>
     </div>
+</div>
 
-    <script src="assets/main.js"></script>
+<script src="assets/main.js"></script>
 </body>
 </html>

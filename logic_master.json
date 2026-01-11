@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "updated_at": "2026-01-10T13:12:08.279Z",
+  "updated_at": "2026-01-11T04:47:05.657Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -282,19 +282,19 @@
       "trade_target": "エレクトロベタ",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -324,19 +324,19 @@
       "trade_target": "サンダーレッド",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -408,19 +408,19 @@
       "trade_target": "ヘリテージグルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -534,19 +534,19 @@
       "trade_target": "エレクトロベタ",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -576,19 +576,19 @@
       "trade_target": "サンダーレッド",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -660,19 +660,19 @@
       "trade_target": "ヘリテージグルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -786,19 +786,19 @@
       "trade_target": "エレクトロベタ",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -828,19 +828,19 @@
       "trade_target": "サンダーレッド",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -912,19 +912,19 @@
       "trade_target": "ヘリテージグルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -1038,19 +1038,19 @@
       "trade_target": "エレクトロベタ",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -1080,19 +1080,19 @@
       "trade_target": "サンダーレッド",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
@@ -1164,19 +1164,19 @@
       "trade_target": "ヘリテージグルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        null,
+        null,
+        null
       ],
       "guar_rates_after_disc": {
-        "d1_g2": 0,
-        "d1_g3": 0,
-        "d2_g3": 0
+        "d1_g2": null,
+        "d1_g3": null,
+        "d2_g3": null
       },
       "hidden_hit_rates": {
         "n1_d1_g0": null,
