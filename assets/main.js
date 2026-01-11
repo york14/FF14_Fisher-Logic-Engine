@@ -1,6 +1,6 @@
 /**
- * Fisherman Logic Engine (FLE) v2.0
- * Update: Strategy Details, Top 3 Scenarios, JP Descriptions
+ * Fisherman Logic Engine (FLE) v2.1
+ * Update: Right Panel Toggle, Strategy Layout Refresh, Hit Rate Ranking
  */
 
 const GDS = {
@@ -20,6 +20,17 @@ function setupEventListeners() {
     const uploadBtn = document.getElementById('jsonUpload');
     if (uploadBtn) uploadBtn.addEventListener('change', handleFileUpload);
 
+    // 右カラム開閉
+    const rightToggle = document.getElementById('toggle-right');
+    const rightPanel = document.getElementById('panel-right');
+    const rightTitle = rightPanel.querySelector('h3');
+
+    // タイトル全体のクリックでも開閉させる（ボタンだけでなく）
+    rightTitle.addEventListener('click', () => {
+        rightPanel.classList.toggle('collapsed');
+        rightToggle.textContent = rightPanel.classList.contains('collapsed') ? '▼' : '▶';
+    });
+
     // タブ切替
     const tabs = document.querySelectorAll('.tab-btn');
     tabs.forEach(tab => {
@@ -35,6 +46,7 @@ function setupEventListeners() {
         });
     });
 
+    // 入力イベントリスナー設定
     const commonInputs = ['currentSpot', 'currentWeather', 'currentBait', 'targetFishName'];
     commonInputs.forEach(id => document.getElementById(id).addEventListener('change', updateSimulation));
 
@@ -59,14 +71,12 @@ function setupEventListeners() {
 
     document.getElementById('manualTradeSlap').addEventListener('change', updateSimulation);
 
-    // 手動モード設定
     const manualInputs = ['manualChum', 'lureType', 'lureCount', 'lureStep1', 'lureStep2', 'lureStep3'];
     manualInputs.forEach(id => document.getElementById(id).addEventListener('change', () => {
         if (id.startsWith('lure')) updateLureUI();
         updateSimulation();
     }));
 
-    // 戦略モード設定
     const strategyInputs = [
         'stratALure', 'stratAPreset', 'stratATrade', 'stratAChum',
         'stratBLure', 'stratBPreset', 'stratBTrade', 'stratBChum'
@@ -150,8 +160,10 @@ function updateSimulation() {
 
 // --- モード1: 手動 ---
 function runManualMode(config) {
-    const resultPanel = document.getElementById('panel-center');
-    resultPanel.innerHTML = `<h3>📊 結果</h3>
+    // コンテナ内を書き換え
+    const resultContent = document.getElementById('result-content');
+
+    resultContent.innerHTML = `
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
             <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待</div>
             <div id="main-result-time" style="font-size:2rem; font-weight:bold; color:var(--primary);">-</div>
@@ -200,7 +212,7 @@ function runManualMode(config) {
         renderDebugDetails(stats, config, isChum, scenarioId);
         document.getElementById('res-table-body').innerHTML = `<tr><td colspan="5" style="color:var(--accent-red); font-weight:bold; text-align:center; padding:15px;">⚠️ Error: ${stats.error}</td></tr>`;
     } else {
-        const expTimeStr = (stats.expectedTime === Infinity) ? '-' : stats.expectedTime.toFixed(1) + ' s';
+        const expTimeStr = (stats.expectedTime === Infinity) ? '-' : stats.expectedTime.toFixed(1) + ' sec';
         const hitRateStr = (stats.targetHitRate * 100).toFixed(2) + '%';
         document.getElementById('main-result-time').textContent = expTimeStr;
         document.getElementById('main-result-hit').textContent = `Hit: ${hitRateStr}`;
@@ -234,7 +246,6 @@ function calculateStrategySet(config, setConfig, preset) {
     const scenarios = [];
     let weightedHitRate = 0;
     let weightedCycle = 0;
-    let weightedWait = 0; // 実効待機時間の加重平均
     let totalProb = 0;
     let error = null;
 
@@ -256,11 +267,6 @@ function calculateStrategySet(config, setConfig, preset) {
         weightedHitRate += (pScenario * stats.targetHitRate);
         weightedCycle += (pScenario * stats.avgCycleTime);
 
-        // stats.allFishStats からターゲットの waitTime を取得して加重平均 (外道含む平均ではなく、そのシナリオでのターゲット待機時間を代表とする)
-        // または stats.debugData.waitTime を使用
-        const waitTime = stats.debugData.waitTime || 0;
-        weightedWait += (pScenario * waitTime);
-
         scenarios.push({
             id: sid,
             label: getScenarioLabel(sid),
@@ -268,7 +274,7 @@ function calculateStrategySet(config, setConfig, preset) {
             cycle: stats.avgCycleTime,
             hit: stats.targetHitRate,
             expected: stats.expectedTime,
-            pObj: stats.debugData.p // {n, d, g}
+            pObj: stats.debugData.p
         });
     }
 
@@ -283,7 +289,6 @@ function calculateStrategySet(config, setConfig, preset) {
         expectedTime = (weightedCycle - successCost) / weightedHitRate;
     }
 
-    // 平均キャスト回数
     const avgCastCount = (weightedHitRate > 0) ? (1 / weightedHitRate) : Infinity;
 
     return {
@@ -294,7 +299,6 @@ function calculateStrategySet(config, setConfig, preset) {
         totalProb,
         avgHitRate: weightedHitRate,
         avgCycle: weightedCycle,
-        avgWait: weightedWait,
         avgCastCount: avgCastCount,
         expectedTime,
         error: null
@@ -303,58 +307,66 @@ function calculateStrategySet(config, setConfig, preset) {
 
 // --- 描画: 戦略比較 ---
 function renderStrategyComparison(resA, resB, config) {
-    const center = document.getElementById('panel-center');
+    const resultContent = document.getElementById('result-content');
     const right = document.getElementById('debug-content-wrapper');
-
-    // 勝敗判定削除、詳細情報の表示へ変更
 
     const buildCard = (res, label, color) => {
         const time = (res.error || res.expectedTime === Infinity) ? '∞' : res.expectedTime.toFixed(1);
         const hit = (res.error) ? '-' : (res.avgHitRate * 100).toFixed(2) + '%';
+        const cycle = (res.error) ? '-' : res.avgCycle.toFixed(1) + ' sec';
         const cast = (res.error || res.avgCastCount === Infinity) ? '-' : res.avgCastCount.toFixed(1);
-        const wait = (res.error) ? '-' : res.avgWait.toFixed(1) + 's';
 
-        let descHtml = `<div style="font-size:0.8rem; color:#ccc; margin-bottom:10px; min-height:3em;">${res.description || ''}</div>`;
-        let statsHtml = `
-            <div style="display:flex; justify-content:space-around; font-size:0.85rem; margin:10px 0; border-top:1px solid #444; padding-top:10px;">
-                <div>平均キャスト<br><strong style="font-size:1.1rem">${cast}</strong> 回</div>
-                <div>平均実行待機<br><strong style="font-size:1.1rem">${wait}</strong></div>
-            </div>
-        `;
+        // 発生確率トップ3
+        let top3ProbHtml = '';
+        // Hit率トップ3
+        let top3HitHtml = '';
 
-        // 上位3シナリオ
-        let top3Html = '';
         if (!res.error && res.scenarios) {
-            const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob).slice(0, 3);
-            top3Html = `<div style="text-align:left; font-size:0.75rem; margin-top:15px; background:rgba(0,0,0,0.2); padding:8px; border-radius:4px;">
-                <div style="font-weight:bold; margin-bottom:5px; color:#aaa;">発生確率の高いシナリオ Top3</div>
-                ${sorted.map(s => {
+            // 発生確率順
+            const sortedProb = [...res.scenarios].sort((a, b) => b.prob - a.prob).slice(0, 3);
+            // Hit率順
+            const sortedHit = [...res.scenarios].sort((a, b) => b.hit - a.hit).slice(0, 3);
+
+            const buildTop3Item = (s) => {
                 const jpDesc = getJpScenarioDescription(s.pObj);
-                return `<div style="margin-bottom:4px; border-bottom:1px dashed #444; padding-bottom:2px;">
-                        <div style="color:${color}; font-weight:bold;">${s.label} <span style="font-weight:normal; color:#ccc;">: ${jpDesc}</span></div>
-                        <div style="display:flex; justify-content:space-between; color:#bbb;">
-                            <span>発生: ${(s.prob * 100).toFixed(1)}%</span>
-                            <span>Hit: ${(s.hit * 100).toFixed(1)}%</span>
-                        </div>
-                    </div>`;
-            }).join('')}
+                return `<div class="top3-item">
+                    <div style="color:${color}; font-weight:bold;">${s.label} <span class="top3-desc">: ${jpDesc}</span></div>
+                    <div class="top3-stats">
+                        <span>Hit: ${(s.hit * 100).toFixed(1)}%</span>
+                        <span>発生: ${(s.prob * 100).toFixed(1)}%</span>
+                    </div>
+                </div>`;
+            };
+
+            top3ProbHtml = `<div class="top3-container">
+                <div class="top3-title">発生確率の高いシナリオ Top3</div>
+                ${sortedProb.map(buildTop3Item).join('')}
+            </div>`;
+
+            top3HitHtml = `<div class="top3-container">
+                <div class="top3-title">ターゲットHit率の高いシナリオ Top3</div>
+                ${sortedHit.map(buildTop3Item).join('')}
             </div>`;
         }
 
         return `
             <div class="strat-card" style="border-top: 4px solid ${color}">
-                <h4>${label}: ${res.name}</h4>
-                <div class="main-val">${time} <span style="font-size:1rem; font-weight:normal; color:#888;">s</span></div>
-                <div style="font-size:0.9rem; margin-bottom:10px;">Target Hit: ${hit}</div>
-                ${descHtml}
-                ${statsHtml}
-                ${res.error ? `<div style="color:red; font-weight:bold;">⚠️ ${res.error}</div>` : top3Html}
+                <h4>${res.name}</h4>
+                <div class="strat-desc">${res.description || ''}</div>
+                <div class="main-val">${time} <span style="font-size:1rem; font-weight:normal; color:#888;">sec</span></div>
+                <div class="val-label">ターゲット期待待機時間</div>
+                
+                <div class="stat-row">
+                    <div class="stat-item">Target Hit<br><span class="stat-val">${hit}</span></div>
+                    <div class="stat-item">平均サイクル時間<br><span class="stat-val">${cycle}</span></div>
+                </div>
+
+                ${res.error ? `<div style="color:red; font-weight:bold; margin-top:15px;">⚠️ ${res.error}</div>` : (top3ProbHtml + top3HitHtml)}
             </div>
         `;
     };
 
-    center.innerHTML = `
-        <h3>📊 戦略比較</h3>
+    resultContent.innerHTML = `
         <div class="comparison-container" style="align-items:stretch;">
             ${buildCard(resA, "Set A", "var(--accent-a)")}
             ${buildCard(resB, "Set B", "var(--accent-b)")}
@@ -371,27 +383,17 @@ function renderStrategyComparison(resA, resB, config) {
     const c = GDS;
     document.getElementById('debug-constants').innerHTML =
         `<div style="display:flex; flex-direction:column; gap:5px; font-size:0.75rem;">
-            <div>D_Cast (キャスト動作時間): ${c.D_CAST}s</div>
-            <div>D_Lure (ルアー動作時間): ${c.D_LURE}s</div>
-            <div>D_Blk (ルアー後の空白時間): ${c.D_BLK}s</div>
-            <div>D_Chum (撒き餌使用動作時間): ${c.D_CHUM}s</div>
-            <div>D_Rest (竿上げ動作時間): ${c.D_REST}s</div>
+            <div>D_Cast (キャスト): ${c.D_CAST}s / D_Lure (ルアー): ${c.D_LURE}s</div>
+            <div>D_Blk (空白): ${c.D_BLK}s / D_Chum (撒き餌): ${c.D_CHUM}s</div>
+            <div>D_Rest (竿上げ): ${c.D_REST}s</div>
         </div>`;
 }
 
-// 日本語説明生成ヘルパー
 function getJpScenarioDescription(p) {
-    // p = { n, d, g[] }
     if (p.n === 0) return "ルアー使用なし";
-
     let parts = [`${p.n}回使用`];
-
-    if (p.d > 0) parts.push(`${p.d}回目に発見`);
-    else parts.push("発見なし");
-
-    if (p.g.length > 0) parts.push(`${p.g.join(',')}回目に型確定`);
-    else parts.push("型確定なし");
-
+    if (p.d > 0) parts.push(`${p.d}回目に発見`); else parts.push("発見なし");
+    if (p.g.length > 0) parts.push(`${p.g.join(',')}回目に型確定`); else parts.push("型確定なし");
     return parts.join("、");
 }
 
@@ -599,7 +601,6 @@ function handleFileUpload(event) {
 
 function enableControls() {
     document.querySelectorAll('select:disabled, input:disabled').forEach(el => el.disabled = false);
-
     const isCatchAll = document.getElementById('isCatchAll');
     if (isCatchAll.checked) {
         ['manualTradeSlap', 'stratATrade', 'stratBTrade'].forEach(id => {

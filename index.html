@@ -173,20 +173,28 @@
                         </div>
                     </div>
                 </div>
-
             </aside>
 
             <div class="resizer" id="resizer-left"></div>
 
             <section class="panel" id="panel-center">
                 <h3>📊 結果</h3>
-                <div id="result-content"></div>
+                <div class="content-container">
+                    <div id="result-content">
+                        <div style="padding:20px; color:var(--text-muted); text-align:center;">
+                            JSONデータを読み込んでください
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <div class="resizer" id="resizer-right"></div>
 
             <article class="panel" id="panel-right">
-                <h3>🔍 詳細</h3>
+                <h3>
+                    🔍 詳細
+                    <span class="toggle-btn" id="toggle-right" title="開閉">▶</span>
+                </h3>
                 <div id="debug-content-wrapper">
                     <div class="placeholder">設定を変更すると詳細が表示されます</div>
                 </div>

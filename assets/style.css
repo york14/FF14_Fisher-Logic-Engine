@@ -1,327 +1,121 @@
-/* FLE Simulator Stylesheet v2.0 */
+/* FLE Simulator Stylesheet v2.3 */
 :root {
-    --primary: #3b82f6;
-    --bg-dark: #0f172a;
-    --panel-bg: #1e293b;
-    --text-main: #f1f5f9;
-    --text-muted: #94a3b8;
-    --border: #334155;
-    --accent-green: #10b981;
-    --accent-red: #ef4444;
-    --accent-a: #60a5fa;
-    /* Set A Color */
-    --accent-b: #f472b6;
-    /* Set B Color */
+    --primary: #3b82f6; --bg-dark: #0f172a; --panel-bg: #1e293b;
+    --text-main: #f1f5f9; --text-muted: #94a3b8; --border: #334155;
+    --accent-green: #10b981; --accent-red: #ef4444;
+    --accent-a: #60a5fa; /* Set A Color */
+    --accent-b: #f472b6; /* Set B Color */
 }
 
-body {
-    margin: 0;
+/* 背景は画面全体に広げる */
+body { margin: 0; background-color: #0b1120; color: var(--text-main); font-family: sans-serif; overflow: hidden; }
+* { box-sizing: border-box; }
+
+/* 全体レイアウト（ウルトラワイド対策：最大幅制限と中央配置） */
+.app-container { 
+    display: flex; flex-direction: column; height: 100vh; 
+    max-width: 2400px; /* 全体の拡散防止 */
+    margin: 0 auto;    /* 画面中央に配置 */
     background-color: var(--bg-dark);
-    color: var(--text-main);
-    font-family: sans-serif;
-    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
 }
 
-* {
-    box-sizing: border-box;
-}
-
-/* 全体レイアウト */
-.app-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-}
-
-.app-header {
-    background: #1e293b;
-    padding: 10px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 2px solid var(--primary);
-    z-index: 10;
-    height: 50px;
-    flex-shrink: 0;
-}
-
-.app-header h1 {
-    margin: 0;
-    font-size: 1.2rem;
-    color: var(--text-main);
-}
-
-.app-header small {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    margin-left: 10px;
-}
+.app-header { background: #1e293b; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); z-index: 10; height: 50px; flex-shrink: 0; }
+.app-header h1 { margin: 0; font-size: 1.2rem; color: var(--text-main); }
+.app-header small { color: var(--text-muted); font-size: 0.8rem; margin-left: 10px; }
 
 /* 3カラムグリッドレイアウト */
-.main-layout {
-    display: flex;
-    flex-grow: 1;
-    overflow: hidden;
-    position: relative;
-}
+.main-layout { display: flex; flex-grow: 1; overflow: hidden; position: relative; }
 
-.panel {
-    background: var(--panel-bg);
-    padding: 15px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
+/* パネル共通設定：内部余白を増やしてゆったりさせる */
+.panel { 
+    background: var(--panel-bg); 
+    padding: 20px 30px; /* 【変更】左右の余白を広めに設定 */
+    overflow-y: auto; 
+    display: flex; flex-direction: column; 
+    transition: width 0.3s ease; 
 }
+.panel h3 { margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; font-size: 1rem; color: var(--primary); display: flex; justify-content: space-between; align-items: center; }
 
-.panel h3 {
-    margin-top: 0;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 8px;
-    font-size: 1rem;
-    color: var(--primary);
-}
+/* カラム幅設定 */
+/* 【変更】左カラムを広く(360px)、右カラムも広く(420px) */
+#panel-left { width: 360px; min-width: 300px; flex-shrink: 0; border-right: 1px solid var(--border); }
+#panel-center { flex: 1; min-width: 500px; border-right: 1px solid var(--border); position: relative; }
+#panel-right { width: 420px; min-width: 320px; flex-shrink: 0; }
 
-#panel-left {
-    width: 260px;
-    min-width: 220px;
-    flex-shrink: 0;
-    border-right: 1px solid var(--border);
-}
-
-#panel-center {
-    flex: 1;
-    min-width: 0;
-    border-right: 1px solid var(--border);
-}
-
-#panel-right {
-    width: 380px;
-    min-width: 250px;
-    flex-shrink: 0;
-}
-
-.resizer {
-    width: 8px;
-    background: var(--bg-dark);
-    cursor: col-resize;
-    z-index: 5;
-    flex-shrink: 0;
-    transition: background 0.2s;
-}
-
-.resizer:hover,
-.resizer.active {
-    background: var(--primary);
-}
-
-/* 入力フォーム */
-.input-group {
-    margin-bottom: 15px;
-}
-
-label {
-    display: block;
-    font-size: 0.85rem;
-    margin-bottom: 5px;
-    color: var(--text-muted);
-}
-
-select,
-input[type="text"] {
-    width: 100%;
-    padding: 8px;
-    background: #0f172a;
-    color: white;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-}
-
-select:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.9rem;
-}
-
-.divider {
-    border: 0;
-    border-top: 1px solid var(--border);
-    margin: 15px 0;
-}
-
-.section-label {
-    font-size: 0.8rem;
-    font-weight: bold;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 2px;
-}
-
-/* --- モード切替タブ --- */
-.tab-group {
-    display: flex;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 15px;
-}
-
-.tab-btn {
-    flex: 1;
-    background: none;
-    border: none;
-    padding: 8px;
-    color: var(--text-muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    font-weight: bold;
-}
-
-.tab-btn.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
-    background: rgba(59, 130, 246, 0.1);
-}
-
-.mode-container {
-    display: none;
-}
-
-.mode-container.active {
-    display: block;
-}
-
-/* --- 戦略設定セット --- */
-.strategy-set-group {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 10px;
-    border-radius: 0 4px 4px 0;
-    margin-bottom: 15px;
-}
-
-.set-label {
-    font-weight: bold;
-    margin-bottom: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 5px;
-}
-
-/* ヘッダーボタン */
-.btn-load {
-    background: var(--primary);
-    color: white;
-    border: none;
-    padding: 5px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.btn-load:hover {
-    background-color: #2563eb;
-}
-
-.hidden {
-    display: none;
-}
-
-#db-status {
-    font-weight: bold;
-    margin-right: 15px;
-    font-size: 0.85rem;
-}
-
-/* テーブルスタイル */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.85rem;
-}
-
-th,
-td {
-    border: 1px solid var(--border);
-    padding: 6px;
-    text-align: center;
-}
-
-th {
-    background: #0f172a;
-    color: var(--text-muted);
-}
-
-tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.03);
-}
-
-.row-target {
-    background: rgba(59, 130, 246, 0.2) !important;
-    border: 2px solid var(--primary);
-}
-
-/* デバッグ表示 */
-.debug-section {
-    margin-bottom: 20px;
-}
-
-.formula-box {
-    background: #0f172a;
-    border-left: 4px solid var(--primary);
-    padding: 10px;
-    font-family: monospace;
-    font-size: 0.8rem;
-    color: #cbd5e1;
-    line-height: 1.5;
-}
-
-.placeholder {
-    color: var(--text-muted);
-    font-style: italic;
-    text-align: center;
+/* 中央カラムの中身（幅制限・中央寄せ） */
+.content-container { 
+    max-width: 720px; /* 【変更】かなり狭めてコンパクトに (カード2枚分) */
+    width: 100%; 
+    margin: 0 auto;    /* 中央寄せ */
     margin-top: 20px;
 }
 
-/* --- 戦略比較ビュー --- */
-.comparison-container {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-}
+/* 右カラム開閉 */
+#panel-right.collapsed { width: 50px !important; min-width: 50px !important; padding: 10px 5px; overflow: hidden; }
+#panel-right.collapsed h3 { writing-mode: vertical-rl; text-orientation: mixed; border-bottom: none; margin: 0 auto; height: 100%; justify-content: center; padding: 0; }
+#panel-right.collapsed #debug-content-wrapper { display: none; }
+.toggle-btn { cursor: pointer; opacity: 0.7; font-size: 0.8rem; }
+.toggle-btn:hover { opacity: 1; color: var(--text-main); }
 
-.strat-card {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 15px;
-    text-align: center;
-}
+/* リサイザー */
+.resizer { width: 8px; background: var(--bg-dark); cursor: col-resize; z-index: 5; flex-shrink: 0; transition: background 0.2s; }
+.resizer:hover, .resizer.active { background: var(--primary); }
 
-.strat-card h4 {
-    margin: 0 0 10px 0;
-    font-size: 1rem;
-}
+/* 入力フォーム */
+.input-group { margin-bottom: 15px; }
+label { display: block; font-size: 0.85rem; margin-bottom: 5px; color: var(--text-muted); }
+select, input[type="text"] { width: 100%; padding: 8px; background: #0f172a; color: white; border: 1px solid var(--border); border-radius: 4px; }
+select:disabled { opacity: 0.5; cursor: not-allowed; }
+.checkbox-group { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+.divider { border: 0; border-top: 1px solid var(--border); margin: 15px 0; }
+.section-label { font-size: 0.8rem; font-weight: bold; color: var(--text-muted); margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 2px; }
 
-.strat-card .main-val {
-    font-size: 1.8rem;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
+/* モード切替タブ */
+.tab-group { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
+.tab-btn { flex: 1; background: none; border: none; padding: 8px; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; font-weight: bold; }
+.tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: rgba(59,130,246,0.1); }
+.mode-container { display: none; }
+.mode-container.active { display: block; }
 
-.strat-card.win {
-    border-color: var(--accent-green);
-    background: rgba(16, 185, 129, 0.1);
-}
+/* 戦略設定セット */
+.strategy-set-group { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 0 4px 4px 0; margin-bottom: 20px; }
+.set-label { font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
 
-.strat-card.lose {
-    opacity: 0.7;
-}
+/* ヘッダーボタン */
+.btn-load { background: var(--primary); color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+.btn-load:hover { background-color: #2563eb; }
+.hidden { display: none; }
+#db-status { font-weight: bold; margin-right: 15px; font-size: 0.85rem; }
 
-.diff-val {
-    font-size: 0.9rem;
-    font-weight: bold;
-}
+/* テーブルスタイル */
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th, td { border: 1px solid var(--border); padding: 8px; text-align: center; }
+th { background: #0f172a; color: var(--text-muted); }
+tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+.row-target { background: rgba(59, 130, 246, 0.2) !important; border: 2px solid var(--primary); }
+
+/* デバッグ表示 */
+.debug-section { margin-bottom: 20px; }
+.formula-box { background: #0f172a; border-left: 4px solid var(--primary); padding: 10px; font-family: monospace; font-size: 0.8rem; color: #cbd5e1; line-height: 1.5; }
+.placeholder { color: var(--text-muted); font-style: italic; text-align: center; margin-top: 20px; }
+
+/* 戦略比較ビュー */
+.comparison-container { display: flex; gap: 20px; margin-bottom: 20px; align-items: flex-start; }
+.strat-card { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 20px; text-align: center; }
+.strat-card h4 { margin: 0 0 5px 0; font-size: 1.2rem; }
+.strat-card .main-val { font-size: 2.2rem; font-weight: bold; margin: 15px 0 5px 0; color: var(--text-main); }
+.strat-desc { font-size: 0.85rem; color: #ccc; margin-bottom: 15px; min-height: 3em; display: flex; align-items: center; justify-content: center; line-height: 1.4; }
+.val-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px; }
+.stat-row { display: flex; justify-content: space-around; border-top: 1px solid var(--border); padding-top: 15px; margin-top: 10px; }
+.stat-item { font-size: 0.85rem; color: var(--text-muted); }
+.stat-val { font-size: 1.2rem; font-weight: bold; color: var(--text-main); display: block; margin-top: 4px; }
+
+/* Top3 ランキング */
+.top3-container { text-align: left; margin-top: 20px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 4px; }
+.top3-title { font-weight: bold; font-size: 0.8rem; color: #aaa; margin-bottom: 8px; border-bottom: 1px solid #444; padding-bottom: 4px; }
+.top3-item { font-size: 0.8rem; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px dashed #444; }
+.top3-item:last-child { border-bottom: none; margin-bottom: 0; }
+.top3-label { font-weight: bold; color: #ddd; }
+.top3-desc { font-weight: normal; color: #999; font-size: 0.75rem; margin-left: 5px; }
+.top3-stats { display: flex; justify-content: space-between; color: #bbb; margin-top: 3px; font-family: monospace; }
