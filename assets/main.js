@@ -1,6 +1,6 @@
 /**
  * Fisherman Logic Engine (FLE) v2.0
- * Step 2: Strategy Evaluation Mode
+ * Update: Strategy Details, Top 3 Scenarios, JP Descriptions
  */
 
 const GDS = {
@@ -24,11 +24,9 @@ function setupEventListeners() {
     const tabs = document.querySelectorAll('.tab-btn');
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            // アクティブクラス切替
             document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
 
-            // モード切替
             currentMode = tab.dataset.mode;
             document.querySelectorAll('.mode-container').forEach(c => c.classList.remove('active'));
             document.getElementById(`mode-${currentMode}`).classList.add('active');
@@ -37,11 +35,9 @@ function setupEventListeners() {
         });
     });
 
-    // 共通設定
     const commonInputs = ['currentSpot', 'currentWeather', 'currentBait', 'targetFishName'];
     commonInputs.forEach(id => document.getElementById(id).addEventListener('change', updateSimulation));
 
-    // CatchAll制御
     const isCatchAll = document.getElementById('isCatchAll');
     isCatchAll.addEventListener('change', () => {
         const manualTrade = document.getElementById('manualTradeSlap');
@@ -61,49 +57,42 @@ function setupEventListeners() {
         updateSimulation();
     });
 
+    document.getElementById('manualTradeSlap').addEventListener('change', updateSimulation);
+
     // 手動モード設定
-    const manualInputs = ['manualTradeSlap', 'manualChum', 'lureType', 'lureCount', 'lureStep1', 'lureStep2', 'lureStep3'];
+    const manualInputs = ['manualChum', 'lureType', 'lureCount', 'lureStep1', 'lureStep2', 'lureStep3'];
     manualInputs.forEach(id => document.getElementById(id).addEventListener('change', () => {
         if (id.startsWith('lure')) updateLureUI();
         updateSimulation();
     }));
 
-    // 戦略モード設定 (Set A / Set B)
+    // 戦略モード設定
     const strategyInputs = [
         'stratALure', 'stratAPreset', 'stratATrade', 'stratAChum',
         'stratBLure', 'stratBPreset', 'stratBTrade', 'stratBChum'
     ];
     strategyInputs.forEach(id => document.getElementById(id).addEventListener('change', () => {
-        // ルアー選択によるプリセットフィルタリング
         if (id === 'stratALure' || id === 'stratBLure') updateStrategyPresetsFilter();
         updateSimulation();
     }));
 }
 
-// ルアー選択に応じて、選べる戦略プリセットを制御（Lure=NoneならStrategy=Noneのみ）
 function updateStrategyPresetsFilter() {
     ['A', 'B'].forEach(set => {
         const lureVal = document.getElementById(`strat${set}Lure`).value;
         const presetSel = document.getElementById(`strat${set}Preset`);
-        const currentPreset = presetSel.value;
 
-        // 全オプションを一度有効化
         Array.from(presetSel.options).forEach(opt => {
-            // データ属性等で判断すべきだが、今回はID規約(no_lure)で判断
             const isNoLureStrat = (opt.value === 'no_lure');
-
             if (lureVal === 'none') {
-                if (!isNoLureStrat) opt.disabled = true;
-                else opt.disabled = false;
+                opt.disabled = !isNoLureStrat;
             } else {
-                // ルアーありの場合、Lなし戦略も選べてよい（計算可）
                 opt.disabled = false;
             }
         });
 
-        // 現在の選択が無効になった場合、デフォルトへ
         if (presetSel.options[presetSel.selectedIndex].disabled) {
-            presetSel.value = (lureVal === 'none') ? 'no_lure' : masterDB.strategy_presets[1].id; // 適当なデフォルト
+            presetSel.value = (lureVal === 'none') ? 'no_lure' : masterDB.strategy_presets[1].id;
         }
     });
 }
@@ -125,7 +114,6 @@ function updateLureUI() {
     setStepState(3, isLureActive && count >= 3);
 }
 
-// --- ID生成 ---
 function constructScenarioId() {
     const type = document.getElementById('lureType').value;
     if (type === 'none') return 'none_0';
@@ -162,7 +150,6 @@ function updateSimulation() {
 
 // --- モード1: 手動 ---
 function runManualMode(config) {
-    // コンテナリセット
     const resultPanel = document.getElementById('panel-center');
     resultPanel.innerHTML = `<h3>📊 結果</h3>
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
@@ -177,7 +164,6 @@ function runManualMode(config) {
             <div id="avg-cycle-time">平均サイクル時間: -</div>
         </div>`;
 
-    // 詳細エリアリセット
     document.getElementById('debug-content-wrapper').innerHTML = `
         <div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>
         <div class="debug-section"><label>【シナリオ解析】</label><div id="debug-scenario" class="formula-box"></div></div>
@@ -186,7 +172,6 @@ function runManualMode(config) {
         <div class="debug-section"><label>【期待値計算の詳細】</label><div id="debug-calc-expect" class="formula-box"></div></div>
     `;
 
-    // バリデーション
     const lureType = document.getElementById('lureType').value;
     const count = parseInt(document.getElementById('lureCount').value, 10);
     let discCount = 0;
@@ -249,29 +234,32 @@ function calculateStrategySet(config, setConfig, preset) {
     const scenarios = [];
     let weightedHitRate = 0;
     let weightedCycle = 0;
+    let weightedWait = 0; // 実効待機時間の加重平均
     let totalProb = 0;
     let error = null;
 
-    // 各シナリオを計算
     for (const sid of preset.eligible_scenarios) {
-        // 設定をコピーしてルアータイプ等はセット設定を使用
         const scenarioConfig = { ...config, lureType: setConfig.lureType };
         const stats = calculateScenarioStats(scenarioConfig, sid, setConfig.isChum, setConfig.tradeFish);
 
         if (stats.error) {
-            error = stats.error; // 1つでもエラーなら全体エラー
+            error = stats.error;
             break;
         }
 
-        const pScenario = stats.scenarioProb; // このシナリオが発生する確率
+        const pScenario = stats.scenarioProb;
         if (pScenario === null) {
             error = "確率計算不能"; break;
         }
 
-        // 加重加算
         totalProb += pScenario;
         weightedHitRate += (pScenario * stats.targetHitRate);
-        weightedCycle += (pScenario * stats.avgCycleTime); // そのシナリオの平均サイクル * 発生確率
+        weightedCycle += (pScenario * stats.avgCycleTime);
+
+        // stats.allFishStats からターゲットの waitTime を取得して加重平均 (外道含む平均ではなく、そのシナリオでのターゲット待機時間を代表とする)
+        // または stats.debugData.waitTime を使用
+        const waitTime = stats.debugData.waitTime || 0;
+        weightedWait += (pScenario * waitTime);
 
         scenarios.push({
             id: sid,
@@ -279,15 +267,13 @@ function calculateStrategySet(config, setConfig, preset) {
             prob: pScenario,
             cycle: stats.avgCycleTime,
             hit: stats.targetHitRate,
-            expected: stats.expectedTime
+            expected: stats.expectedTime,
+            pObj: stats.debugData.p // {n, d, g}
         });
     }
 
-    if (error) return { error, name: preset.name };
+    if (error) return { error, name: preset.name, description: preset.description };
 
-    // 戦略期待値の算出 (v1.8式ベース)
-    // E[Time] = (E[Cycle]_strat - (P_Target_strat * T_Hook)) / P_Target_strat
-    // ここで T_Hook はターゲット固有値（全シナリオ共通）
     const targetInfo = masterDB.fish[config.target];
     const tHook = targetInfo ? targetInfo.hook_time : 0;
 
@@ -297,13 +283,19 @@ function calculateStrategySet(config, setConfig, preset) {
         expectedTime = (weightedCycle - successCost) / weightedHitRate;
     }
 
+    // 平均キャスト回数
+    const avgCastCount = (weightedHitRate > 0) ? (1 / weightedHitRate) : Infinity;
+
     return {
         name: preset.name,
+        description: preset.description,
         trade: setConfig.tradeFish,
         scenarios: scenarios,
         totalProb,
         avgHitRate: weightedHitRate,
         avgCycle: weightedCycle,
+        avgWait: weightedWait,
+        avgCastCount: avgCastCount,
         expectedTime,
         error: null
     };
@@ -314,59 +306,93 @@ function renderStrategyComparison(resA, resB, config) {
     const center = document.getElementById('panel-center');
     const right = document.getElementById('debug-content-wrapper');
 
-    // 中央: A vs B カード
-    const timeA = (resA.error || resA.expectedTime === Infinity) ? Infinity : resA.expectedTime;
-    const timeB = (resB.error || resB.expectedTime === Infinity) ? Infinity : resB.expectedTime;
+    // 勝敗判定削除、詳細情報の表示へ変更
 
-    // 勝敗判定
-    let classA = "strat-card", classB = "strat-card";
-    let diffMsg = "";
-    if (timeA !== Infinity && timeB !== Infinity) {
-        if (timeA < timeB) { classA += " win"; classB += " lose"; diffMsg = `Set A is ${(timeB - timeA).toFixed(1)}s faster`; }
-        else if (timeB < timeA) { classB += " win"; classA += " lose"; diffMsg = `Set B is ${(timeA - timeB).toFixed(1)}s faster`; }
-        else { diffMsg = "Draw"; }
-    }
+    const buildCard = (res, label, color) => {
+        const time = (res.error || res.expectedTime === Infinity) ? '∞' : res.expectedTime.toFixed(1);
+        const hit = (res.error) ? '-' : (res.avgHitRate * 100).toFixed(2) + '%';
+        const cast = (res.error || res.avgCastCount === Infinity) ? '-' : res.avgCastCount.toFixed(1);
+        const wait = (res.error) ? '-' : res.avgWait.toFixed(1) + 's';
 
-    const fmtTime = (t) => (t === Infinity) ? '-' : t.toFixed(1) + ' s';
-    const fmtHit = (r) => (r.error) ? '-' : (r.avgHitRate * 100).toFixed(2) + '%';
+        let descHtml = `<div style="font-size:0.8rem; color:#ccc; margin-bottom:10px; min-height:3em;">${res.description || ''}</div>`;
+        let statsHtml = `
+            <div style="display:flex; justify-content:space-around; font-size:0.85rem; margin:10px 0; border-top:1px solid #444; padding-top:10px;">
+                <div>平均キャスト<br><strong style="font-size:1.1rem">${cast}</strong> 回</div>
+                <div>平均実行待機<br><strong style="font-size:1.1rem">${wait}</strong></div>
+            </div>
+        `;
+
+        // 上位3シナリオ
+        let top3Html = '';
+        if (!res.error && res.scenarios) {
+            const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob).slice(0, 3);
+            top3Html = `<div style="text-align:left; font-size:0.75rem; margin-top:15px; background:rgba(0,0,0,0.2); padding:8px; border-radius:4px;">
+                <div style="font-weight:bold; margin-bottom:5px; color:#aaa;">発生確率の高いシナリオ Top3</div>
+                ${sorted.map(s => {
+                const jpDesc = getJpScenarioDescription(s.pObj);
+                return `<div style="margin-bottom:4px; border-bottom:1px dashed #444; padding-bottom:2px;">
+                        <div style="color:${color}; font-weight:bold;">${s.label} <span style="font-weight:normal; color:#ccc;">: ${jpDesc}</span></div>
+                        <div style="display:flex; justify-content:space-between; color:#bbb;">
+                            <span>発生: ${(s.prob * 100).toFixed(1)}%</span>
+                            <span>Hit: ${(s.hit * 100).toFixed(1)}%</span>
+                        </div>
+                    </div>`;
+            }).join('')}
+            </div>`;
+        }
+
+        return `
+            <div class="strat-card" style="border-top: 4px solid ${color}">
+                <h4>${label}: ${res.name}</h4>
+                <div class="main-val">${time} <span style="font-size:1rem; font-weight:normal; color:#888;">s</span></div>
+                <div style="font-size:0.9rem; margin-bottom:10px;">Target Hit: ${hit}</div>
+                ${descHtml}
+                ${statsHtml}
+                ${res.error ? `<div style="color:red; font-weight:bold;">⚠️ ${res.error}</div>` : top3Html}
+            </div>
+        `;
+    };
 
     center.innerHTML = `
         <h3>📊 戦略比較</h3>
-        <div class="comparison-container">
-            <div class="${classA}" style="border-top: 4px solid var(--accent-a)">
-                <h4>セット A: ${resA.name}</h4>
-                <div class="main-val">${fmtTime(timeA)}</div>
-                <div style="font-size:0.9rem">Hit: ${fmtHit(resA)}</div>
-                ${resA.error ? `<div style="color:red; font-size:0.8rem">${resA.error}</div>` : ''}
-            </div>
-            <div class="${classB}" style="border-top: 4px solid var(--accent-b)">
-                <h4>セット B: ${resB.name}</h4>
-                <div class="main-val">${fmtTime(timeB)}</div>
-                <div style="font-size:0.9rem">Hit: ${fmtHit(resB)}</div>
-                ${resB.error ? `<div style="color:red; font-size:0.8rem">${resB.error}</div>` : ''}
-            </div>
+        <div class="comparison-container" style="align-items:stretch;">
+            ${buildCard(resA, "Set A", "var(--accent-a)")}
+            ${buildCard(resB, "Set B", "var(--accent-b)")}
         </div>
-        <div style="text-align:center; font-weight:bold; color:var(--primary); margin-top:10px;">${diffMsg}</div>
     `;
 
     // 右: 詳細内訳リスト
     let debugHtml = `<div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>`;
-
-    // セットA詳細
     debugHtml += renderStrategyDebugTable(resA, "Set A", "var(--accent-a)");
-    // セットB詳細
     debugHtml += renderStrategyDebugTable(resB, "Set B", "var(--accent-b)");
-
     right.innerHTML = debugHtml;
 
-    // 定数表示更新
+    // 定数表示
     const c = GDS;
     document.getElementById('debug-constants').innerHTML =
         `<div style="display:flex; flex-direction:column; gap:5px; font-size:0.75rem;">
-            <div>D_Cast (キャスト): ${c.D_CAST}s / D_Lure (ルアー): ${c.D_LURE}s</div>
-            <div>D_Blk (空白): ${c.D_BLK}s / D_Chum (撒き餌): ${c.D_CHUM}s</div>
-            <div>D_Rest (竿上げ): ${c.D_REST}s</div>
+            <div>D_Cast (キャスト動作時間): ${c.D_CAST}s</div>
+            <div>D_Lure (ルアー動作時間): ${c.D_LURE}s</div>
+            <div>D_Blk (ルアー後の空白時間): ${c.D_BLK}s</div>
+            <div>D_Chum (撒き餌使用動作時間): ${c.D_CHUM}s</div>
+            <div>D_Rest (竿上げ動作時間): ${c.D_REST}s</div>
         </div>`;
+}
+
+// 日本語説明生成ヘルパー
+function getJpScenarioDescription(p) {
+    // p = { n, d, g[] }
+    if (p.n === 0) return "ルアー使用なし";
+
+    let parts = [`${p.n}回使用`];
+
+    if (p.d > 0) parts.push(`${p.d}回目に発見`);
+    else parts.push("発見なし");
+
+    if (p.g.length > 0) parts.push(`${p.g.join(',')}回目に型確定`);
+    else parts.push("型確定なし");
+
+    return parts.join("、");
 }
 
 function renderStrategyDebugTable(res, label, color) {
@@ -382,7 +408,10 @@ function renderStrategyDebugTable(res, label, color) {
             </thead>
             <tbody>`;
 
-    res.scenarios.forEach(s => {
+    // 確率順にソートして表示
+    const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob);
+
+    sorted.forEach(s => {
         html += `<tr>
             <td style="white-space:nowrap;">${s.label}</td>
             <td>${(s.prob * 100).toFixed(1)}%</td>
@@ -406,7 +435,7 @@ function renderStrategyDebugTable(res, label, color) {
     return html;
 }
 
-// --- 以下、既存のコア計算ロジック（変更なし） ---
+// --- 以下、既存ロジック ---
 function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
     const p = parseScenarioId(scenarioId);
     const weightKey = `${config.spot}|${config.weather}|${config.bait}`;
@@ -435,18 +464,11 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         let found = false;
         let foundStep = 0;
         for (let i = 1; i <= p.n; i++) {
-            const val = document.getElementById(`lureStep${i}`) ? document.getElementById(`lureStep${i}`).value : getStepValueFromId(p, i); // 戦略モード時はIDから逆算が必要だが、ここでは簡易的にID解析関数が必要
-            // ★重要修正: 戦略モードではDOM要素がない場合がある。IDから値を復元するロジックが必要。
-            // しかし今回はID自体が結果を表しているので、IDをパースした p.d (発見ステップ), p.g (型確ステップ) を使う方が正しい。
-
-            // 再考: p変数には {n, d, g} が入っている。これを使って確率を計算する。
             const idx = i - 1;
-
-            // ステップiで何が起きたか？
             let action = 'none';
-            if (p.d === i) action = 'disc'; // 発見
-            else if (p.g.includes(i)) action = 'guar'; // 型確
-            else action = 'none'; // 何もなし
+            if (p.d === i) action = 'disc';
+            else if (p.g.includes(i)) action = 'guar';
+            else action = 'none';
 
             const label = (action === 'disc') ? '発見' : (action === 'guar' ? '型確定' : '何もなし');
             scenarioStrParts.push(label);
@@ -476,7 +498,6 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         if (config.lureType === 'none') scenarioStrParts = ["ルアー使用なし"];
     }
 
-    // ヒット率（変更なし）
     let pHidden = 0;
     let hiddenFishName = probData && probData.target_hidden ? probData.target_hidden : null;
     if (hiddenFishName && probData.hidden_hit_rates) {
@@ -485,7 +506,6 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         if (rate !== undefined) pHidden = rate / 100.0;
     }
 
-    // 重み計算（変更なし）
     let totalWeight = 0, weightDetails = [];
     let modN = (p.n === 1) ? GDS.M_N1 : (p.n === 2 ? GDS.M_N2 : (p.n === 3 ? GDS.M_N3 : 1.0));
     const currentLureJaws = (config.lureType === 'アンビシャスルアー') ? 'large_jaws' : (config.lureType === 'モデストルアー' ? 'small_jaws' : null);
@@ -544,14 +564,6 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
     };
 }
 
-// 簡易ヘルパー: 戦略モード時にIDから各ステップの行動を復元する
-function getStepValueFromId(p, step) {
-    // p = { n, d, g[] }
-    if (p.d === step) return 'disc';
-    if (p.g.includes(step)) return 'guar';
-    return 'none';
-}
-
 function parseScenarioId(id) {
     if (id === 'none_0') return { fullId: id, n: 0, d: 0, g: [], isNone: true };
     const match = id.match(/^n(\d+)_d(\d+)_g(\d+)$/);
@@ -568,7 +580,6 @@ function getScenarioLabel(id) {
     return text;
 }
 
-// --- 他ヘルパーは変更なし ---
 function handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -589,7 +600,6 @@ function handleFileUpload(event) {
 function enableControls() {
     document.querySelectorAll('select:disabled, input:disabled').forEach(el => el.disabled = false);
 
-    // CatchAll制御を初期適用
     const isCatchAll = document.getElementById('isCatchAll');
     if (isCatchAll.checked) {
         ['manualTradeSlap', 'stratATrade', 'stratBTrade'].forEach(id => {
@@ -608,7 +618,6 @@ function populateSelectors() {
     spotSelect.addEventListener('change', updateSpotDependents);
     updateSpotDependents();
 
-    // 戦略プリセット
     const presets = masterDB.strategy_presets || [];
     ['stratAPreset', 'stratBPreset'].forEach(id => {
         const sel = document.getElementById(id);
@@ -647,7 +656,6 @@ function updateSelect(id, items) {
     if ([...el.options].some(o => o.value === val)) el.value = val;
 }
 
-// レンダリングヘルパーは変更なし...
 function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
     const tbody = document.getElementById('res-table-body');
     tbody.innerHTML = '';
@@ -669,7 +677,6 @@ function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
 }
 
 function renderDebugDetails(stats, config, isChum, scenarioId) {
-    // 既存の実装をそのまま維持 (省略せず記述)
     const c = GDS;
     document.getElementById('debug-constants').innerHTML =
         `<div style="display:flex; flex-direction:column; gap:5px; font-size:0.75rem;">
