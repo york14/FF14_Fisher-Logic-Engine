@@ -77,25 +77,25 @@ body {
     color: var(--primary);
 }
 
-/* 左カラム (設定) */
+/* 左カラム (設定) - デフォルト幅を狭めに調整 */
 #panel-left {
-    width: 300px;
-    min-width: 250px;
+    width: 260px;
+    min-width: 220px;
     flex-shrink: 0;
     border-right: 1px solid var(--border);
 }
 
-/* 中央カラム (結果) - 一番広く */
+/* 中央カラム (結果) - 残りを埋める */
 #panel-center {
     flex: 1;
     min-width: 0;
     border-right: 1px solid var(--border);
 }
 
-/* 右カラム (詳細) - 狭く */
+/* 右カラム (詳細) - デフォルト幅を広めに調整 */
 #panel-right {
-    width: 300px;
-    min-width: 200px;
+    width: 380px;
+    min-width: 250px;
     flex-shrink: 0;
 }
 

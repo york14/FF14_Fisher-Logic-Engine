@@ -1,6 +1,6 @@
 /**
  * Fisherman Logic Engine (FLE) v2.0
- * Update: Trade 'None' Value, Constants Display, Search Keys
+ * Update: Text Colors, Percentage Units, Layout Tweak
  */
 
 const GDS = {
@@ -32,7 +32,7 @@ function setupEventListeners() {
     isCatchAll.addEventListener('change', () => {
         const tradeSlap = document.getElementById('manualTradeSlap');
         if (isCatchAll.checked) {
-            tradeSlap.value = 'なし'; // 【修正】'none' -> 'なし'
+            tradeSlap.value = 'なし';
             tradeSlap.disabled = true;
         } else {
             tradeSlap.disabled = false;
@@ -116,7 +116,14 @@ function updateSimulation() {
     const clearResults = (msg) => {
         document.getElementById('main-result-time').textContent = '-';
         document.getElementById('main-result-hit').textContent = 'Hit: -';
-        document.getElementById('res-table-body').innerHTML = '';
+
+        const tableBody = document.getElementById('res-table-body');
+        if (msg) {
+            tableBody.innerHTML = `<tr><td colspan="5" style="color:var(--accent-red); font-weight:bold; text-align:center; padding:15px;">⚠️ Error: ${msg}</td></tr>`;
+        } else {
+            tableBody.innerHTML = '';
+        }
+
         document.getElementById('scenario-str').textContent = '';
         document.getElementById('scenario-prob').textContent = '';
         document.getElementById('avg-cycle-time').textContent = '平均サイクル時間: -';
@@ -132,7 +139,7 @@ function updateSimulation() {
 
     if (discCount > 1) {
         errorMsgEl.style.display = 'block';
-        clearResults();
+        clearResults("発見は1度までです");
         return;
     } else {
         errorMsgEl.style.display = 'none';
@@ -157,7 +164,6 @@ function updateSimulation() {
 
     // 描画更新
     if (stats.error) {
-        // エラー時でも詳細表示の一部（検索キーなど）は出せるようにする
         renderDebugDetails(stats, config, isChum, scenarioId);
         clearResults(stats.error);
     } else {
@@ -186,8 +192,13 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         row.trade_target === tradeFish
     );
 
+    const rawRates = probData ? {
+        disc: probData.disc_rates,
+        guar: probData.guar_rates_nodisc
+    } : null;
+
     if (!probData && config.lureType !== 'none') {
-        return { error: "条件に合う確率データがありません (トレード設定等を確認してください)" };
+        return { error: "条件に合う確率データがありません (トレード設定等を確認してください)", debugData: { rates: rawRates } };
     }
 
     const lureTime = p.isNone ? 0 : (GDS.D_CAST + (p.n * GDS.D_LURE) + GDS.D_BLK);
@@ -201,11 +212,15 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         for (let i = 1; i <= p.n; i++) {
             const val = document.getElementById(`lureStep${i}`).value;
             const idx = i - 1;
-            const label = (val === 'disc') ? '発見' : (val === 'guar' ? '型確定' : 'なし');
+            const label = (val === 'disc') ? '発見' : (val === 'guar' ? '型確定' : '何もなし');
             scenarioStrParts.push(label);
 
             let stepProb = 0;
             if (!found) {
+                if (probData.disc_rates[idx] === null || probData.guar_rates_nodisc[idx] === null) {
+                    return { error: `データ不足によるエラー: ステップ${i}の確率データがありません`, debugData: { rates: rawRates } };
+                }
+
                 const pDisc = probData.disc_rates[idx];
                 const pGuar = probData.guar_rates_nodisc[idx] / 100.0;
                 const pD = pDisc / 100.0;
@@ -220,8 +235,17 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
                 }
             } else {
                 const key = `d${foundStep}_g${i}`;
-                const pGuarAfter = (probData.guar_rates_after_disc && probData.guar_rates_after_disc[key])
-                    ? probData.guar_rates_after_disc[key] / 100.0 : 0;
+
+                let pGuarAfterVal = null;
+                if (probData.guar_rates_after_disc && probData.guar_rates_after_disc[key] !== undefined) {
+                    pGuarAfterVal = probData.guar_rates_after_disc[key];
+                }
+
+                if (pGuarAfterVal === null) {
+                    return { error: `データ不足によるエラー: ステップ${i} (発見後) のデータがありません`, debugData: { rates: rawRates } };
+                }
+
+                const pGuarAfter = pGuarAfterVal / 100.0;
 
                 if (val === 'guar') stepProb = pGuarAfter;
                 else stepProb = 1.0 - pGuarAfter;
@@ -240,7 +264,7 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
     if (hiddenFishName && probData.hidden_hit_rates) {
         const rate = probData.hidden_hit_rates[p.fullId];
         if (rate === null) {
-            return { error: `データ不足によるエラー: シナリオ[${getScenarioLabel(scenarioId)}]のデータが存在しません` };
+            return { error: `データ不足によるエラー: シナリオ[${getScenarioLabel(scenarioId)}]のデータが存在しません`, debugData: { rates: rawRates } };
         }
         if (rate !== undefined) pHidden = rate / 100.0;
     }
@@ -348,6 +372,7 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         scenarioProb: scenarioProb,
         debugData: {
             p: p,
+            rates: rawRates,
             lureTime: lureTime,
             biteTime: targetStat ? targetStat.biteTime : 0,
             waitTime: targetStat ? targetStat.waitTime : 0,
@@ -476,7 +501,7 @@ function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
 function renderDebugDetails(stats, config, isChum, scenarioId) {
     const c = GDS;
 
-    // 【修正】定数表示：1列リスト、日本語説明完全一致
+    // 定数表示：1列リスト、日本語説明完全一致
     document.getElementById('debug-constants').innerHTML =
         `<div style="display:flex; flex-direction:column; gap:5px; font-size:0.75rem;">
             <div>D_Cast (キャスト動作時間): ${c.D_CAST}s</div>
@@ -486,9 +511,9 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
             <div>D_Rest (竿上げ動作時間): ${c.D_REST}s</div>
         </div>`;
 
-    // 【修正】検索キーの表示を追加
+    // 【修正】検索キーの表示を追加 (文字色を明るく #ccc)
     const searchKeys = `
-        <div style="font-size:0.7rem; color:#aaa; margin-bottom:6px; padding-bottom:6px; border-bottom:1px dashed #444; line-height:1.4;">
+        <div style="font-size:0.7rem; color:#ccc; margin-bottom:6px; padding-bottom:6px; border-bottom:1px dashed #666; line-height:1.4;">
             <div>Spot: ${config.spot}</div>
             <div>Cond: ${config.weather} / Bait: ${config.bait}</div>
             <div>Target: ${config.target}</div>
@@ -504,8 +529,23 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
 
     let analysisHtml = searchKeys;
     analysisHtml += `<div>特定キー: ${getScenarioLabel(scenarioId)} (${scenarioId})</div>`;
-    analysisHtml += `<div>隠し魚ヒット率 (P_Hidden): ${(stats.pHidden * 100).toFixed(2)}%</div>`;
+
+    // 【修正】確率配列の値を表示 (nullはnull, 0は0, 単位%を追加) 文字色も #bbb へ
+    if (stats.debugData && stats.debugData.rates) {
+        const fmt = (arr) => arr.map(v => (v === null ? 'null' : v + '%')).join(', ');
+        analysisHtml += `<div style="margin-top:5px; font-size:0.7rem; color:#bbb;">
+            <div>発見率: [${fmt(stats.debugData.rates.disc)}]</div>
+            <div>未発見型確定率: [${fmt(stats.debugData.rates.guar)}]</div>
+        </div>`;
+    }
+
+    if (!stats.error) {
+        analysisHtml += `<div>隠し魚ヒット率 (P_Hidden): ${(stats.pHidden * 100).toFixed(2)}%</div>`;
+    }
+
     document.getElementById('debug-scenario').innerHTML = analysisHtml;
+
+    if (stats.error) return;
 
     let wHtml = `<table style="width:100%; border-collapse:collapse; font-size:0.7rem;">
         <tr style="border-bottom:1px solid #666; text-align:right;">
@@ -580,6 +620,7 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
         ? `${formulaStr} = <strong>${expectedTime.toFixed(1)}s</strong>`
         : `ターゲット確率が 0% のため計算不可`;
 
+    // 【修正】注釈文の色を明るく変更 (#bbb)
     const expectHtml = `
         <div style="font-size:0.8rem;">
             <div><strong>平均サイクル (E[Cycle]):</strong> ${avgCycle.toFixed(2)}s</div>
@@ -587,7 +628,7 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
             <div><strong>ターゲット釣り上げ動作時間:</strong> ${targetHook.toFixed(1)}s</div>
             <hr style="margin:5px 0; border:0; border-top:1px dashed #666;">
             <div><strong>式:</strong> (E[Cycle] - (P × 動作時間)) / P</div>
-            <div style="margin:5px 0; color:#555; font-size:0.75rem; line-height:1.4;">
+            <div style="margin:5px 0; color:#bbb; font-size:0.75rem; line-height:1.4;">
                 ※1匹釣るための平均総時間から、ターゲットを釣り上げる動作時間（成功時のコスト）を除外することで、純粋にヒットするまでの待ち時間を算出しています。
             </div>
             <div style="margin-top:4px; color:var(--primary);">${expectExpr}</div>
