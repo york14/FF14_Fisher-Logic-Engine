@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "updated_at": "2026-01-11T04:47:05.657Z",
+  "updated_at": "2026-01-11T06:04:32.888Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -104,17 +104,17 @@
       {
         "fish": "エレクトロベタ",
         "weight": 200,
-        "bite_time": 15
+        "bite_time": 10
       },
       {
         "fish": "サンダーレッド",
         "weight": 200,
-        "bite_time": 15
+        "bite_time": 12
       },
       {
         "fish": "ヤースラニボウフィン",
         "weight": 160,
-        "bite_time": 20
+        "bite_time": 15
       },
       {
         "fish": "ヘリテージグルーパー",
@@ -124,51 +124,51 @@
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time": 30
+        "bite_time": 25
       }
     ],
     "アレクサンドリア旧市街|霧晴れ12-16|ポッパールアー": [
       {
         "fish": "エレクトロベタ",
         "weight": 150,
-        "bite_time": 20
+        "bite_time": 10
       },
       {
         "fish": "サンダーレッド",
         "weight": 150,
-        "bite_time": 20
+        "bite_time": 12
       },
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
-        "bite_time": 25
+        "bite_time": 15
       },
       {
         "fish": "ヘリテージグルーパー",
-        "weight": 5,
+        "weight": 2,
         "bite_time": 30
       },
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time": 30
+        "bite_time": 25
       }
     ],
     "アレクサンドリア旧市街|それ以外|紅サシ": [
       {
         "fish": "エレクトロベタ",
         "weight": 200,
-        "bite_time": 15
+        "bite_time": 10
       },
       {
         "fish": "サンダーレッド",
         "weight": 200,
-        "bite_time": 15
+        "bite_time": 12
       },
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
-        "bite_time": 20
+        "bite_time": 15
       },
       {
         "fish": "ヘリテージグルーパー",
@@ -185,17 +185,17 @@
       {
         "fish": "エレクトロベタ",
         "weight": 150,
-        "bite_time": 20
+        "bite_time": 10
       },
       {
         "fish": "サンダーレッド",
         "weight": 150,
-        "bite_time": 20
+        "bite_time": 12
       },
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
-        "bite_time": 25
+        "bite_time": 15
       },
       {
         "fish": "ヘリテージグルーパー",
@@ -205,7 +205,7 @@
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time": 30
+        "bite_time": 25
       }
     ],
     "テスト釣り場1|天気1|テストルアー1": [
@@ -623,9 +623,9 @@
         43.29
       ],
       "guar_rates_nodisc": [
-        0,
-        0,
-        0
+        0.1,
+        0.5,
+        1
       ],
       "guar_rates_after_disc": {
         "d1_g2": 2.61,
