@@ -2,256 +2,287 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>FLE Data Converter (logic_master builder)</title>
+    <title>FLE Logic Master Converter v2.6</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        body { font-family: monospace; padding: 20px; background: #f0f0f0; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1 { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; margin-top: 10px; }
-        input[type="file"] { margin-bottom: 10px; width: 100%; }
-        button { background: #007bff; color: white; border: none; padding: 12px 24px; font-size: 16px; cursor: pointer; border-radius: 4px; display: block; width: 100%; }
-        button:hover { background: #0056b3; }
-        #status { margin-top: 20px; white-space: pre-wrap; color: #333; padding: 10px; border: 1px solid #ccc; background: #fafafa; min-height: 50px; }
-        .error { color: red; font-weight: bold; }
-        .success { color: green; font-weight: bold; }
+        body { font-family: sans-serif; background: #0f172a; color: #f1f5f9; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: #1e293b; padding: 20px; border-radius: 8px; }
+        h1 { border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
+        .input-group { margin-bottom: 20px; border: 2px dashed #334155; padding: 30px; text-align: center; border-radius: 8px; background: rgba(59,130,246,0.05); transition: background 0.3s; }
+        .input-group:hover { background: rgba(59,130,246,0.1); border-color: #3b82f6; }
+        label { display: block; margin-bottom: 10px; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
+        input[type="file"] { display: none; }
+        .custom-file-btn { background: #3b82f6; color: white; padding: 10px 20px; border-radius: 4px; cursor: pointer; display: inline-block; }
+        button { background: #10b981; color: white; border: none; padding: 12px 30px; border-radius: 4px; cursor: pointer; font-size: 1.1rem; margin-top: 20px; display: block; width: 100%; font-weight: bold; }
+        button:disabled { background: #64748b; cursor: not-allowed; }
+        button:hover:not(:disabled) { background: #059669; }
+        
+        #file-list { text-align: left; margin-top: 15px; font-size: 0.9rem; color: #cbd5e1; }
+        .file-item { margin: 5px 0; display: flex; align-items: center; }
+        .icon-check { color: #10b981; margin-right: 8px; font-weight: bold; }
+        .icon-cross { color: #ef4444; margin-right: 8px; font-weight: bold; }
+        
+        #status { margin-top: 15px; font-weight: bold; text-align: center; white-space: pre-wrap; }
+        .error { color: #ef4444; }
+        .success { color: #10b981; }
+        pre { background: #000; padding: 10px; overflow-x: auto; border-radius: 4px; margin-top: 20px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>FLE Data Converter</h1>
-        <p>5つのCSVを読み込み、アプリ用マスターデータ <strong>logic_master.json</strong> を生成します。</p>
+        <h1>FLE Logic Master Converter <small>v2.6</small></h1>
+        <p>日本語マスタCSV専用コンバータ (未定義スポット対応版)</p>
 
-        <div class="section">
-            <label>1. マスタ - 魚種.csv</label>
-            <input type="file" id="csvFish" accept=".csv">
-            
-            <label>2. マスタ - 釣り場定義.csv</label>
-            <input type="file" id="csvSpots" accept=".csv">
-            
-            <label>3. マスタ - 基礎重み・基礎待機時間.csv</label>
-            <input type="file" id="csvWeights" accept=".csv">
-
-            <label>4. マスタ - 発見・型確定・隠しヒット率.csv</label>
-            <input type="file" id="csvProbs" accept=".csv">
-            
-            <label>5. マスタ - ルアー戦略プリセット.csv</label>
-            <input type="file" id="csvStrategies" accept=".csv">
+        <div class="input-group">
+            <label for="folderInput" class="custom-file-btn">📂 マスタフォルダを選択</label>
+            <input type="file" id="folderInput" webkitdirectory directory multiple>
+            <div id="file-list"></div>
         </div>
 
-        <button onclick="convertFiles()">JSON生成・ダウンロード</button>
-        <div id="status">待機中...</div>
+        <button id="convertBtn" onclick="generateJSON()" disabled>JSON生成 & ダウンロード</button>
+        <div id="status"></div>
+        <pre id="preview"></pre>
     </div>
 
     <script>
-        // idx.md に基づく日本語カラム名からシステムIDへのマッピング
-        const PROB_COLUMN_MAP = {
-            "発見1型確1なし隠しヒット率1": "n1_d1_g0",
-            "発見1型確2あり隠しヒット率2": "n2_d1_g2",
-            "発見1型確2なし隠しヒット率2": "n2_d1_g0",
-            "発見1型確3あり隠しヒット率3": ["n3_d1_g3", "n3_d1_g23"],
-            "発見1型確3なし隠しヒット率3": ["n3_d1_g0", "n3_d1_g2"], 
-            "発見2型確2なし隠しヒット率2": ["n2_d2_g0", "n2_d2_g1"],
-            "発見2型確3あり隠しヒット率3": ["n3_d2_g3", "n3_d2_g13"],
-            "発見2型確3なし隠しヒット率3": ["n3_d2_g0", "n3_d2_g1"],
-            "発見3型確3なし隠しヒット率3": ["n3_d3_g0", "n3_d3_g1", "n3_d3_g2", "n3_d3_g12"]
+        const REQUIRED_FILES = {
+            fish: "マスタ - 1_魚種.csv",
+            hierarchy: "マスタ - 2_拡張・エリア定義.csv",
+            spots: "マスタ - 3_釣り場定義.csv",
+            weights: "マスタ - 4_基礎重み・基礎待機時間.csv",
+            probs: "マスタ - 5_発見・型確定・隠しヒット率.csv",
+            presets: "マスタ - 6_ルアー戦略プリセット.csv"
         };
 
-        async function convertFiles() {
+        let foundFiles = {};
+
+        document.getElementById('folderInput').addEventListener('change', function(e) {
+            const files = e.target.files;
+            foundFiles = {};
+            const fileListEl = document.getElementById('file-list');
+            fileListEl.innerHTML = '';
+
+            for (let file of files) {
+                for (let key in REQUIRED_FILES) {
+                    if (file.name === REQUIRED_FILES[key]) {
+                        foundFiles[key] = file;
+                    }
+                }
+            }
+
+            let allFound = true;
+            for (let key in REQUIRED_FILES) {
+                const name = REQUIRED_FILES[key];
+                const isFound = foundFiles[key] !== undefined;
+                if (!isFound) allFound = false;
+
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = isFound 
+                    ? `<span class="icon-check">✔</span> ${name}` 
+                    : `<span class="icon-cross">✖</span> ${name}`;
+                fileListEl.appendChild(div);
+            }
+
+            const btn = document.getElementById('convertBtn');
             const status = document.getElementById('status');
-            status.textContent = "処理中...";
-            status.className = "";
-
-            try {
-                const fishData = await readFile('csvFish');
-                const spotData = await readFile('csvSpots');
-                const weightData = await readFile('csvWeights');
-                const probData = await readFile('csvProbs');
-                const strategyData = await readFile('csvStrategies');
-
-                const masterDB = {
-                    version: "2.0.0",
-                    updated_at: new Date().toISOString(),
-                    fish: processFish(fishData),
-                    spots: processSpots(spotData),
-                    weights: processWeights(weightData),
-                    probabilities: processProbabilities(probData),
-                    strategy_presets: processStrategies(strategyData)
-                };
-
-                downloadJSON(masterDB, 'logic_master.json');
-                
-                status.innerHTML = "✅ <strong>成功:</strong> logic_master.json を生成しました。<br>ブラウザのダウンロードフォルダを確認してください。";
+            if (allFound) {
+                btn.disabled = false;
+                status.textContent = "準備完了";
                 status.className = "success";
-
-            } catch (e) {
-                console.error(e);
-                status.innerHTML = "❌ <strong>エラー:</strong> " + e.message;
+            } else {
+                btn.disabled = true;
+                status.textContent = "不足ファイルがあります";
                 status.className = "error";
             }
-        }
+        });
 
-        // --- データ処理ロジック ---
-
-        function processFish(csv) {
-            const rows = parseCSV(csv);
-            const result = {};
-            rows.forEach(r => {
-                if(!r['魚種']) return;
-                result[r['魚種']] = {
-                    type: (r['型'] === '小型') ? 'small_jaws' : 'large_jaws',
-                    vibration: r['演出'] || '!',
-                    hook_time: parseFloat(r['釣り上げ動作時間'] || 0),
-                    is_hidden: (r['隠し判定'] == '1'),
-                    can_trade: (r['トレード可否'] == '1')
-                };
-            });
-            return result;
-        }
-
-        function processSpots(csv) {
-            const rows = parseCSV(csv);
-            const result = {};
-            rows.forEach(r => {
-                const spot = r['釣り場'];
-                if (!result[spot]) {
-                    result[spot] = { weathers: [], baits: [], fish_list: [] };
-                }
-                const d = r['データ'];
-                if (r['データ種別'] === '天気 / 時間' && !result[spot].weathers.includes(d)) result[spot].weathers.push(d);
-                else if (r['データ種別'] === '餌' && !result[spot].baits.includes(d)) result[spot].baits.push(d);
-                else if (r['データ種別'] === '魚種' && !result[spot].fish_list.includes(d)) result[spot].fish_list.push(d);
-            });
-            return result;
-        }
-
-        function processWeights(csv) {
-            const rows = parseCSV(csv);
-            const result = {};
-            rows.forEach(r => {
-                const key = `${r['釣り場']}|${r['天気 / 時間']}|${r['餌']}`;
-                if (!result[key]) result[key] = [];
-                result[key].push({
-                    fish: r['魚種'],
-                    weight: parseInt(r['基礎重み'] || 0),
-                    bite_time: parseFloat(r['基礎待機時間'] || 0)
-                });
-            });
-            return result;
-        }
-
-        function processProbabilities(csv) {
-            const rows = parseCSV(csv);
-            
-            // 【修正】値があれば数値化、なければ null を返すヘルパー
-            const valOrNull = (val) => {
-                return (val !== undefined && val !== null && val.trim() !== "") ? parseFloat(val) : null;
-            };
-
-            return rows.map(r => {
-                const entry = {
-                    spot: r['釣り場'],
-                    weather: r['天気 / 時間'],
-                    bait: r['餌'],
-                    target_hidden: r['対象隠し魚'],
-                    trade_target: r['トレード対象'],
-                    lure_type: r['ルアー種類'],
-                    
-                    // 【修正】|| 0 を削除し、null が入るように変更
-                    disc_rates: [
-                        valOrNull(r['発見率1']), valOrNull(r['発見率2']), valOrNull(r['発見率3'])
-                    ],
-                    guar_rates_nodisc: [
-                        valOrNull(r['未発見型確定率1']), valOrNull(r['未発見型確定率2']), valOrNull(r['未発見型確定率3'])
-                    ],
-                    guar_rates_after_disc: {
-                        d1_g2: valOrNull(r['発見1型確定率2']),
-                        d1_g3: valOrNull(r['発見1型確定率3']),
-                        d2_g3: valOrNull(r['発見2型確定率3'])
-                    },
-                    hidden_hit_rates: {}
-                };
-
-                for (const [jpCol, newIds] of Object.entries(PROB_COLUMN_MAP)) {
-                    if (r[jpCol] !== undefined) {
-                        const val = valOrNull(r[jpCol]); // ここもヘルパーを利用
-                        if (Array.isArray(newIds)) {
-                            newIds.forEach(id => { entry.hidden_hit_rates[id] = val; });
-                        } else {
-                            entry.hidden_hit_rates[newIds] = val;
-                        }
-                    }
-                }
-                return entry;
-            });
-        }
-
-        function processStrategies(csv) {
-            const rows = parseCSV(csv);
-            if (rows.length === 0) return [];
-            
-            const metaCols = ['戦略ID', '戦略名', '説明'];
-            const allCols = Object.keys(rows[0]);
-            const scenarioCols = allCols.filter(c => !metaCols.includes(c));
-
-            return rows.map(r => {
-                const eligible = [];
-                scenarioCols.forEach(col => {
-                    if (r[col] && r[col].trim() === '1') {
-                        eligible.push(col);
-                    }
-                });
-
-                return {
-                    id: r['戦略ID'],
-                    name: r['戦略名'],
-                    description: r['説明'],
-                    eligible_scenarios: eligible
-                };
-            });
-        }
-
-        // --- 共通ユーティリティ ---
-        function readFile(elementId) {
+        function parseCSV(file) {
             return new Promise((resolve, reject) => {
-                const input = document.getElementById(elementId);
-                if (!input.files || input.files.length === 0) {
-                    reject(new Error(`${elementId} のファイルを選択してください。`));
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.onerror = e => reject(e);
-                reader.readAsText(input.files[0]);
+                if (!file) return resolve([]);
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => resolve(results.data),
+                    error: (err) => reject(err)
+                });
             });
         }
 
-        function parseCSV(text) {
-            if (!text) return [];
-            const lines = text.trim().split(/\r?\n/);
-            const headers = lines[0].split(',').map(h => h.trim());
-            const result = [];
-            for (let i = 1; i < lines.length; i++) {
-                const currentline = lines[i].split(',');
-                if (currentline.length < headers.length) continue;
-                const obj = {};
-                for (let j = 0; j < headers.length; j++) {
-                    obj[headers[j]] = currentline[j] ? currentline[j].trim() : "";
-                }
-                result.push(obj);
-            }
-            return result;
-        }
+        async function generateJSON() {
+            const statusEl = document.getElementById('status');
+            const previewEl = document.getElementById('preview');
+            statusEl.textContent = "変換処理中...";
+            statusEl.className = "";
+            previewEl.textContent = "";
 
-        function downloadJSON(data, filename) {
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+            try {
+                const [fishData, hierarchyData, spotsData, weightsData, probsData, presetsData] = await Promise.all([
+                    parseCSV(foundFiles.fish),
+                    parseCSV(foundFiles.hierarchy),
+                    parseCSV(foundFiles.spots),
+                    parseCSV(foundFiles.weights),
+                    parseCSV(foundFiles.probs),
+                    parseCSV(foundFiles.presets)
+                ]);
+
+                // --- 1. Master Object ---
+                const master = {
+                    version: "2.6.0",
+                    updated_at: new Date().toISOString(),
+                    fish: {},
+                    spots: {},
+                    weights: {},
+                    probabilities: [],
+                    strategy_presets: []
+                };
+
+                // --- 2. Initialize Spots from Hierarchy (重要変更) ---
+                // マスタ-2(階層)にある全ての釣り場を先に登録する
+                const hierarchyMap = {};
+                hierarchyData.forEach(row => {
+                    const spot = row['釣り場'];
+                    if (spot) {
+                        hierarchyMap[spot] = { expansion: row['拡張'], area: row['エリア'] };
+                        // 初期化（データは空）
+                        master.spots[spot] = {
+                            expansion: row['拡張'],
+                            area: row['エリア'],
+                            weathers: [],
+                            baits: [],
+                            fish_list: []
+                        };
+                    }
+                });
+
+                // --- 3. Process Fish ---
+                const typeMap = { "小型": "small_jaws", "大型": "large_jaws", "中型": "medium_jaws" };
+                fishData.forEach(row => {
+                    if(!row['魚種']) return;
+                    master.fish[row['魚種']] = {
+                        type: typeMap[row['型']] || "small_jaws", 
+                        vibration: row['演出'],
+                        hook_time: parseFloat(row['釣り上げ動作時間']),
+                        is_hidden: (row['隠し判定'] == '1'),
+                        can_trade: (row['トレード可否'] == '1')
+                    };
+                });
+
+                // --- 4. Process Spots Details (Aggregation) ---
+                // マスタ-3のデータを集計して、既存のspotsオブジェクトに追記する
+                spotsData.forEach(row => {
+                    const spot = row['釣り場'];
+                    const type = row['データ種別'];
+                    const data = row['データ'];
+                    if(!spot || !type || !data) return;
+
+                    // 万が一 hierarchy にない釣り場が spots にあった場合の保険作成
+                    if(!master.spots[spot]) {
+                        master.spots[spot] = {
+                            expansion: "その他", area: "不明",
+                            weathers: [], baits: [], fish_list: []
+                        };
+                    }
+
+                    if(type === '天気 / 時間') master.spots[spot].weathers.push(data);
+                    else if(type === '餌') master.spots[spot].baits.push(data);
+                    else if(type === '魚種') master.spots[spot].fish_list.push(data);
+                });
+
+                // --- 5. Process Weights ---
+                weightsData.forEach(row => {
+                    const key = `${row['釣り場']}|${row['天気 / 時間']}|${row['餌']}`;
+                    if (!master.weights[key]) master.weights[key] = [];
+                    master.weights[key].push({
+                        fish: row['魚種'],
+                        weight: parseFloat(row['基礎重み']),
+                        bite_time: parseFloat(row['基礎待機時間'])
+                    });
+                });
+
+                // --- 6. Process Probabilities ---
+                const hiddenHitMap = {
+                    '発見1型確1なし隠しヒット率1': 'n2_d1_g1',
+                    '発見1型確2あり隠しヒット率2': 'n2_d1_g2',
+                    '発見1型確2なし隠しヒット率2': 'n2_d1_g2',
+                    '発見1型確3あり隠しヒット率3': 'n3_d1_g3',
+                    '発見1型確3なし隠しヒット率3': 'n3_d1_g3',
+                    '発見2型確2なし隠しヒット率2': 'n2_d2_g2',
+                    '発見2型確3あり隠しヒット率3': 'n3_d2_g3',
+                    '発見2型確3なし隠しヒット率3': 'n3_d2_g3',
+                    '発見3型確3なし隠しヒット率3': 'n3_d3_g3'
+                };
+
+                probsData.forEach(row => {
+                    const parsePercent = (val) => {
+                        if (!val) return null;
+                        const num = parseFloat(val.replace('%', ''));
+                        return isNaN(num) ? null : num;
+                    };
+                    const discRates = [parsePercent(row['発見率1']), parsePercent(row['発見率2']), parsePercent(row['発見率3'])];
+                    const guarRatesNoDisc = [parsePercent(row['未発見型確定率1']), parsePercent(row['未発見型確定率2']), parsePercent(row['未発見型確定率3'])];
+                    
+                    const guarRatesAfter = {};
+                    const addGA = (k, v) => { if(v) guarRatesAfter[k] = parsePercent(v); };
+                    addGA('d1_g2', row['発見1型確定率2']);
+                    addGA('d1_g3', row['発見1型確定率3']);
+                    addGA('d2_g3', row['発見2型確定率3']);
+
+                    const hiddenHit = {};
+                    Object.keys(hiddenHitMap).forEach(header => {
+                        if (row[header]) hiddenHit[hiddenHitMap[header]] = parsePercent(row[header]);
+                    });
+
+                    master.probabilities.push({
+                        spot: row['釣り場'],
+                        weather: row['天気 / 時間'],
+                        bait: row['餌'],
+                        target_hidden: row['対象隠し魚'] === 'なし' ? null : row['対象隠し魚'],
+                        trade_target: row['トレード対象'],
+                        lure_type: row['ルアー種類'],
+                        disc_rates: discRates,
+                        guar_rates_nodisc: guarRatesNoDisc,
+                        guar_rates_after_disc: guarRatesAfter,
+                        hidden_hit_rates: hiddenHit
+                    });
+                });
+
+                // --- 7. Process Presets ---
+                presetsData.forEach(row => {
+                    if(!row['戦略ID']) return;
+                    const scenarios = [];
+                    Object.keys(row).forEach(k => {
+                        if(k !== '戦略ID' && k !== '戦略名' && k !== '説明' && row[k] == '1') {
+                            scenarios.push(k);
+                        }
+                    });
+                    master.strategy_presets.push({
+                        id: row['戦略ID'],
+                        name: row['戦略名'],
+                        description: row['説明'],
+                        eligible_scenarios: scenarios
+                    });
+                });
+
+                // --- Output ---
+                const jsonStr = JSON.stringify(master, null, 2);
+                previewEl.textContent = jsonStr.slice(0, 1000) + "... (省略)";
+                const blob = new Blob([jsonStr], {type: "application/json"});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "logic_master.json";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                statusEl.textContent = "変換成功！\nlogic_master.json をダウンロードしました。";
+                statusEl.className = "success";
+
+            } catch (err) {
+                console.error(err);
+                statusEl.textContent = "エラーが発生しました:\n" + err.message;
+                statusEl.className = "error";
+            }
         }
     </script>
 </body>

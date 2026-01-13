@@ -1,18 +1,19 @@
 /**
- * Fisherman Logic Engine (FLE) v2.3.2
- * Update: Fix Missing Functions (renderResultTable, renderDebugDetails)
+ * Fisherman Logic Engine (FLE) v2.5.3
+ * Update: Refined "Quit" logic to "Rest" (skip block time)
  */
 
 const GDS = {
-    D_CAST: 1.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0,
+    D_CAST: 1.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0, // D_QUIT 削除
     C_CHUM: 0.6, M_N1: 1.5, M_N2: 2.0, M_N3: 6.0
 };
 
 let masterDB = null;
-let probabilityMap = null; // 高速検索用インデックス (Map)
+let probabilityMap = null;
 let currentMode = 'manual';
 
 function init() {
+    console.log("FLE: init() start");
     setupEventListeners();
     initResizers();
 }
@@ -23,104 +24,208 @@ function setupEventListeners() {
 
     const rightToggle = document.getElementById('toggle-right');
     const rightPanel = document.getElementById('panel-right');
-    const rightTitle = rightPanel.querySelector('h3');
-
-    rightTitle.addEventListener('click', () => {
+    rightPanel.querySelector('h3').addEventListener('click', () => {
         rightPanel.classList.toggle('collapsed');
         rightToggle.textContent = rightPanel.classList.contains('collapsed') ? '▼' : '▶';
     });
 
-    const tabs = document.querySelectorAll('.tab-btn');
-    tabs.forEach(tab => {
+    document.querySelectorAll('.tab-btn').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-
             currentMode = tab.dataset.mode;
             document.querySelectorAll('.mode-container').forEach(c => c.classList.remove('active'));
             document.getElementById(`mode-${currentMode}`).classList.add('active');
-
             updateSimulation();
         });
     });
 
-    const commonInputs = ['currentSpot', 'currentWeather', 'currentBait', 'targetFishName'];
-    commonInputs.forEach(id => document.getElementById(id).addEventListener('change', updateSimulation));
+    document.getElementById('currentExpansion').addEventListener('change', updateAreaOptions);
+    document.getElementById('currentArea').addEventListener('change', updateSpotOptions);
+    document.getElementById('currentSpot').addEventListener('change', updateSpotDependents);
 
-    const isCatchAll = document.getElementById('isCatchAll');
-    isCatchAll.addEventListener('change', () => {
-        const manualTrade = document.getElementById('manualTradeSlap');
-        const stratATrade = document.getElementById('stratATrade');
-        const stratBTrade = document.getElementById('stratBTrade');
+    ['currentWeather', 'currentBait', 'targetFishName', 'manualTradeSlap'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.addEventListener('change', updateSimulation);
+    });
 
-        const disabled = isCatchAll.checked;
-        if (disabled) {
-            manualTrade.value = 'なし'; manualTrade.disabled = true;
-            stratATrade.value = 'なし'; stratATrade.disabled = true;
-            stratBTrade.value = 'なし'; stratBTrade.disabled = true;
-        } else {
-            manualTrade.disabled = false;
-            stratATrade.disabled = false;
-            stratBTrade.disabled = false;
-        }
+    document.getElementById('isCatchAll').addEventListener('change', (e) => {
+        const disabled = e.target.checked;
+        ['manualTradeSlap', 'stratATrade', 'stratBTrade'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) { el.value = 'なし'; el.disabled = disabled; }
+        });
         updateSimulation();
     });
 
-    document.getElementById('manualTradeSlap').addEventListener('change', updateSimulation);
+    ['manualChum', 'lureType', 'lureCount', 'lureStep1', 'lureStep2', 'lureStep3', 'lureQuitCheck'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.addEventListener('change', () => {
+            if(id.startsWith('lure') && id !== 'lureQuitCheck') updateLureUI();
+            updateSimulation();
+        });
+    });
 
-    const manualInputs = ['manualChum', 'lureType', 'lureCount', 'lureStep1', 'lureStep2', 'lureStep3'];
-    manualInputs.forEach(id => document.getElementById(id).addEventListener('change', () => {
-        if (id.startsWith('lure')) updateLureUI();
-        updateSimulation();
-    }));
+    ['stratALure', 'stratAQuit', 'stratAPreset', 'stratATrade', 'stratAChum',
+     'stratBLure', 'stratBQuit', 'stratBPreset', 'stratBTrade', 'stratBChum'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.addEventListener('change', () => {
+            if (id.includes('Lure')) updateStrategyPresetsFilter();
+            updateSimulation();
+        });
+    });
+}
 
-    const strategyInputs = [
-        'stratALure', 'stratAPreset', 'stratATrade', 'stratAChum',
-        'stratBLure', 'stratBPreset', 'stratBTrade', 'stratBChum'
-    ];
-    strategyInputs.forEach(id => document.getElementById(id).addEventListener('change', () => {
-        if (id === 'stratALure' || id === 'stratBLure') updateStrategyPresetsFilter();
-        updateSimulation();
-    }));
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            console.log("FLE: JSON Parsing...");
+            masterDB = JSON.parse(e.target.result);
+            if (!masterDB || !masterDB.probabilities) throw new Error("Invalid JSON: missing probabilities");
+            probabilityMap = generateProbabilityMap(masterDB.probabilities);
+            
+            document.getElementById('db-status').textContent = `ONLINE (v${masterDB.version})`;
+            document.getElementById('db-status').style.color = 'var(--accent-green)';
+            
+            document.querySelectorAll('select:disabled, input:disabled').forEach(el => el.disabled = false);
+            const isCatchAll = document.getElementById('isCatchAll');
+            if(isCatchAll.checked) {
+                ['manualTradeSlap', 'stratATrade', 'stratBTrade'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) { el.value='なし'; el.disabled=true; }
+                });
+            }
+            updateLureUI();
+            populateSelectors();
+        } catch (err) {
+            console.error(err);
+            alert(`Load Error: ${err.message}`);
+        }
+    };
+    reader.readAsText(file);
+}
+
+function populateSelectors() {
+    if (!masterDB) return;
+    const expansionSet = new Set();
+    Object.values(masterDB.spots).forEach(s => { if(s.expansion) expansionSet.add(s.expansion); });
+    const expSelect = document.getElementById('currentExpansion');
+    expSelect.innerHTML = '';
+    Array.from(expansionSet).sort().reverse().forEach(exp => expSelect.appendChild(new Option(exp, exp)));
+    const presets = masterDB.strategy_presets || [];
+    ['stratAPreset', 'stratBPreset'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '';
+        presets.forEach(p => sel.appendChild(new Option(p.name, p.id)));
+    });
+    updateAreaOptions();
+}
+
+function updateAreaOptions() {
+    if (!masterDB) return;
+    const currentExp = document.getElementById('currentExpansion').value;
+    const areaSet = new Set();
+    Object.values(masterDB.spots).forEach(s => { if (s.expansion === currentExp && s.area) areaSet.add(s.area); });
+    const areaSelect = document.getElementById('currentArea');
+    areaSelect.innerHTML = '';
+    Array.from(areaSet).sort().forEach(area => areaSelect.appendChild(new Option(area, area)));
+    updateSpotOptions();
+}
+
+function updateSpotOptions() {
+    if (!masterDB) return;
+    const currentExp = document.getElementById('currentExpansion').value;
+    const currentArea = document.getElementById('currentArea').value;
+    const spotSelect = document.getElementById('currentSpot');
+    spotSelect.innerHTML = '';
+    Object.keys(masterDB.spots).forEach(spotName => {
+        const s = masterDB.spots[spotName];
+        if (s.expansion === currentExp && s.area === currentArea) spotSelect.appendChild(new Option(spotName, spotName));
+    });
+    updateSpotDependents();
+}
+
+function updateSpotDependents() {
+    const spot = document.getElementById('currentSpot').value;
+    const spotData = masterDB.spots[spot];
+    if (!spotData) return;
+
+    if (!spotData.fish_list || spotData.fish_list.length === 0) {
+        updateSelect('currentWeather', []);
+        updateSelect('currentBait', []);
+        updateSelect('targetFishName', []);
+        const resultContent = document.getElementById('result-content');
+        if(resultContent) {
+            resultContent.innerHTML = `
+                <div style="padding:30px; text-align:center; color:var(--accent-red); border:2px dashed var(--accent-red); border-radius:8px; background:rgba(239, 68, 68, 0.1);">
+                    <div style="font-size:1.5rem; margin-bottom:10px;">⚠️ データ未定義</div>
+                    <div>「${spot}」の詳細データ（魚・天気・餌）がマスタに存在しません。</div>
+                </div>`;
+        }
+        return;
+    }
+
+    updateSelect('currentWeather', spotData.weathers);
+    updateSelect('currentBait', spotData.baits);
+    updateSelect('targetFishName', spotData.fish_list);
+    
+    const tradeOpts = ['manualTradeSlap', 'stratATrade', 'stratBTrade'];
+    tradeOpts.forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="なし">なし</option>';
+        spotData.fish_list.forEach(f => sel.appendChild(new Option(f, f)));
+        if (document.getElementById('isCatchAll').checked) {
+            sel.value='なし'; sel.disabled=true;
+        }
+    });
+
+    updateSimulation();
+}
+
+function updateSelect(id, items) {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const val = el.value;
+    el.innerHTML = '';
+    items.forEach(item => el.appendChild(new Option(item, item)));
+    if ([...el.options].some(o => o.value === val)) el.value = val;
 }
 
 function updateStrategyPresetsFilter() {
     ['A', 'B'].forEach(set => {
         const lureVal = document.getElementById(`strat${set}Lure`).value;
         const presetSel = document.getElementById(`strat${set}Preset`);
-
+        const quitCheck = document.getElementById(`strat${set}Quit`);
+        const isNoLure = (lureVal === 'none');
+        quitCheck.disabled = isNoLure;
+        if(isNoLure) quitCheck.checked = false;
         Array.from(presetSel.options).forEach(opt => {
             const isNoLureStrat = (opt.value === 'no_lure');
-            if (lureVal === 'none') {
-                opt.disabled = !isNoLureStrat;
-            } else {
-                opt.disabled = false;
-            }
+            opt.disabled = isNoLure ? !isNoLureStrat : false;
         });
-
         if (presetSel.options[presetSel.selectedIndex].disabled) {
             presetSel.value = (lureVal === 'none') ? 'no_lure' : masterDB.strategy_presets[1].id;
         }
     });
 }
-
 function updateLureUI() {
     const type = document.getElementById('lureType').value;
     const count = parseInt(document.getElementById('lureCount').value, 10);
     const isLureActive = (type !== 'none');
     document.getElementById('lureCount').disabled = !isLureActive;
-
-    const setStepState = (stepNum, isEnabled) => {
-        const el = document.getElementById(`lureStep${stepNum}`);
-        el.disabled = !isEnabled;
-        if (!isEnabled) { el.value = 'none'; el.style.opacity = '0.3'; }
-        else { el.style.opacity = '1.0'; }
-    };
-    setStepState(1, isLureActive && count >= 1);
-    setStepState(2, isLureActive && count >= 2);
-    setStepState(3, isLureActive && count >= 3);
+    const quitCheck = document.getElementById('lureQuitCheck');
+    quitCheck.disabled = !isLureActive;
+    if(!isLureActive) quitCheck.checked = false;
+    for(let i=1; i<=3; i++) {
+        const el = document.getElementById(`lureStep${i}`);
+        el.disabled = !isLureActive || count < i;
+        el.style.opacity = (!isLureActive || count < i) ? '0.3' : '1.0';
+        if(el.disabled) el.value = 'none';
+    }
 }
-
 function constructScenarioId() {
     const type = document.getElementById('lureType').value;
     if (type === 'none') return 'none_0';
@@ -129,34 +234,60 @@ function constructScenarioId() {
     let guaranteeSteps = [];
     for (let i = 1; i <= count; i++) {
         const val = document.getElementById(`lureStep${i}`).value;
-        if (val === 'disc') { if (discoveryStep === 0) discoveryStep = i; }
+        if (val === 'disc') { if (discoveryStep === 0) discoveryStep = i; } 
         else if (val === 'guar') { guaranteeSteps.push(i); }
     }
     const gStr = guaranteeSteps.length > 0 ? guaranteeSteps.join('') : '0';
     return `n${count}_d${discoveryStep}_g${gStr}`;
 }
+function generateProbabilityMap(probabilities) {
+    const map = new Map();
+    if (!Array.isArray(probabilities)) return map;
+    probabilities.forEach(row => {
+        const key = `${row.spot}|${row.weather}|${row.bait}|${row.lure_type}|${row.trade_target}`;
+        map.set(key, row);
+    });
+    return map;
+}
+function parseScenarioId(id) {
+    if (id === 'none_0') return { fullId: id, n: 0, d: 0, g: [], isNone: true };
+    const match = id.match(/^n(\d+)_d(\d+)_g(\d+)$/);
+    if (!match) return { fullId: id, n:0, d:0, g:[], isNone: true };
+    const g = (match[3] === '0') ? [] : match[3].split('').map(Number);
+    return { fullId: id, n: parseInt(match[1]), d: parseInt(match[2]), g, isNone: false };
+}
+function getScenarioLabel(id) {
+    const p = parseScenarioId(id);
+    if (p.isNone) return "素振り";
+    let text = `L${p.n}`;
+    text += (p.d > 0) ? `: 発見${p.d}` : "";
+    text += (p.g.length > 0) ? ` (型確${p.g.join(',')})` : "";
+    return text;
+}
 
+// --- Main Calc ---
 function updateSimulation() {
     if (!masterDB) return;
+    const spotVal = document.getElementById('currentSpot').value;
+    if (!spotVal || !masterDB.spots[spotVal]) return;
+    if (masterDB.spots[spotVal].fish_list.length === 0) return;
 
     const config = {
-        spot: document.getElementById('currentSpot').value,
+        spot: spotVal,
         weather: document.getElementById('currentWeather').value,
         bait: document.getElementById('currentBait').value,
         target: document.getElementById('targetFishName').value,
-        isCatchAll: document.getElementById('isCatchAll').checked
+        isCatchAll: document.getElementById('isCatchAll').checked,
+        lureType: document.getElementById('lureType').value,
+        quitIfNoDisc: document.getElementById('lureQuitCheck').checked
     };
 
-    if (currentMode === 'manual') {
-        runManualMode(config);
-    } else {
-        runStrategyMode(config);
-    }
+    if (currentMode === 'manual') runManualMode(config);
+    else runStrategyMode(config);
 }
 
 function runManualMode(config) {
     const resultContent = document.getElementById('result-content');
-
     resultContent.innerHTML = `
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
             <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待</div>
@@ -169,7 +300,7 @@ function runManualMode(config) {
             <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;"></div>
             <div id="avg-cycle-time">平均サイクル時間: -</div>
         </div>`;
-
+    
     document.getElementById('debug-content-wrapper').innerHTML = `
         <div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>
         <div class="debug-section"><label>【シナリオ解析】</label><div id="debug-scenario" class="formula-box"></div></div>
@@ -178,27 +309,23 @@ function runManualMode(config) {
         <div class="debug-section"><label>【期待値計算の詳細】</label><div id="debug-calc-expect" class="formula-box"></div></div>
     `;
 
-    const lureType = document.getElementById('lureType').value;
-    const count = parseInt(document.getElementById('lureCount').value, 10);
+    const isChum = document.getElementById('manualChum').value === 'yes';
+    const tradeFish = document.getElementById('manualTradeSlap').value;
+    const scenarioId = constructScenarioId();
+
     let discCount = 0;
-    if (lureType !== 'none') {
-        for (let i = 1; i <= count; i++) {
+    if (config.lureType !== 'none') {
+        for (let i = 1; i <= parseInt(document.getElementById('lureCount').value); i++) {
             if (document.getElementById(`lureStep${i}`).value === 'disc') discCount++;
         }
     }
     const errorMsgEl = document.getElementById('lure-error-msg');
     if (discCount > 1) {
         errorMsgEl.style.display = 'block';
-        document.getElementById('res-table-body').innerHTML = `<tr><td colspan="5" style="color:var(--accent-red); font-weight:bold; text-align:center; padding:15px;">⚠️ Error: 発見は1度までです</td></tr>`;
         return;
     } else {
         errorMsgEl.style.display = 'none';
     }
-
-    config.lureType = lureType;
-    const isChum = document.getElementById('manualChum').value === 'yes';
-    const tradeFish = document.getElementById('manualTradeSlap').value;
-    const scenarioId = constructScenarioId();
 
     const stats = calculateScenarioStats(config, scenarioId, isChum, tradeFish);
 
@@ -210,7 +337,6 @@ function runManualMode(config) {
         const hitRateStr = (stats.targetHitRate * 100).toFixed(2) + '%';
         document.getElementById('main-result-time').textContent = expTimeStr;
         document.getElementById('main-result-hit').textContent = `Hit: ${hitRateStr}`;
-        // 【復元】欠落していた関数呼び出し
         renderResultTable(stats.allFishStats, config.target, stats.scenarioStr, stats.scenarioProb, stats.avgCycleTime);
         renderDebugDetails(stats, config, isChum, scenarioId);
     }
@@ -219,10 +345,10 @@ function runManualMode(config) {
 function runStrategyMode(config) {
     const sets = ['A', 'B'];
     const results = {};
-
     sets.forEach(set => {
         const setConfig = {
             lureType: document.getElementById(`strat${set}Lure`).value,
+            quitIfNoDisc: document.getElementById(`strat${set}Quit`).checked,
             tradeFish: document.getElementById(`strat${set}Trade`).value,
             isChum: document.getElementById(`strat${set}Chum`).value === 'yes',
             presetId: document.getElementById(`strat${set}Preset`).value
@@ -230,419 +356,77 @@ function runStrategyMode(config) {
         const preset = masterDB.strategy_presets.find(p => p.id === setConfig.presetId);
         results[set] = calculateStrategySet(config, setConfig, preset);
     });
-
     renderStrategyComparison(results.A, results.B, config);
 }
 
 function calculateStrategySet(config, setConfig, preset) {
     if (!preset) return { error: "プリセット未選択" };
-
     const scenarios = [];
-    let weightedHitRate = 0;
-    let weightedCycle = 0;
-    let weightedWait = 0;
-    let totalProb = 0;
-    let error = null;
+    let weightedHitRate = 0, weightedCycle = 0, totalProb = 0, error = null;
 
     for (const sid of preset.eligible_scenarios) {
-        const scenarioConfig = { ...config, lureType: setConfig.lureType };
+        const scenarioConfig = { ...config, lureType: setConfig.lureType, quitIfNoDisc: setConfig.quitIfNoDisc };
         const stats = calculateScenarioStats(scenarioConfig, sid, setConfig.isChum, setConfig.tradeFish);
+        if (stats.error) { error = stats.error; break; }
+        if (stats.scenarioProb === null) { error = "確率計算不能"; break; }
 
-        if (stats.error) {
-            error = stats.error;
-            break;
-        }
-
-        const pScenario = stats.scenarioProb;
-        if (pScenario === null) {
-            error = "確率計算不能"; break;
-        }
-
-        totalProb += pScenario;
-        weightedHitRate += (pScenario * stats.targetHitRate);
-        weightedCycle += (pScenario * stats.avgCycleTime);
-        const waitTime = stats.debugData.waitTime || 0;
-        weightedWait += (pScenario * waitTime);
-
+        totalProb += stats.scenarioProb;
+        weightedHitRate += (stats.scenarioProb * stats.targetHitRate);
+        weightedCycle += (stats.scenarioProb * stats.avgCycleTime);
         scenarios.push({
-            id: sid,
-            label: getScenarioLabel(sid),
-            prob: pScenario,
-            cycle: stats.avgCycleTime,
-            hit: stats.targetHitRate,
-            expected: stats.expectedTime,
-            pObj: stats.debugData.p
+            id: sid, label: getScenarioLabel(sid), prob: stats.scenarioProb, cycle: stats.avgCycleTime, hit: stats.targetHitRate, expected: stats.expectedTime, pObj: stats.debugData.p, isQuit: stats.debugData.isQuit
         });
     }
-
     if (error) return { error, name: preset.name, description: preset.description };
 
     const targetInfo = masterDB.fish[config.target];
     const tHook = targetInfo ? targetInfo.hook_time : 0;
-
-    let expectedTime = Infinity;
-    if (weightedHitRate > 0) {
-        const successCost = weightedHitRate * tHook;
-        expectedTime = (weightedCycle - successCost) / weightedHitRate;
-    }
-
+    let expectedTime = (weightedHitRate > 0) ? (weightedCycle - (weightedHitRate * tHook)) / weightedHitRate : Infinity;
     const avgCastCount = (weightedHitRate > 0) ? (1 / weightedHitRate) : Infinity;
 
-    return {
-        name: preset.name,
-        description: preset.description,
-        trade: setConfig.tradeFish,
-        scenarios: scenarios,
-        totalProb,
-        avgHitRate: weightedHitRate,
-        avgCycle: weightedCycle,
-        avgWait: weightedWait,
-        avgCastCount: avgCastCount,
-        expectedTime,
-        error: null
-    };
-}
-
-function renderStrategyComparison(resA, resB, config) {
-    const resultContent = document.getElementById('result-content');
-    const right = document.getElementById('debug-content-wrapper');
-
-    const buildCard = (res, label, color) => {
-        const time = (res.error || res.expectedTime === Infinity) ? '∞' : res.expectedTime.toFixed(1);
-        const hit = (res.error) ? '-' : (res.avgHitRate * 100).toFixed(2) + '%';
-        const cycle = (res.error) ? '-' : res.avgCycle.toFixed(1) + ' sec';
-
-        let top3ProbHtml = '';
-        let top3HitHtml = '';
-
-        if (!res.error && res.scenarios) {
-            const sortedProb = [...res.scenarios].sort((a, b) => b.prob - a.prob).slice(0, 3);
-            const sortedHit = [...res.scenarios].sort((a, b) => b.hit - a.hit).slice(0, 3);
-
-            const buildTop3Item = (s) => {
-                const jpDesc = getJpScenarioDescription(s.pObj);
-                return `<div class="top3-item">
-                    <div style="color:${color}; font-weight:bold;">${s.label} <span class="top3-desc">: ${jpDesc}</span></div>
-                    <div class="top3-stats">
-                        <span>Hit: ${(s.hit * 100).toFixed(1)}%</span>
-                        <span>発生: ${(s.prob * 100).toFixed(1)}%</span>
-                    </div>
-                </div>`;
-            };
-
-            top3ProbHtml = `<div class="top3-container">
-                <div class="top3-title">発生確率の高いシナリオ Top3</div>
-                ${sortedProb.map(buildTop3Item).join('')}
-            </div>`;
-
-            top3HitHtml = `<div class="top3-container">
-                <div class="top3-title">ターゲットHit率の高いシナリオ Top3</div>
-                ${sortedHit.map(buildTop3Item).join('')}
-            </div>`;
-        }
-
-        return `
-            <div class="strat-card" style="border-top: 4px solid ${color}">
-                <h4>${res.name}</h4>
-                <div class="strat-desc">${res.description || ''}</div>
-                <div class="main-val">${time} <span style="font-size:1rem; font-weight:normal; color:#888;">sec</span></div>
-                <div class="val-label">ターゲット期待待機時間</div>
-                
-                <div class="stat-row">
-                    <div class="stat-item">Target Hit<br><span class="stat-val">${hit}</span></div>
-                    <div class="stat-item">平均サイクル時間<br><span class="stat-val">${cycle}</span></div>
-                </div>
-
-                ${res.error ? `<div style="color:red; font-weight:bold; margin-top:15px;">⚠️ ${res.error}</div>` : (top3ProbHtml + top3HitHtml)}
-            </div>
-        `;
-    };
-
-    resultContent.innerHTML = `
-        <div class="comparison-container" style="align-items:stretch;">
-            ${buildCard(resA, "Set A", "var(--accent-a)")}
-            ${buildCard(resB, "Set B", "var(--accent-b)")}
-        </div>
-    `;
-
-    let debugHtml = `<div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>`;
-    debugHtml += renderStrategyDebugTable(resA, "Set A", "var(--accent-a)");
-    debugHtml += renderStrategyDebugTable(resB, "Set B", "var(--accent-b)");
-    right.innerHTML = debugHtml;
-
-    const tCast = GDS.D_CAST;
-    const tLureAction = GDS.D_LURE;
-    const tLureBlock = GDS.D_BLK;
-    const tChum = GDS.D_CHUM;
-    const tRest = GDS.D_REST;
-
-    document.getElementById('debug-constants').innerHTML =
-        `<div style="display:flex; flex-direction:column; gap:5px; font-size:0.75rem;">
-            <div>D_Cast (キャスト動作): ${tCast}s / D_Lure (ルアー動作): ${tLureAction}s</div>
-            <div>D_Blk (ルアー後硬直): ${tLureBlock}s / D_Chum (撒き餌動作): ${tChum}s</div>
-            <div>D_Rest (竿上げ動作): ${tRest}s</div>
-        </div>`;
-}
-
-function getJpScenarioDescription(p) {
-    if (p.n === 0) return "ルアー使用なし";
-    let parts = [`${p.n}回使用`];
-    if (p.d > 0) parts.push(`${p.d}回目に発見`); else parts.push("発見なし");
-    if (p.g.length > 0) parts.push(`${p.g.join(',')}回目に型確定`); else parts.push("型確定なし");
-    return parts.join("、");
-}
-
-function renderStrategyDebugTable(res, label, color) {
-    if (res.error) return `<div class="debug-section" style="border-left:3px solid ${color}; padding-left:10px;"><label style="color:${color}">${label}</label><div style="color:red">${res.error}</div></div>`;
-
-    let html = `<div class="debug-section" style="border-left:3px solid ${color}; padding-left:10px;">
-        <label style="color:${color}">${label} (${res.name})</label>
-        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Trade: ${res.trade} / TotalProb: ${(res.totalProb * 100).toFixed(1)}%</div>
-        <div style="overflow-x:auto; max-height:200px; overflow-y:auto; border:1px solid #444;">
-        <table style="width:100%; font-size:0.7rem; border-collapse:collapse;">
-            <thead style="position:sticky; top:0; background:#333;">
-                <tr><th>シナリオ</th><th>確率</th><th>Hit</th><th>Cycle</th><th>Exp</th></tr>
-            </thead>
-            <tbody>`;
-
-    const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob);
-
-    sorted.forEach(s => {
-        html += `<tr>
-            <td style="white-space:nowrap;">${s.label}</td>
-            <td>${(s.prob * 100).toFixed(1)}%</td>
-            <td>${(s.hit * 100).toFixed(1)}%</td>
-            <td>${s.cycle.toFixed(1)}s</td>
-            <td>${(s.expected === Infinity) ? '-' : s.expected.toFixed(0)}s</td>
-        </tr>`;
-    });
-
-    html += `</tbody>
-            <tfoot style="position:sticky; bottom:0; background:#333; font-weight:bold;">
-                <tr>
-                    <td>平均/合計</td>
-                    <td>${(res.totalProb * 100).toFixed(0)}%</td>
-                    <td>${(res.avgHitRate * 100).toFixed(2)}%</td>
-                    <td>${res.avgCycle.toFixed(1)}s</td>
-                    <td>${res.expectedTime.toFixed(1)}s</td>
-                </tr>
-            </tfoot>
-        </table></div></div>`;
-    return html;
-}
-
-// --- 【復元】描画ヘルパー関数 (手動モード用) ---
-function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
-    const tbody = document.getElementById('res-table-body');
-    tbody.innerHTML = '';
-    const probStr = (scnProb !== null) ? (scnProb * 100).toFixed(2) + '%' : '-';
-    document.getElementById('scenario-str').textContent = `シナリオ: ${scnStr}`;
-    document.getElementById('scenario-prob').textContent = `ルアー効果シナリオ発生確率: ${probStr}`;
-    const avgCycleStr = (avgCycle > 0) ? avgCycle.toFixed(1) + 'sec' : '-';
-    document.getElementById('avg-cycle-time').textContent = `平均サイクル時間: ${avgCycleStr}`;
-
-    stats.forEach(s => {
-        const tr = document.createElement('tr');
-        if (s.name === targetName) tr.classList.add('row-target');
-        const hitStr = (s.hitRate > 0) ? (s.hitRate * 100).toFixed(1) + '%' : (s.hitRate === 0 ? '0.0%' : '-');
-        const waitStr = (s.hitRate > 0 || s.waitTime > 0) ? s.waitTime.toFixed(1) + 'sec' : '-';
-        const cycleStr = (s.hitRate > 0 || s.cycleTime > 0) ? s.cycleTime.toFixed(1) + 'sec' : '-';
-        tr.innerHTML = `<td>${s.name}</td><td>${s.vibration}</td><td>${hitStr}</td><td>${waitStr}</td><td>${cycleStr}</td>`;
-        tbody.appendChild(tr);
-    });
-}
-
-// --- 【復元】デバッグ詳細表示関数 ---
-function renderDebugDetails(stats, config, isChum, scenarioId) {
-    const c = GDS;
-    document.getElementById('debug-constants').innerHTML =
-        `<div style="display:flex; flex-direction:column; gap:5px; font-size:0.75rem;">
-            <div>D_Cast (キャスト動作時間): ${c.D_CAST}s</div>
-            <div>D_Lure (ルアー動作時間): ${c.D_LURE}s</div>
-            <div>D_Blk (ルアー後の空白時間): ${c.D_BLK}s</div>
-            <div>D_Chum (撒き餌使用動作時間): ${c.D_CHUM}s</div>
-            <div>D_Rest (竿上げ動作時間): ${c.D_REST}s</div>
-        </div>`;
-
-    const searchKeys = `
-        <div style="font-size:0.7rem; color:#ccc; margin-bottom:6px; padding-bottom:6px; border-bottom:1px dashed #666; line-height:1.4;">
-            <div>Spot: ${config.spot}</div>
-            <div>Cond: ${config.weather} / Bait: ${config.bait}</div>
-            <div>Target: ${config.target}</div>
-            <div>Trade: ${document.getElementById('manualTradeSlap').value} / Lure: ${config.lureType}</div>
-        </div>
-    `;
-
-    if (stats.error) {
-        document.getElementById('debug-scenario').innerHTML = searchKeys + `<div>特定キー: ${getScenarioLabel(scenarioId)} (${scenarioId})</div>`;
-        return;
-    }
-
-    let analysisHtml = searchKeys;
-    analysisHtml += `<div>特定キー: ${getScenarioLabel(scenarioId)} (${scenarioId})</div>`;
-    if (stats.debugData && stats.debugData.rates) {
-        const fmt = (arr) => arr.map(v => (v === null ? 'null' : v + '%')).join(', ');
-        analysisHtml += `<div style="margin-top:5px; font-size:0.7rem; color:#bbb;">
-            <div>発見率: [${fmt(stats.debugData.rates.disc)}]</div>
-            <div>未発見型確定率: [${fmt(stats.debugData.rates.guar)}]</div>
-        </div>`;
-    }
-    if (!stats.error) analysisHtml += `<div>隠し魚ヒット率 (P_Hidden): ${(stats.pHidden * 100).toFixed(2)}%</div>`;
-    document.getElementById('debug-scenario').innerHTML = analysisHtml;
-
-    if (stats.error) return;
-
-    let wHtml = `<table style="width:100%; border-collapse:collapse; font-size:0.7rem;">
-        <tr style="border-bottom:1px solid #666; text-align:right;">
-            <th style="text-align:left">魚種</th><th>基礎W</th><th>M</th><th>最終W</th><th>確率</th>
-        </tr>`;
-    stats.weightDetails.forEach(d => {
-        if (!d.isHidden) {
-            const prob = (stats.totalWeight > 0) ? (d.final / stats.totalWeight) * (1.0 - stats.pHidden) : 0;
-            wHtml += `<tr style="text-align:right;">
-                <td style="text-align:left">${d.name}</td>
-                <td>${d.base}</td>
-                <td>x${d.m}</td>
-                <td>${d.final.toFixed(1)}</td>
-                <td>${(prob * 100).toFixed(2)}%</td>
-            </tr>`;
-        }
-    });
-    wHtml += `<tr style="border-top:1px solid #666; font-weight:bold; text-align:right;"><td colspan="3">合計(ΣW)</td><td>${stats.totalWeight.toFixed(1)}</td><td>-</td></tr>`;
-    stats.weightDetails.forEach(d => {
-        if (d.isHidden) wHtml += `<tr style="color:#888; text-align:right;"><td style="text-align:left">${d.name}(隠)</td><td>-</td><td>-</td><td>-</td><td>${(stats.pHidden * 100).toFixed(2)}%</td></tr>`;
-    });
-    wHtml += `</table>`;
-    document.getElementById('debug-weights').innerHTML = wHtml;
-
-    const tStat = stats.allFishStats.find(s => s.isTarget);
-    if (!tStat) {
-        document.getElementById('debug-calc-target').textContent = "ターゲット情報なし";
-        document.getElementById('debug-calc-expect').textContent = "-";
-        return;
-    }
-
-    const p = stats.debugData.p;
-    const chumTxt = isChum ? '使用(x0.6)' : '未使用';
-    const lureWaitExpr = (p.isNone) ? '0s (なし)' : `${tStat.lureTime.toFixed(1)}s (1.0 + ${p.n}×2.5 + 2.5)`;
-    const pre = isChum ? c.D_CHUM : 0;
-
-    const targetTraceHtml = `
-        <div style="font-size:0.8rem; margin-bottom:5px;">
-            <strong>A. 待機時間 (${tStat.waitTime.toFixed(1)}s)</strong>
-            <div style="padding-left:10px;">
-               ・補正バイト: ${tStat.biteTime.toFixed(1)}s (基礎${tStat.baseBite.toFixed(1)}s, 撒き餌:${chumTxt})<br>
-               ・ルアー拘束: ${lureWaitExpr}<br>
-               → 長い方を採用
-            </div>
-        </div>
-        <div style="font-size:0.8rem;">
-            <strong>B. サイクル時間 (${tStat.cycleTime.toFixed(1)}s)</strong>
-            <div style="padding-left:10px;">
-               撒き餌(${pre}s) + キャスト(${c.D_CAST}s) + 待機(A) + 釣り上げ(${tStat.hookTime.toFixed(1)}s)
-            </div>
-        </div>
-    `;
-    document.getElementById('debug-calc-target').innerHTML = targetTraceHtml;
-
-    const avgCycle = stats.avgCycleTime;
-    const hitRate = stats.targetHitRate;
-    const expectedTime = stats.expectedTime;
-    const targetHook = stats.debugData.targetHook;
-    const formulaStr = `(${avgCycle.toFixed(2)} - (${(hitRate * 100).toFixed(2)}% × ${targetHook.toFixed(1)})) / ${(hitRate * 100).toFixed(2)}%`;
-    const expectExpr = (hitRate > 0) ? `${formulaStr} = <strong>${expectedTime.toFixed(1)}s</strong>` : `ターゲット確率が 0% のため計算不可`;
-
-    const expectHtml = `
-        <div style="font-size:0.8rem;">
-            <div><strong>平均サイクル (E[Cycle]):</strong> ${avgCycle.toFixed(2)}s</div>
-            <div><strong>ターゲット確率 (P):</strong> ${(hitRate * 100).toFixed(2)}%</div>
-            <div><strong>ターゲット釣り上げ動作時間:</strong> ${targetHook.toFixed(1)}s</div>
-            <hr style="margin:5px 0; border:0; border-top:1px dashed #666;">
-            <div><strong>式:</strong> (E[Cycle] - (P × 動作時間)) / P</div>
-            <div style="margin:5px 0; color:#bbb; font-size:0.75rem; line-height:1.4;">
-                ※1匹釣るための平均総時間から、ターゲットを釣り上げる動作時間（成功時のコスト）を除外することで、純粋にヒットするまでの待ち時間を算出しています。
-            </div>
-            <div style="margin-top:4px; color:var(--primary);">${expectExpr}</div>
-        </div>
-    `;
-    document.getElementById('debug-calc-expect').innerHTML = expectHtml;
-}
-
-function generateProbabilityMap(probabilities) {
-    const map = new Map();
-    if (!Array.isArray(probabilities)) {
-        console.warn("probabilities data is missing or invalid");
-        return map;
-    }
-
-    probabilities.forEach(row => {
-        const key = `${row.spot}|${row.weather}|${row.bait}|${row.lure_type}|${row.trade_target}`;
-        map.set(key, row);
-    });
-    return map;
+    return { name: preset.name, description: preset.description, trade: setConfig.tradeFish, scenarios, totalProb, avgHitRate: weightedHitRate, avgCycle: weightedCycle, avgCastCount, expectedTime, error: null };
 }
 
 function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
+    if (!masterDB.spots[config.spot]) return { error: "釣り場データが見つかりません" };
     const p = parseScenarioId(scenarioId);
     const weightKey = `${config.spot}|${config.weather}|${config.bait}`;
     const baseWeights = masterDB.weights[weightKey] || [];
-
+    
     let probData = null;
     if (config.lureType !== 'none') {
         const searchKey = `${config.spot}|${config.weather}|${config.bait}|${config.lureType}|${tradeFish}`;
-        if (probabilityMap) {
-            probData = probabilityMap.get(searchKey);
-        }
+        if (probabilityMap) probData = probabilityMap.get(searchKey);
     }
-
     const rawRates = probData ? { disc: probData.disc_rates, guar: probData.guar_rates_nodisc } : null;
+    if (!probData && config.lureType !== 'none') return { error: "条件に合う確率データがありません", debugData: { rates: rawRates } };
 
-    if (!probData && config.lureType !== 'none') {
-        return { error: "条件に合う確率データがありません", debugData: { rates: rawRates } };
-    }
-
-    const tCast = GDS.D_CAST;
-    const tLureAction = GDS.D_LURE;
-    const tLureBlock = GDS.D_BLK;
-    const tChum = GDS.D_CHUM;
-    const tRest = GDS.D_REST;
-
+    const tCast = GDS.D_CAST, tLureAction = GDS.D_LURE, tLureBlock = GDS.D_BLK, tChum = GDS.D_CHUM, tRest = GDS.D_REST;
+    
+    // 【変更点】未発見即竿上げロジック
+    const isQuit = (config.quitIfNoDisc && !p.isNone && p.d === 0);
     const lureTime = p.isNone ? 0 : (tCast + (p.n * tLureAction) + tLureBlock);
 
-    // シナリオ確率
-    let scenarioProb = 1.0;
-    let scenarioStrParts = [];
+    // Scenario Prob
+    let scenarioProb = 1.0, scenarioStrParts = [];
     if (!p.isNone && probData) {
-        let found = false;
-        let foundStep = 0;
+        let found = false, foundStep = 0;
         for (let i = 1; i <= p.n; i++) {
             const idx = i - 1;
-            let action = 'none';
-            if (p.d === i) action = 'disc';
-            else if (p.g.includes(i)) action = 'guar';
-            else action = 'none';
-
-            const label = (action === 'disc') ? '発見' : (action === 'guar' ? '型確定' : '何もなし');
-            scenarioStrParts.push(label);
-
+            let action = (p.d === i) ? 'disc' : (p.g.includes(i) ? 'guar' : 'none');
+            scenarioStrParts.push(action === 'disc' ? '発見' : (action === 'guar' ? '型確定' : '何もなし'));
             let stepProb = 0;
             if (!found) {
-                if (probData.disc_rates[idx] === null) return { error: `データ不足(Step${i})`, debugData: { rates: rawRates } };
-                const pDisc = probData.disc_rates[idx];
-                const pGuar = probData.guar_rates_nodisc[idx] / 100.0;
-                const pD = pDisc / 100.0;
-
+                const pDisc = probData.disc_rates[idx], pGuar = probData.guar_rates_nodisc[idx] / 100.0, pD = pDisc / 100.0;
+                if (pDisc === null) return { error: `データ不足(Step${i})`, debugData: { rates: rawRates } };
                 if (action === 'disc') { stepProb = pD; found = true; foundStep = i; }
                 else if (action === 'guar') { stepProb = (1.0 - pD) * pGuar; }
                 else { stepProb = (1.0 - pD) * (1.0 - pGuar); }
             } else {
-                const key = `d${foundStep}_g${i}`;
-                const pGuarAfterVal = (probData.guar_rates_after_disc && probData.guar_rates_after_disc[key] !== undefined) ? probData.guar_rates_after_disc[key] : null;
-                if (pGuarAfterVal === null) return { error: `データ不足(Step${i} after)`, debugData: { rates: rawRates } };
+                const pGuarAfterVal = probData.guar_rates_after_disc[`d${foundStep}_g${i}`];
+                if (pGuarAfterVal === null || pGuarAfterVal === undefined) return { error: `データ不足(Step${i} after)`, debugData: { rates: rawRates } };
                 const pGuarAfter = pGuarAfterVal / 100.0;
-
-                if (action === 'guar') stepProb = pGuarAfter;
-                else stepProb = 1.0 - pGuarAfter;
+                stepProb = (action === 'guar') ? pGuarAfter : (1.0 - pGuarAfter);
             }
             scenarioProb *= stepProb;
         }
@@ -650,26 +434,23 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         if (config.lureType === 'none') scenarioStrParts = ["ルアー使用なし"];
     }
 
-    let pHidden = 0;
-    let hiddenFishName = probData && probData.target_hidden ? probData.target_hidden : null;
+    let pHidden = 0, hiddenFishName = probData && probData.target_hidden ? probData.target_hidden : null;
     if (hiddenFishName && probData.hidden_hit_rates) {
         const rate = probData.hidden_hit_rates[p.fullId];
-        if (rate === null) return { error: `データ不足(Scenario ${scenarioId})`, debugData: { rates: rawRates } };
-        if (rate !== undefined) pHidden = rate / 100.0;
+        if (rate !== undefined && rate !== null) pHidden = rate / 100.0;
     }
 
     let totalWeight = 0, weightDetails = [];
-    let modN = (p.n === 1) ? GDS.M_N1 : (p.n === 2 ? GDS.M_N2 : (p.n === 3 ? GDS.M_N3 : 1.0));
+    let modN = (p.n===1) ? GDS.M_N1 : (p.n===2 ? GDS.M_N2 : (p.n===3 ? GDS.M_N3 : 1.0));
     const currentLureJaws = (config.lureType === 'アンビシャスルアー') ? 'large_jaws' : (config.lureType === 'モデストルアー' ? 'small_jaws' : null);
-    const lastGuar = (p.g.length > 0 && p.g[p.g.length - 1] === p.n);
+    const lastGuar = (p.g.length > 0 && p.g[p.g.length-1] === p.n);
 
     baseWeights.forEach(w => {
         const info = masterDB.fish[w.fish];
         if (!info) return;
         let m = 1.0;
-        let isHiddenFish = (w.fish === hiddenFishName);
-        if (isHiddenFish) { weightDetails.push({ name: w.fish, base: w.weight, m: '-', final: '-', isHidden: true }); return; }
-        if (w.fish === tradeFish) { m = 0; }
+        if (w.fish === hiddenFishName) { weightDetails.push({ name: w.fish, base: w.weight, m: '-', final: '-', isHidden: true }); return; }
+        if (w.fish === tradeFish) { m = 0; } 
         else if (config.lureType !== 'none') {
             const match = (info.type === currentLureJaws);
             if (match) m = modN; else m = lastGuar ? 0 : 1.0;
@@ -685,11 +466,15 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         const wData = baseWeights.find(x => x.fish === fName);
         const fInfo = masterDB.fish[fName];
         if (!wData || !fInfo) return;
+        
         let hitProb = 0;
-        if (fName === hiddenFishName) hitProb = pHidden;
+        if (isQuit) hitProb = 0;
         else {
-            const wd = weightDetails.find(x => x.name === fName);
-            if (wd && totalWeight > 0) hitProb = (wd.final / totalWeight) * (1.0 - pHidden);
+            if (fName === hiddenFishName) hitProb = pHidden;
+            else {
+                const wd = weightDetails.find(x => x.name === fName);
+                if (wd && totalWeight > 0) hitProb = (wd.final / totalWeight) * (1.0 - pHidden);
+            }
         }
         sumProb += hitProb;
         const baseBite = wData.bite_time;
@@ -697,155 +482,94 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         const waitTime = Math.max(biteTime, lureTime);
         const isTarget = (fName === config.target);
         const actualHookTime = (isTarget || config.isCatchAll) ? fInfo.hook_time : tRest;
-        const cycleTime = tCast + waitTime + actualHookTime + (isChum ? tChum : 0);
+        
+        // 【変更】サイクル時間計算
+        let cycleTime = 0;
+        const pre = (isChum ? tChum : 0);
+        
+        if (isQuit) {
+            // キャスト + (ルアー動作 * n) + 竿上げ
+            cycleTime = tCast + (p.n * tLureAction) + tRest + pre; 
+        } else {
+            // 通常: キャスト + 待機(ルアー拘束込み) + 釣り上げ(or竿上げ)
+            cycleTime = tCast + waitTime + actualHookTime + pre;
+        }
+
         sumProbTotalCycle += (hitProb * cycleTime);
         allFishStats.push({ name: fName, vibration: fInfo.vibration, hitRate: hitProb, baseBite, biteTime, lureTime, waitTime, hookTime: actualHookTime, cycleTime, isTarget });
     });
 
+    if (isQuit) {
+        // ヒット率0でも時間はかかるので補正
+        const pre = (isChum ? tChum : 0);
+        sumProbTotalCycle = tCast + (p.n * tLureAction) + tRest + pre;
+    }
+
     const targetStat = allFishStats.find(s => s.isTarget);
     const targetHitRate = targetStat ? targetStat.hitRate : 0;
     const targetHookTime = targetStat ? targetStat.hookTime : 0;
-
     const expectedTime = (targetHitRate > 0) ? (sumProbTotalCycle - (targetHitRate * targetHookTime)) / targetHitRate : Infinity;
 
     return {
         allFishStats, totalWeight, weightDetails, pHidden, hiddenFishName, targetHitRate,
-        avgCycleTime: sumProbTotalCycle,
-        expectedTime,
-        scenarioStr: scenarioStrParts.join('→'),
-        scenarioProb: scenarioProb,
-        debugData: { p, rates: rawRates, lureTime, biteTime: targetStat?.biteTime, waitTime: targetStat?.waitTime, targetCycle: targetStat?.cycleTime, targetHook: targetHookTime }
+        avgCycleTime: sumProbTotalCycle, expectedTime, scenarioStr: scenarioStrParts.join('→'), scenarioProb,
+        debugData: { p, rates: rawRates, lureTime, biteTime: targetStat?.biteTime, waitTime: targetStat?.waitTime, targetCycle: targetStat?.cycleTime, targetHook: targetHookTime, isQuit }
     };
 }
 
-function parseScenarioId(id) {
-    if (id === 'none_0') return { fullId: id, n: 0, d: 0, g: [], isNone: true };
-    const match = id.match(/^n(\d+)_d(\d+)_g(\d+)$/);
-    if (!match) return { fullId: id, n: 0, d: 0, g: [], isNone: true };
-    const g = (match[3] === '0') ? [] : match[3].split('').map(Number);
-    return { fullId: id, n: parseInt(match[1]), d: parseInt(match[2]), g, isNone: false };
-}
-function getScenarioLabel(id) {
-    const p = parseScenarioId(id);
-    if (p.isNone) return "素振り";
-    let text = `L${p.n}`;
-    text += (p.d > 0) ? `: 発見${p.d}` : "";
-    text += (p.g.length > 0) ? ` (型確${p.g.join(',')})` : "";
-    return text;
-}
-
-function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function (e) {
-        try {
-            masterDB = JSON.parse(e.target.result);
-            if (!masterDB || !masterDB.probabilities) {
-                throw new Error("JSONデータに 'probabilities' が含まれていません。");
-            }
-            probabilityMap = generateProbabilityMap(masterDB.probabilities);
-
-            document.getElementById('db-status').textContent = `ONLINE (v${masterDB.version})`;
-            document.getElementById('db-status').style.color = 'var(--accent-green)';
-            enableControls();
-            populateSelectors();
-            updateSimulation();
-        } catch (err) {
-            console.error(err);
-            alert(`データ読み込み中にエラーが発生しました:\n${err.message}`);
+function renderStrategyComparison(resA, resB, config) {
+    const resultContent = document.getElementById('result-content');
+    const right = document.getElementById('debug-content-wrapper');
+    const buildCard = (res, label, color) => {
+        const time = (res.error || res.expectedTime === Infinity) ? '∞' : res.expectedTime.toFixed(1);
+        const hit = (res.error) ? '-' : (res.avgHitRate * 100).toFixed(2) + '%';
+        const cycle = (res.error) ? '-' : res.avgCycle.toFixed(1) + ' sec';
+        let top3Html = '';
+        if (!res.error && res.scenarios) {
+            const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob).slice(0, 3);
+            top3Html = `<div class="top3-container"><div class="top3-title">高確率シナリオ Top3</div>${sorted.map(s => `
+                <div class="top3-item"><div style="color:${color};font-weight:bold;">${s.label} ${(s.isQuit?'<span style="color:red">!</span>':'')}</div>
+                <div class="top3-stats"><span>Hit:${(s.hit*100).toFixed(1)}%</span><span>発生:${(s.prob*100).toFixed(1)}%</span></div></div>
+            `).join('')}</div>`;
         }
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description||''}</div><div class="main-val">${time}<span style="font-size:1rem;font-weight:normal;color:#888">sec</span></div><div class="val-label">期待待機時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div></div>${res.error?`<div style="color:red">⚠️ ${res.error}</div>`:top3Html}</div>`;
     };
-    reader.readAsText(file);
+    resultContent.innerHTML = `<div class="comparison-container" style="align-items:stretch;">${buildCard(resA,"Set A","var(--accent-a)")}${buildCard(resB,"Set B","var(--accent-b)")}</div>`;
+    
+    // Debug info
+    let debugHtml = `<div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;">D_Cast: ${GDS.D_CAST}s, D_Lure: ${GDS.D_LURE}s, D_Rest: ${GDS.D_REST}s</div></div>`;
+    right.innerHTML = debugHtml;
 }
 
-function enableControls() {
-    document.querySelectorAll('select:disabled, input:disabled').forEach(el => el.disabled = false);
-    const isCatchAll = document.getElementById('isCatchAll');
-    if (isCatchAll.checked) {
-        ['manualTradeSlap', 'stratATrade', 'stratBTrade'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) { el.value = 'なし'; el.disabled = true; }
-        });
+function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
+    const tbody = document.getElementById('res-table-body');
+    tbody.innerHTML = '';
+    document.getElementById('scenario-str').textContent = `シナリオ: ${scnStr}`;
+    document.getElementById('scenario-prob').textContent = `発生確率: ${(scnProb!==null?(scnProb*100).toFixed(2)+'%':'-')}`;
+    document.getElementById('avg-cycle-time').textContent = `平均サイクル: ${(avgCycle>0?avgCycle.toFixed(1)+'sec':'-')}`;
+    
+    stats.forEach(s => {
+        const tr = document.createElement('tr');
+        if (s.name === targetName) tr.classList.add('row-target');
+        const hitStr = (s.hitRate > 0) ? (s.hitRate * 100).toFixed(1) + '%' : '0.0%';
+        const cycleStr = s.cycleTime.toFixed(1) + 'sec';
+        tr.innerHTML = `<td>${s.name}</td><td>${s.vibration}</td><td>${hitStr}</td><td>${s.waitTime.toFixed(1)}s</td><td>${cycleStr}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderDebugDetails(stats, config, isChum, scenarioId) {
+    const c = GDS;
+    document.getElementById('debug-constants').innerHTML = `D_Cast: ${c.D_CAST}s, D_Lure: ${c.D_LURE}s, D_Rest: ${c.D_REST}s`;
+    
+    let trace = `<div>Spot: ${config.spot}</div><div>Target: ${config.target}</div>`;
+    if(stats.debugData.isQuit) {
+        trace += `<div style="color:var(--accent-red);font-weight:bold;margin-top:5px;">※未発見即竿上げ 発動</div>`;
+        const lureTimeTotal = (stats.debugData.p.n * c.D_LURE).toFixed(1);
+        trace += `<div style="font-size:0.75rem;margin-top:5px;padding-left:10px;">Cast(${c.D_CAST}) + Lure(${lureTimeTotal}) + Rest(${c.D_REST})</div>`;
     }
-    updateLureUI();
-}
-
-function populateSelectors() {
-    if (!masterDB) return;
-    const spotSelect = document.getElementById('currentSpot');
-    spotSelect.innerHTML = '';
-    Object.keys(masterDB.spots).forEach(spot => spotSelect.appendChild(new Option(spot, spot)));
-    spotSelect.addEventListener('change', updateSpotDependents);
-    updateSpotDependents();
-
-    const presets = masterDB.strategy_presets || [];
-    ['stratAPreset', 'stratBPreset'].forEach(id => {
-        const sel = document.getElementById(id);
-        sel.innerHTML = '';
-        presets.forEach(p => sel.appendChild(new Option(p.name, p.id)));
-    });
-}
-
-function updateSpotDependents() {
-    const spot = document.getElementById('currentSpot').value;
-    const spotData = masterDB.spots[spot];
-    if (!spotData) return;
-
-    updateSelect('currentWeather', spotData.weathers);
-    updateSelect('currentBait', spotData.baits);
-    updateSelect('targetFishName', spotData.fish_list);
-
-    const tradeOpts = ['manualTradeSlap', 'stratATrade', 'stratBTrade'];
-    tradeOpts.forEach(id => {
-        const sel = document.getElementById(id);
-        sel.innerHTML = '<option value="なし">なし</option>';
-        spotData.fish_list.forEach(f => sel.appendChild(new Option(f, f)));
-        if (document.getElementById('isCatchAll').checked) {
-            sel.value = 'なし'; sel.disabled = true;
-        }
-    });
-
-    updateSimulation();
-}
-
-function updateSelect(id, items) {
-    const el = document.getElementById(id);
-    const val = el.value;
-    el.innerHTML = '';
-    items.forEach(item => el.appendChild(new Option(item, item)));
-    if ([...el.options].some(o => o.value === val)) el.value = val;
-}
-
-function initResizers() {
-    const setupResizer = (resizerId, panelId, direction) => {
-        const resizer = document.getElementById(resizerId);
-        const panel = document.getElementById(panelId);
-        if (!resizer || !panel) return;
-
-        const onMouseMove = (e) => {
-            if (direction === 'left') {
-                if (e.clientX > 300 && e.clientX < 600) panel.style.width = e.clientX + 'px';
-            } else {
-                const w = document.body.clientWidth - e.clientX;
-                if (w > 320 && w < 600) panel.style.width = w + 'px';
-            }
-        };
-
-        const onMouseUp = () => {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-        };
-
-        resizer.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-        });
-    };
-
-    setupResizer('resizer-left', 'panel-left', 'left');
-    setupResizer('resizer-right', 'panel-right', 'right');
+    
+    document.getElementById('debug-scenario').innerHTML = trace;
 }
 
 init();

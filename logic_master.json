@@ -1,6 +1,6 @@
 {
-  "version": "2.0.0",
-  "updated_at": "2026-01-11T08:01:18.773Z",
+  "version": "2.6.0",
+  "updated_at": "2026-01-13T04:36:20.145Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -68,6 +68,8 @@
   },
   "spots": {
     "アレクサンドリア旧市街": {
+      "expansion": "黄金",
+      "area": "ヘリテージファウンド",
       "weathers": [
         "霧晴れ12-16",
         "それ以外"
@@ -84,7 +86,23 @@
         "ゴールデングルーパー"
       ]
     },
+    "満ちた玄関": {
+      "expansion": "黄金",
+      "area": "トライヨラ",
+      "weathers": [],
+      "baits": [],
+      "fish_list": []
+    },
+    "帯雷危険水域": {
+      "expansion": "黄金",
+      "area": "ヘリテージファウンド",
+      "weathers": [],
+      "baits": [],
+      "fish_list": []
+    },
     "テスト釣り場1": {
+      "expansion": "テスト拡張1",
+      "area": "テストエリア1",
       "weathers": [
         "天気1"
       ],
@@ -255,23 +273,12 @@
         "d2_g3": 21.64
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 16.28,
+        "n2_d1_g1": 16.28,
         "n2_d1_g2": 7.14,
-        "n2_d1_g0": 7.14,
-        "n3_d1_g3": 19.35,
-        "n3_d1_g23": 19.35,
-        "n3_d1_g0": 4.42,
-        "n3_d1_g2": 4.42,
-        "n2_d2_g0": 20.95,
-        "n2_d2_g1": 20.95,
-        "n3_d2_g3": 3.45,
-        "n3_d2_g13": 3.45,
-        "n3_d2_g0": 5.71,
-        "n3_d2_g1": 5.71,
-        "n3_d3_g0": 30.17,
-        "n3_d3_g1": 30.17,
-        "n3_d3_g2": 30.17,
-        "n3_d3_g12": 30.17
+        "n3_d1_g3": 4.42,
+        "n2_d2_g2": 20.95,
+        "n3_d2_g3": 5.71,
+        "n3_d3_g3": 30.17
       }
     },
     {
@@ -291,30 +298,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -333,30 +318,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -381,23 +344,12 @@
         "d2_g3": 3.67
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 35.66,
-        "n2_d1_g2": 100,
-        "n2_d1_g0": 14.81,
-        "n3_d1_g3": 100,
-        "n3_d1_g23": 100,
-        "n3_d1_g0": 22.81,
-        "n3_d1_g2": 22.81,
-        "n2_d2_g0": 38,
-        "n2_d2_g1": 38,
-        "n3_d2_g3": 100,
-        "n3_d2_g13": 100,
-        "n3_d2_g0": 28.57,
-        "n3_d2_g1": 28.57,
-        "n3_d3_g0": 63,
-        "n3_d3_g1": 63,
-        "n3_d3_g2": 63,
-        "n3_d3_g12": 63
+        "n2_d1_g1": 35.66,
+        "n2_d1_g2": 14.81,
+        "n3_d1_g3": 22.81,
+        "n2_d2_g2": 38,
+        "n3_d2_g3": 28.57,
+        "n3_d3_g3": 63
       }
     },
     {
@@ -417,30 +369,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -465,23 +395,12 @@
         "d2_g3": 17.97
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
@@ -507,23 +426,12 @@
         "d2_g3": 21.64
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 16.28,
+        "n2_d1_g1": 16.28,
         "n2_d1_g2": 7.14,
-        "n2_d1_g0": 7.14,
-        "n3_d1_g3": 19.35,
-        "n3_d1_g23": 19.35,
-        "n3_d1_g0": 4.42,
-        "n3_d1_g2": 4.42,
-        "n2_d2_g0": 20.95,
-        "n2_d2_g1": 20.95,
-        "n3_d2_g3": 3.45,
-        "n3_d2_g13": 3.45,
-        "n3_d2_g0": 5.71,
-        "n3_d2_g1": 5.71,
-        "n3_d3_g0": 30.17,
-        "n3_d3_g1": 30.17,
-        "n3_d3_g2": 30.17,
-        "n3_d3_g12": 30.17
+        "n3_d1_g3": 4.42,
+        "n2_d2_g2": 20.95,
+        "n3_d2_g3": 5.71,
+        "n3_d3_g3": 30.17
       }
     },
     {
@@ -543,30 +451,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -585,30 +471,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -633,23 +497,12 @@
         "d2_g3": 3.67
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 35.66,
-        "n2_d1_g2": 93.5,
-        "n2_d1_g0": 14.81,
-        "n3_d1_g3": 94.35,
-        "n3_d1_g23": 94.35,
-        "n3_d1_g0": 22.81,
-        "n3_d1_g2": 22.81,
-        "n2_d2_g0": 38,
-        "n2_d2_g1": 38,
-        "n3_d2_g3": 93.24,
-        "n3_d2_g13": 93.24,
-        "n3_d2_g0": 28.57,
-        "n3_d2_g1": 28.57,
-        "n3_d3_g0": 63,
-        "n3_d3_g1": 63,
-        "n3_d3_g2": 63,
-        "n3_d3_g12": 63
+        "n2_d1_g1": 35.66,
+        "n2_d1_g2": 14.81,
+        "n3_d1_g3": 22.81,
+        "n2_d2_g2": 38,
+        "n3_d2_g3": 28.57,
+        "n3_d3_g3": 63
       }
     },
     {
@@ -669,30 +522,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -717,23 +548,12 @@
         "d2_g3": 17.97
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
@@ -759,23 +579,12 @@
         "d2_g3": 21.64
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 16.28,
+        "n2_d1_g1": 16.28,
         "n2_d1_g2": 7.14,
-        "n2_d1_g0": 7.14,
-        "n3_d1_g3": 19.35,
-        "n3_d1_g23": 19.35,
-        "n3_d1_g0": 4.42,
-        "n3_d1_g2": 4.42,
-        "n2_d2_g0": 20.95,
-        "n2_d2_g1": 20.95,
-        "n3_d2_g3": 3.45,
-        "n3_d2_g13": 3.45,
-        "n3_d2_g0": 5.71,
-        "n3_d2_g1": 5.71,
-        "n3_d3_g0": 30.17,
-        "n3_d3_g1": 30.17,
-        "n3_d3_g2": 30.17,
-        "n3_d3_g12": 30.17
+        "n3_d1_g3": 4.42,
+        "n2_d2_g2": 20.95,
+        "n3_d2_g3": 5.71,
+        "n3_d3_g3": 30.17
       }
     },
     {
@@ -795,30 +604,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -837,30 +624,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -885,23 +650,12 @@
         "d2_g3": 3.67
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 35.66,
-        "n2_d1_g2": 100,
-        "n2_d1_g0": 14.81,
-        "n3_d1_g3": 100,
-        "n3_d1_g23": 100,
-        "n3_d1_g0": 22.81,
-        "n3_d1_g2": 22.81,
-        "n2_d2_g0": 38,
-        "n2_d2_g1": 38,
-        "n3_d2_g3": 100,
-        "n3_d2_g13": 100,
-        "n3_d2_g0": 28.57,
-        "n3_d2_g1": 28.57,
-        "n3_d3_g0": 63,
-        "n3_d3_g1": 63,
-        "n3_d3_g2": 63,
-        "n3_d3_g12": 63
+        "n2_d1_g1": 35.66,
+        "n2_d1_g2": 14.81,
+        "n3_d1_g3": 22.81,
+        "n2_d2_g2": 38,
+        "n3_d2_g3": 28.57,
+        "n3_d3_g3": 63
       }
     },
     {
@@ -921,30 +675,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -969,23 +701,12 @@
         "d2_g3": 17.97
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
@@ -1011,23 +732,12 @@
         "d2_g3": 21.64
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 16.28,
+        "n2_d1_g1": 16.28,
         "n2_d1_g2": 7.14,
-        "n2_d1_g0": 7.14,
-        "n3_d1_g3": 19.35,
-        "n3_d1_g23": 19.35,
-        "n3_d1_g0": 4.42,
-        "n3_d1_g2": 4.42,
-        "n2_d2_g0": 20.95,
-        "n2_d2_g1": 20.95,
-        "n3_d2_g3": 3.45,
-        "n3_d2_g13": 3.45,
-        "n3_d2_g0": 5.71,
-        "n3_d2_g1": 5.71,
-        "n3_d3_g0": 30.17,
-        "n3_d3_g1": 30.17,
-        "n3_d3_g2": 30.17,
-        "n3_d3_g12": 30.17
+        "n3_d1_g3": 4.42,
+        "n2_d2_g2": 20.95,
+        "n3_d2_g3": 5.71,
+        "n3_d3_g3": 30.17
       }
     },
     {
@@ -1047,30 +757,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -1089,30 +777,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -1137,23 +803,12 @@
         "d2_g3": 3.67
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 35.66,
-        "n2_d1_g2": 100,
-        "n2_d1_g0": 14.81,
-        "n3_d1_g3": 100,
-        "n3_d1_g23": 100,
-        "n3_d1_g0": 22.81,
-        "n3_d1_g2": 22.81,
-        "n2_d2_g0": 38,
-        "n2_d2_g1": 38,
-        "n3_d2_g3": 100,
-        "n3_d2_g13": 100,
-        "n3_d2_g0": 28.57,
-        "n3_d2_g1": 28.57,
-        "n3_d3_g0": 63,
-        "n3_d3_g1": 63,
-        "n3_d3_g2": 63,
-        "n3_d3_g12": 63
+        "n2_d1_g1": 35.66,
+        "n2_d1_g2": 14.81,
+        "n3_d1_g3": 22.81,
+        "n2_d2_g2": 38,
+        "n3_d2_g3": 28.57,
+        "n3_d3_g3": 63
       }
     },
     {
@@ -1173,30 +828,8 @@
         null,
         null
       ],
-      "guar_rates_after_disc": {
-        "d1_g2": null,
-        "d1_g3": null,
-        "d2_g3": null
-      },
-      "hidden_hit_rates": {
-        "n1_d1_g0": null,
-        "n2_d1_g2": null,
-        "n2_d1_g0": null,
-        "n3_d1_g3": null,
-        "n3_d1_g23": null,
-        "n3_d1_g0": null,
-        "n3_d1_g2": null,
-        "n2_d2_g0": null,
-        "n2_d2_g1": null,
-        "n3_d2_g3": null,
-        "n3_d2_g13": null,
-        "n3_d2_g0": null,
-        "n3_d2_g1": null,
-        "n3_d3_g0": null,
-        "n3_d3_g1": null,
-        "n3_d3_g2": null,
-        "n3_d3_g12": null
-      }
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
@@ -1221,30 +854,19 @@
         "d2_g3": 17.97
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
       "spot": "テスト釣り場1",
       "weather": "天気1",
       "bait": "テストルアー1",
-      "target_hidden": "なし",
+      "target_hidden": null,
       "trade_target": "なし",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
@@ -1263,30 +885,19 @@
         "d2_g3": 0
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
       "spot": "テスト釣り場1",
       "weather": "天気1",
       "bait": "テストルアー1",
-      "target_hidden": "なし",
+      "target_hidden": null,
       "trade_target": "テスト小型1",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
@@ -1305,30 +916,19 @@
         "d2_g3": 0
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
       "spot": "テスト釣り場1",
       "weather": "天気1",
       "bait": "テストルアー1",
-      "target_hidden": "なし",
+      "target_hidden": null,
       "trade_target": "テスト小型2",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
@@ -1347,30 +947,19 @@
         "d2_g3": 0
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
       "spot": "テスト釣り場1",
       "weather": "天気1",
       "bait": "テストルアー1",
-      "target_hidden": "なし",
+      "target_hidden": null,
       "trade_target": "テスト大型1",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
@@ -1389,30 +978,19 @@
         "d2_g3": 0
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
       "spot": "テスト釣り場1",
       "weather": "天気1",
       "bait": "テストルアー1",
-      "target_hidden": "なし",
+      "target_hidden": null,
       "trade_target": "テスト大型2",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
@@ -1431,30 +1009,19 @@
         "d2_g3": 0
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
       "spot": "テスト釣り場1",
       "weather": "天気1",
       "bait": "テストルアー1",
-      "target_hidden": "なし",
+      "target_hidden": null,
       "trade_target": "なし",
       "lure_type": "モデストルアー",
       "disc_rates": [
@@ -1473,30 +1040,19 @@
         "d2_g3": 0
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
       "spot": "テスト釣り場1",
       "weather": "天気1",
       "bait": "テストルアー1",
-      "target_hidden": "なし",
+      "target_hidden": null,
       "trade_target": "テスト小型1",
       "lure_type": "モデストルアー",
       "disc_rates": [
@@ -1515,30 +1071,19 @@
         "d2_g3": 0
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
       "spot": "テスト釣り場1",
       "weather": "天気1",
       "bait": "テストルアー1",
-      "target_hidden": "なし",
+      "target_hidden": null,
       "trade_target": "テスト小型2",
       "lure_type": "モデストルアー",
       "disc_rates": [
@@ -1557,30 +1102,19 @@
         "d2_g3": 0
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
       "spot": "テスト釣り場1",
       "weather": "天気1",
       "bait": "テストルアー1",
-      "target_hidden": "なし",
+      "target_hidden": null,
       "trade_target": "テスト大型1",
       "lure_type": "モデストルアー",
       "disc_rates": [
@@ -1599,30 +1133,19 @@
         "d2_g3": 0
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     },
     {
       "spot": "テスト釣り場1",
       "weather": "天気1",
       "bait": "テストルアー1",
-      "target_hidden": "なし",
+      "target_hidden": null,
       "trade_target": "テスト大型2",
       "lure_type": "モデストルアー",
       "disc_rates": [
@@ -1641,23 +1164,12 @@
         "d2_g3": 0
       },
       "hidden_hit_rates": {
-        "n1_d1_g0": 0,
+        "n2_d1_g1": 0,
         "n2_d1_g2": 0,
-        "n2_d1_g0": 0,
         "n3_d1_g3": 0,
-        "n3_d1_g23": 0,
-        "n3_d1_g0": 0,
-        "n3_d1_g2": 0,
-        "n2_d2_g0": 0,
-        "n2_d2_g1": 0,
+        "n2_d2_g2": 0,
         "n3_d2_g3": 0,
-        "n3_d2_g13": 0,
-        "n3_d2_g0": 0,
-        "n3_d2_g1": 0,
-        "n3_d3_g0": 0,
-        "n3_d3_g1": 0,
-        "n3_d3_g2": 0,
-        "n3_d3_g12": 0
+        "n3_d3_g3": 0
       }
     }
   ],
