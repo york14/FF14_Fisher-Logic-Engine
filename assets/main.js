@@ -172,8 +172,8 @@ function updateSpotDependents() {
     updateSelect('currentBait', spotData.baits);
     updateSelect('targetFishName', spotData.fish_list);
     
-    const tradeOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
-    tradeOpts.forEach(id => {
+    const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
+    slapOpts.forEach(id => {
         const sel = document.getElementById(id);
         sel.innerHTML = '<option value="なし">なし</option>';
         spotData.fish_list.forEach(f => sel.appendChild(new Option(f, f)));
@@ -349,7 +349,7 @@ function runStrategyMode(config) {
         const setConfig = {
             lureType: document.getElementById(`strat${set}Lure`).value,
             quitIfNoDisc: document.getElementById(`strat${set}Quit`).checked,
-            slapFish: document.getElementById(`strat${set}Trade`).value,
+            slapFish: document.getElementById(`strat${set}Slap`).value,
             isChum: document.getElementById(`strat${set}Chum`).value === 'yes',
             presetId: document.getElementById(`strat${set}Preset`).value
         };
@@ -705,7 +705,7 @@ function renderStrategyDebugTable(res, label, color) {
 
     let html = `<div class="debug-section" style="border-left:3px solid ${color}; padding-left:10px;">
         <label style="color:${color}">${label} (${res.name})</label>
-        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Slap: ${res.trade} / TotalProb: ${(res.totalProb*100).toFixed(1)}%</div>
+        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Slap: ${res.slap} / TotalProb: ${(res.totalProb*100).toFixed(1)}%</div>
         <div style="overflow-x:auto; max-height:200px; overflow-y:auto; border:1px solid #444;">
         <table style="width:100%; font-size:0.7rem; border-collapse:collapse;">
             <thead style="position:sticky; top:0; background:#333;">
