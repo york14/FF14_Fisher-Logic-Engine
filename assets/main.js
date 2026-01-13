@@ -1,6 +1,6 @@
 /**
  * Fisherman Logic Engine (FLE) v2.5.4
- * Update: Restored Debug Details View & Finalized 'Rest if no disc' logic
+ * Update: Removed 'Rest if no disc' from Manual UI, changed Strategy UI to Select, fixed sort order.
  */
 
 const GDS = {
@@ -51,17 +51,19 @@ function setupEventListeners() {
 
     document.getElementById('isCatchAll').addEventListener('change', (e) => {
         const disabled = e.target.checked;
-        ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'].forEach(id => {
+        const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
+        slapOpts.forEach(id => {
             const el = document.getElementById(id);
             if(el) { el.value = 'なし'; el.disabled = disabled; }
         });
         updateSimulation();
     });
 
-    ['manualChum', 'lureType', 'lureCount', 'lureStep1', 'lureStep2', 'lureStep3', 'lureQuitCheck'].forEach(id => {
+    // Removed lureQuitCheck listener
+    ['manualChum', 'lureType', 'lureCount', 'lureStep1', 'lureStep2', 'lureStep3'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.addEventListener('change', () => {
-            if(id.startsWith('lure') && id !== 'lureQuitCheck') updateLureUI();
+            if(id.startsWith('lure')) updateLureUI();
             updateSimulation();
         });
     });
@@ -93,7 +95,8 @@ function handleFileUpload(event) {
             document.querySelectorAll('select:disabled, input:disabled').forEach(el => el.disabled = false);
             const isCatchAll = document.getElementById('isCatchAll');
             if(isCatchAll.checked) {
-                ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'].forEach(id => {
+                const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
+                slapOpts.forEach(id => {
                     const el = document.getElementById(id);
                     if(el) { el.value='なし'; el.disabled=true; }
                 });
@@ -114,7 +117,8 @@ function populateSelectors() {
     Object.values(masterDB.spots).forEach(s => { if(s.expansion) expansionSet.add(s.expansion); });
     const expSelect = document.getElementById('currentExpansion');
     expSelect.innerHTML = '';
-    Array.from(expansionSet).sort().reverse().forEach(exp => expSelect.appendChild(new Option(exp, exp)));
+    // Fixed sort order (removed .sort().reverse())
+    Array.from(expansionSet).forEach(exp => expSelect.appendChild(new Option(exp, exp)));
     const presets = masterDB.strategy_presets || [];
     ['stratAPreset', 'stratBPreset'].forEach(id => {
         const sel = document.getElementById(id);
@@ -131,7 +135,8 @@ function updateAreaOptions() {
     Object.values(masterDB.spots).forEach(s => { if (s.expansion === currentExp && s.area) areaSet.add(s.area); });
     const areaSelect = document.getElementById('currentArea');
     areaSelect.innerHTML = '';
-    Array.from(areaSet).sort().forEach(area => areaSelect.appendChild(new Option(area, area)));
+    // Fixed sort order (removed .sort())
+    Array.from(areaSet).forEach(area => areaSelect.appendChild(new Option(area, area)));
     updateSpotOptions();
 }
 
@@ -198,10 +203,12 @@ function updateStrategyPresetsFilter() {
     ['A', 'B'].forEach(set => {
         const lureVal = document.getElementById(`strat${set}Lure`).value;
         const presetSel = document.getElementById(`strat${set}Preset`);
-        const quitCheck = document.getElementById(`strat${set}Quit`);
+        const quitSelect = document.getElementById(`strat${set}Quit`);
         const isNoLure = (lureVal === 'none');
-        quitCheck.disabled = isNoLure;
-        if(isNoLure) quitCheck.checked = false;
+        
+        quitSelect.disabled = isNoLure;
+        if(isNoLure) quitSelect.value = 'no'; // Changed logic for select
+
         Array.from(presetSel.options).forEach(opt => {
             const isNoLureStrat = (opt.value === 'no_lure');
             opt.disabled = isNoLure ? !isNoLureStrat : false;
@@ -211,14 +218,15 @@ function updateStrategyPresetsFilter() {
         }
     });
 }
+
 function updateLureUI() {
     const type = document.getElementById('lureType').value;
     const count = parseInt(document.getElementById('lureCount').value, 10);
     const isLureActive = (type !== 'none');
     document.getElementById('lureCount').disabled = !isLureActive;
-    const quitCheck = document.getElementById('lureQuitCheck');
-    quitCheck.disabled = !isLureActive;
-    if(!isLureActive) quitCheck.checked = false;
+    
+    // Removed lureQuitCheck logic here
+
     for(let i=1; i<=3; i++) {
         const el = document.getElementById(`lureStep${i}`);
         el.disabled = !isLureActive || count < i;
@@ -226,6 +234,7 @@ function updateLureUI() {
         if(el.disabled) el.value = 'none';
     }
 }
+
 function constructScenarioId() {
     const type = document.getElementById('lureType').value;
     if (type === 'none') return 'none_0';
@@ -279,7 +288,7 @@ function updateSimulation() {
         target: document.getElementById('targetFishName').value,
         isCatchAll: document.getElementById('isCatchAll').checked,
         lureType: document.getElementById('lureType').value,
-        quitIfNoDisc: document.getElementById('lureQuitCheck').checked
+        quitIfNoDisc: false // Manual mode always false
     };
 
     if (currentMode === 'manual') runManualMode(config);
@@ -348,7 +357,7 @@ function runStrategyMode(config) {
     sets.forEach(set => {
         const setConfig = {
             lureType: document.getElementById(`strat${set}Lure`).value,
-            quitIfNoDisc: document.getElementById(`strat${set}Quit`).checked,
+            quitIfNoDisc: document.getElementById(`strat${set}Quit`).value === 'yes', // Changed to value comparison
             slapFish: document.getElementById(`strat${set}Slap`).value,
             isChum: document.getElementById(`strat${set}Chum`).value === 'yes',
             presetId: document.getElementById(`strat${set}Preset`).value
@@ -652,7 +661,7 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
             <div style="font-size:0.8rem;">
                 <strong>サイクル時間 (${tStat.cycleTime.toFixed(1)}s)</strong>
                 <div style="padding-left:10px;">
-                   撒き餌(${pre}s) + キャスト(${c.D_CAST}s) + ルアー動作(${lureActionTotal}s) + 竿上げ(${c.D_REST}s)
+                   撒き餌(${pre}s) + キャスティング(${c.D_CAST}s) + ルアー動作(${lureActionTotal}s) + 竿上げ(${c.D_REST}s)
                 </div>
             </div>
         `;
@@ -669,7 +678,7 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
             <div style="font-size:0.8rem;">
                 <strong>B. サイクル時間 (${tStat.cycleTime.toFixed(1)}s)</strong>
                 <div style="padding-left:10px;">
-                   撒き餌(${pre}s) + キャスト(${c.D_CAST}s) + 待機(A) + 釣り上げ(${tStat.hookTime.toFixed(1)}s)
+                   撒き餌(${pre}s) + キャスティング(${c.D_CAST}s) + 待機(A) + 釣り上げ(${tStat.hookTime.toFixed(1)}s)
                 </div>
             </div>
         `;
@@ -705,7 +714,7 @@ function renderStrategyDebugTable(res, label, color) {
 
     let html = `<div class="debug-section" style="border-left:3px solid ${color}; padding-left:10px;">
         <label style="color:${color}">${label} (${res.name})</label>
-        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Slap: ${res.slap} / TotalProb: ${(res.totalProb*100).toFixed(1)}%</div>
+        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Slap: ${res.Slap} / TotalProb: ${(res.totalProb*100).toFixed(1)}%</div>
         <div style="overflow-x:auto; max-height:200px; overflow-y:auto; border:1px solid #444;">
         <table style="width:100%; font-size:0.7rem; border-collapse:collapse;">
             <thead style="position:sticky; top:0; background:#333;">
