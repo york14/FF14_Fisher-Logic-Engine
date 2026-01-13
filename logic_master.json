@@ -1,69 +1,69 @@
 {
   "version": "2.8.0",
-  "updated_at": "2026-01-13T05:39:09.859Z",
+  "updated_at": "2026-01-13T07:19:15.702Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
       "vibration": "!",
       "hook_time": 5,
       "is_hidden": false,
-      "can_trade": true
+      "can_slap": true
     },
     "サンダーレッド": {
       "type": "small_jaws",
       "vibration": "!",
       "hook_time": 5,
       "is_hidden": false,
-      "can_trade": true
+      "can_slap": true
     },
     "ヤースラニボウフィン": {
       "type": "large_jaws",
       "vibration": "!!",
       "hook_time": 10,
       "is_hidden": false,
-      "can_trade": true
+      "can_slap": true
     },
     "ヘリテージグルーパー": {
       "type": "large_jaws",
       "vibration": "!!!",
       "hook_time": 15,
       "is_hidden": false,
-      "can_trade": false
+      "can_slap": false
     },
     "ゴールデングルーパー": {
       "type": "large_jaws",
       "vibration": "!!",
       "hook_time": 10,
       "is_hidden": true,
-      "can_trade": true
+      "can_slap": true
     },
     "テスト小型1": {
       "type": "small_jaws",
       "vibration": "!",
       "hook_time": 5,
       "is_hidden": false,
-      "can_trade": true
+      "can_slap": true
     },
     "テスト小型2": {
       "type": "small_jaws",
       "vibration": "!",
       "hook_time": 5,
       "is_hidden": false,
-      "can_trade": true
+      "can_slap": true
     },
     "テスト大型1": {
       "type": "large_jaws",
       "vibration": "!!",
       "hook_time": 10,
       "is_hidden": false,
-      "can_trade": true
+      "can_slap": true
     },
     "テスト大型2": {
       "type": "large_jaws",
       "vibration": "!!",
       "hook_time": 10,
       "is_hidden": false,
-      "can_trade": true
+      "can_slap": true
     }
   },
   "spots": {
@@ -255,7 +255,7 @@
       "weather": "霧晴れ12-16",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "なし",
+      "slap_target": "なし",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         23.11,
@@ -289,7 +289,7 @@
       "weather": "霧晴れ12-16",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "エレクトロベタ",
+      "slap_target": "エレクトロベタ",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -309,7 +309,7 @@
       "weather": "霧晴れ12-16",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "サンダーレッド",
+      "slap_target": "サンダーレッド",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -329,7 +329,7 @@
       "weather": "霧晴れ12-16",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ヤースラニボウフィン",
+      "slap_target": "ヤースラニボウフィン",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         25.25,
@@ -363,7 +363,7 @@
       "weather": "霧晴れ12-16",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ヘリテージグルーパー",
+      "slap_target": "ヘリテージグルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -383,7 +383,7 @@
       "weather": "霧晴れ12-16",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ゴールデングルーパー",
+      "slap_target": "ゴールデングルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,
@@ -417,7 +417,7 @@
       "weather": "霧晴れ12-16",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "なし",
+      "slap_target": "なし",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         23.11,
@@ -451,7 +451,7 @@
       "weather": "霧晴れ12-16",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "エレクトロベタ",
+      "slap_target": "エレクトロベタ",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -471,7 +471,7 @@
       "weather": "霧晴れ12-16",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "サンダーレッド",
+      "slap_target": "サンダーレッド",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -491,7 +491,7 @@
       "weather": "霧晴れ12-16",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ヤースラニボウフィン",
+      "slap_target": "ヤースラニボウフィン",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         25.25,
@@ -525,7 +525,7 @@
       "weather": "霧晴れ12-16",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ヘリテージグルーパー",
+      "slap_target": "ヘリテージグルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -545,7 +545,7 @@
       "weather": "霧晴れ12-16",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ゴールデングルーパー",
+      "slap_target": "ゴールデングルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,
@@ -579,7 +579,7 @@
       "weather": "それ以外",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "なし",
+      "slap_target": "なし",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         23.11,
@@ -613,7 +613,7 @@
       "weather": "それ以外",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "エレクトロベタ",
+      "slap_target": "エレクトロベタ",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -633,7 +633,7 @@
       "weather": "それ以外",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "サンダーレッド",
+      "slap_target": "サンダーレッド",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -653,7 +653,7 @@
       "weather": "それ以外",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ヤースラニボウフィン",
+      "slap_target": "ヤースラニボウフィン",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         25.25,
@@ -687,7 +687,7 @@
       "weather": "それ以外",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ヘリテージグルーパー",
+      "slap_target": "ヘリテージグルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -707,7 +707,7 @@
       "weather": "それ以外",
       "bait": "紅サシ",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ゴールデングルーパー",
+      "slap_target": "ゴールデングルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,
@@ -741,7 +741,7 @@
       "weather": "それ以外",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "なし",
+      "slap_target": "なし",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         23.11,
@@ -775,7 +775,7 @@
       "weather": "それ以外",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "エレクトロベタ",
+      "slap_target": "エレクトロベタ",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -795,7 +795,7 @@
       "weather": "それ以外",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "サンダーレッド",
+      "slap_target": "サンダーレッド",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -815,7 +815,7 @@
       "weather": "それ以外",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ヤースラニボウフィン",
+      "slap_target": "ヤースラニボウフィン",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         25.25,
@@ -849,7 +849,7 @@
       "weather": "それ以外",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ヘリテージグルーパー",
+      "slap_target": "ヘリテージグルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         null,
@@ -869,7 +869,7 @@
       "weather": "それ以外",
       "bait": "ポッパールアー",
       "target_hidden": "ゴールデングルーパー",
-      "trade_target": "ゴールデングルーパー",
+      "slap_target": "ゴールデングルーパー",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,
@@ -903,7 +903,7 @@
       "weather": "天気1",
       "bait": "テストルアー1",
       "target_hidden": null,
-      "trade_target": "なし",
+      "slap_target": "なし",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,
@@ -937,7 +937,7 @@
       "weather": "天気1",
       "bait": "テストルアー1",
       "target_hidden": null,
-      "trade_target": "テスト小型1",
+      "slap_target": "テスト小型1",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,
@@ -971,7 +971,7 @@
       "weather": "天気1",
       "bait": "テストルアー1",
       "target_hidden": null,
-      "trade_target": "テスト小型2",
+      "slap_target": "テスト小型2",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,
@@ -1005,7 +1005,7 @@
       "weather": "天気1",
       "bait": "テストルアー1",
       "target_hidden": null,
-      "trade_target": "テスト大型1",
+      "slap_target": "テスト大型1",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,
@@ -1039,7 +1039,7 @@
       "weather": "天気1",
       "bait": "テストルアー1",
       "target_hidden": null,
-      "trade_target": "テスト大型2",
+      "slap_target": "テスト大型2",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,
@@ -1073,7 +1073,7 @@
       "weather": "天気1",
       "bait": "テストルアー1",
       "target_hidden": null,
-      "trade_target": "なし",
+      "slap_target": "なし",
       "lure_type": "モデストルアー",
       "disc_rates": [
         0,
@@ -1107,7 +1107,7 @@
       "weather": "天気1",
       "bait": "テストルアー1",
       "target_hidden": null,
-      "trade_target": "テスト小型1",
+      "slap_target": "テスト小型1",
       "lure_type": "モデストルアー",
       "disc_rates": [
         0,
@@ -1141,7 +1141,7 @@
       "weather": "天気1",
       "bait": "テストルアー1",
       "target_hidden": null,
-      "trade_target": "テスト小型2",
+      "slap_target": "テスト小型2",
       "lure_type": "モデストルアー",
       "disc_rates": [
         0,
@@ -1175,7 +1175,7 @@
       "weather": "天気1",
       "bait": "テストルアー1",
       "target_hidden": null,
-      "trade_target": "テスト大型1",
+      "slap_target": "テスト大型1",
       "lure_type": "モデストルアー",
       "disc_rates": [
         0,
@@ -1209,7 +1209,7 @@
       "weather": "天気1",
       "bait": "テストルアー1",
       "target_hidden": null,
-      "trade_target": "テスト大型2",
+      "slap_target": "テスト大型2",
       "lure_type": "モデストルアー",
       "disc_rates": [
         0,

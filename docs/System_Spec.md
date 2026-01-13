@@ -212,7 +212,7 @@ for (let i = 1; i <= n; i++) {
 ```javascript
 baseWeights.forEach(w => {
     let m = 1.0;
-    if (w.fish === tradeFish) { m = 0; }
+    if (w.fish === slapFish) { m = 0; }
     else if (lureActive) {
         if (typeMatch) m = modN; // M_N1, M_N2, M_N3
         else m = lastGuar ? 0 : 1.0;

@@ -270,7 +270,7 @@
                         vibration: row['演出'],
                         hook_time: parseFloat(row['釣り上げ動作時間']),
                         is_hidden: (row['隠し判定'] == '1'),
-                        can_trade: (row['トレード可否'] == '1')
+                        can_slap: (row['トレード可否'] == '1')
                     };
                 });
 
@@ -343,7 +343,7 @@
                         weather: row['天気 / 時間'],
                         bait: row['餌'],
                         target_hidden: row['対象隠し魚'] === 'なし' ? null : row['対象隠し魚'],
-                        trade_target: row['トレード対象'],
+                        slap_target: row['トレード対象'],
                         lure_type: row['ルアー種類'],
                         disc_rates: discRates,
                         guar_rates_nodisc: guarRatesNoDisc,

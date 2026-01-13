@@ -44,14 +44,14 @@ function setupEventListeners() {
     document.getElementById('currentArea').addEventListener('change', updateSpotOptions);
     document.getElementById('currentSpot').addEventListener('change', updateSpotDependents);
 
-    ['currentWeather', 'currentBait', 'targetFishName', 'manualTradeSlap'].forEach(id => {
+    ['currentWeather', 'currentBait', 'targetFishName', 'manualSurfaceSlap'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.addEventListener('change', updateSimulation);
     });
 
     document.getElementById('isCatchAll').addEventListener('change', (e) => {
         const disabled = e.target.checked;
-        ['manualTradeSlap', 'stratATrade', 'stratBTrade'].forEach(id => {
+        ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'].forEach(id => {
             const el = document.getElementById(id);
             if(el) { el.value = 'なし'; el.disabled = disabled; }
         });
@@ -66,8 +66,8 @@ function setupEventListeners() {
         });
     });
 
-    ['stratALure', 'stratAQuit', 'stratAPreset', 'stratATrade', 'stratAChum',
-     'stratBLure', 'stratBQuit', 'stratBPreset', 'stratBTrade', 'stratBChum'].forEach(id => {
+    ['stratALure', 'stratAQuit', 'stratAPreset', 'stratASlap', 'stratAChum',
+     'stratBLure', 'stratBQuit', 'stratBPreset', 'stratBSlap', 'stratBChum'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.addEventListener('change', () => {
             if (id.includes('Lure')) updateStrategyPresetsFilter();
@@ -93,7 +93,7 @@ function handleFileUpload(event) {
             document.querySelectorAll('select:disabled, input:disabled').forEach(el => el.disabled = false);
             const isCatchAll = document.getElementById('isCatchAll');
             if(isCatchAll.checked) {
-                ['manualTradeSlap', 'stratATrade', 'stratBTrade'].forEach(id => {
+                ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) { el.value='なし'; el.disabled=true; }
                 });
@@ -172,7 +172,7 @@ function updateSpotDependents() {
     updateSelect('currentBait', spotData.baits);
     updateSelect('targetFishName', spotData.fish_list);
     
-    const tradeOpts = ['manualTradeSlap', 'stratATrade', 'stratBTrade'];
+    const tradeOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
     tradeOpts.forEach(id => {
         const sel = document.getElementById(id);
         sel.innerHTML = '<option value="なし">なし</option>';
@@ -244,7 +244,7 @@ function generateProbabilityMap(probabilities) {
     const map = new Map();
     if (!Array.isArray(probabilities)) return map;
     probabilities.forEach(row => {
-        const key = `${row.spot}|${row.weather}|${row.bait}|${row.lure_type}|${row.trade_target}`;
+        const key = `${row.spot}|${row.weather}|${row.bait}|${row.lure_type}|${row.slap_target}`;
         map.set(key, row);
     });
     return map;
@@ -310,7 +310,7 @@ function runManualMode(config) {
     `;
 
     const isChum = document.getElementById('manualChum').value === 'yes';
-    const tradeFish = document.getElementById('manualTradeSlap').value;
+    const slapFish = document.getElementById('manualSurfaceSlap').value;
     const scenarioId = constructScenarioId();
 
     let discCount = 0;
@@ -327,7 +327,7 @@ function runManualMode(config) {
         errorMsgEl.style.display = 'none';
     }
 
-    const stats = calculateScenarioStats(config, scenarioId, isChum, tradeFish);
+    const stats = calculateScenarioStats(config, scenarioId, isChum, slapFish);
 
     if (stats.error) {
         renderDebugDetails(stats, config, isChum, scenarioId);
@@ -349,7 +349,7 @@ function runStrategyMode(config) {
         const setConfig = {
             lureType: document.getElementById(`strat${set}Lure`).value,
             quitIfNoDisc: document.getElementById(`strat${set}Quit`).checked,
-            tradeFish: document.getElementById(`strat${set}Trade`).value,
+            slapFish: document.getElementById(`strat${set}Trade`).value,
             isChum: document.getElementById(`strat${set}Chum`).value === 'yes',
             presetId: document.getElementById(`strat${set}Preset`).value
         };
@@ -366,7 +366,7 @@ function calculateStrategySet(config, setConfig, preset) {
 
     for (const sid of preset.eligible_scenarios) {
         const scenarioConfig = { ...config, lureType: setConfig.lureType, quitIfNoDisc: setConfig.quitIfNoDisc };
-        const stats = calculateScenarioStats(scenarioConfig, sid, setConfig.isChum, setConfig.tradeFish);
+        const stats = calculateScenarioStats(scenarioConfig, sid, setConfig.isChum, setConfig.slapFish);
         if (stats.error) { error = stats.error; break; }
         if (stats.scenarioProb === null) { error = "確率計算不能"; break; }
 
@@ -384,10 +384,10 @@ function calculateStrategySet(config, setConfig, preset) {
     let expectedTime = (weightedHitRate > 0) ? (weightedCycle - (weightedHitRate * tHook)) / weightedHitRate : Infinity;
     const avgCastCount = (weightedHitRate > 0) ? (1 / weightedHitRate) : Infinity;
 
-    return { name: preset.name, description: preset.description, trade: setConfig.tradeFish, scenarios, totalProb, avgHitRate: weightedHitRate, avgCycle: weightedCycle, avgCastCount, expectedTime, error: null };
+    return { name: preset.name, description: preset.description, Slap: setConfig.slapFish, scenarios, totalProb, avgHitRate: weightedHitRate, avgCycle: weightedCycle, avgCastCount, expectedTime, error: null };
 }
 
-function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
+function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
     if (!masterDB.spots[config.spot]) return { error: "釣り場データが見つかりません" };
     const p = parseScenarioId(scenarioId);
     const weightKey = `${config.spot}|${config.weather}|${config.bait}`;
@@ -395,7 +395,7 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
     
     let probData = null;
     if (config.lureType !== 'none') {
-        const searchKey = `${config.spot}|${config.weather}|${config.bait}|${config.lureType}|${tradeFish}`;
+        const searchKey = `${config.spot}|${config.weather}|${config.bait}|${config.lureType}|${slapFish}`;
         if (probabilityMap) probData = probabilityMap.get(searchKey);
     }
     const rawRates = probData ? { disc: probData.disc_rates, guar: probData.guar_rates_nodisc } : null;
@@ -450,7 +450,7 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         if (!info) return;
         let m = 1.0;
         if (w.fish === hiddenFishName) { weightDetails.push({ name: w.fish, base: w.weight, m: '-', final: '-', isHidden: true }); return; }
-        if (w.fish === tradeFish) { m = 0; } 
+        if (w.fish === slapFish) { m = 0; } 
         else if (config.lureType !== 'none') {
             const match = (info.type === currentLureJaws);
             if (match) m = modN; else m = lastGuar ? 0 : 1.0;
@@ -573,7 +573,7 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
             <div>Spot: ${config.spot}</div>
             <div>Cond: ${config.weather} / Bait: ${config.bait}</div>
             <div>Target: ${config.target}</div>
-            <div>Trade: ${document.getElementById('manualTradeSlap').value} / Lure: ${config.lureType}</div>
+            <div>Slap: ${document.getElementById('manualSurfaceSlap').value} / Lure: ${config.lureType}</div>
             <div>Rest if no disc: ${config.quitIfNoDisc ? 'ON' : 'OFF'}</div>
         </div>
     `;
@@ -705,7 +705,7 @@ function renderStrategyDebugTable(res, label, color) {
 
     let html = `<div class="debug-section" style="border-left:3px solid ${color}; padding-left:10px;">
         <label style="color:${color}">${label} (${res.name})</label>
-        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Trade: ${res.trade} / TotalProb: ${(res.totalProb*100).toFixed(1)}%</div>
+        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Slap: ${res.trade} / TotalProb: ${(res.totalProb*100).toFixed(1)}%</div>
         <div style="overflow-x:auto; max-height:200px; overflow-y:auto; border:1px solid #444;">
         <table style="width:100%; font-size:0.7rem; border-collapse:collapse;">
             <thead style="position:sticky; top:0; background:#333;">
