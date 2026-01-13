@@ -1,10 +1,10 @@
 /**
- * Fisherman Logic Engine (FLE) v2.5.3
- * Update: Refined "Quit" logic to "Rest" (skip block time)
+ * Fisherman Logic Engine (FLE) v2.5.4
+ * Update: Restored Debug Details View & Finalized 'Rest if no disc' logic
  */
 
 const GDS = {
-    D_CAST: 1.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0, // D_QUIT 削除
+    D_CAST: 1.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0,
     C_CHUM: 0.6, M_N1: 1.5, M_N2: 2.0, M_N3: 6.0
 };
 
@@ -403,7 +403,7 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
 
     const tCast = GDS.D_CAST, tLureAction = GDS.D_LURE, tLureBlock = GDS.D_BLK, tChum = GDS.D_CHUM, tRest = GDS.D_REST;
     
-    // 【変更点】未発見即竿上げロジック
+    // 【仕様】未発見即竿上げロジック (Rest if no disc)
     const isQuit = (config.quitIfNoDisc && !p.isNone && p.d === 0);
     const lureTime = p.isNone ? 0 : (tCast + (p.n * tLureAction) + tLureBlock);
 
@@ -483,12 +483,12 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
         const isTarget = (fName === config.target);
         const actualHookTime = (isTarget || config.isCatchAll) ? fInfo.hook_time : tRest;
         
-        // 【変更】サイクル時間計算
+        // 【仕様】サイクル時間計算
         let cycleTime = 0;
         const pre = (isChum ? tChum : 0);
         
         if (isQuit) {
-            // キャスト + (ルアー動作 * n) + 竿上げ
+            // キャスト + (ルアー動作 * n) + 竿上げ (BlockTimeはカット)
             cycleTime = tCast + (p.n * tLureAction) + tRest + pre; 
         } else {
             // 通常: キャスト + 待機(ルアー拘束込み) + 釣り上げ(or竿上げ)
@@ -500,7 +500,7 @@ function calculateScenarioStats(config, scenarioId, isChum, tradeFish) {
     });
 
     if (isQuit) {
-        // ヒット率0でも時間はかかるので補正
+        // ヒット率0でも時間はかかるので補正 (100%の確率で即竿上げサイクルが発生)
         const pre = (isChum ? tChum : 0);
         sumProbTotalCycle = tCast + (p.n * tLureAction) + tRest + pre;
     }
@@ -537,8 +537,13 @@ function renderStrategyComparison(resA, resB, config) {
     resultContent.innerHTML = `<div class="comparison-container" style="align-items:stretch;">${buildCard(resA,"Set A","var(--accent-a)")}${buildCard(resB,"Set B","var(--accent-b)")}</div>`;
     
     // Debug info
-    let debugHtml = `<div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;">D_Cast: ${GDS.D_CAST}s, D_Lure: ${GDS.D_LURE}s, D_Rest: ${GDS.D_REST}s</div></div>`;
+    let debugHtml = `<div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>`;
+    debugHtml += renderStrategyDebugTable(resA, "Set A", "var(--accent-a)");
+    debugHtml += renderStrategyDebugTable(resB, "Set B", "var(--accent-b)");
     right.innerHTML = debugHtml;
+    
+    const tCast = GDS.D_CAST, tLure = GDS.D_LURE, tRest = GDS.D_REST, tBlk = GDS.D_BLK;
+    document.getElementById('debug-constants').innerHTML = `Cast:${tCast}s / Lure:${tLure}s / Block:${tBlk}s / Rest:${tRest}s`;
 }
 
 function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
@@ -558,18 +563,181 @@ function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
     });
 }
 
+// 【復元】詳細デバッグ表示ロジック
 function renderDebugDetails(stats, config, isChum, scenarioId) {
     const c = GDS;
-    document.getElementById('debug-constants').innerHTML = `D_Cast: ${c.D_CAST}s, D_Lure: ${c.D_LURE}s, D_Rest: ${c.D_REST}s`;
-    
-    let trace = `<div>Spot: ${config.spot}</div><div>Target: ${config.target}</div>`;
-    if(stats.debugData.isQuit) {
-        trace += `<div style="color:var(--accent-red);font-weight:bold;margin-top:5px;">※未発見即竿上げ 発動</div>`;
-        const lureTimeTotal = (stats.debugData.p.n * c.D_LURE).toFixed(1);
-        trace += `<div style="font-size:0.75rem;margin-top:5px;padding-left:10px;">Cast(${c.D_CAST}) + Lure(${lureTimeTotal}) + Rest(${c.D_REST})</div>`;
+    document.getElementById('debug-constants').innerHTML = `Cast:${c.D_CAST}s / Lure:${c.D_LURE}s / Block:${c.D_BLK}s / Rest:${c.D_REST}s / Chum:${c.D_CHUM}s`;
+
+    const searchKeys = `
+        <div style="font-size:0.7rem; color:#ccc; margin-bottom:6px; padding-bottom:6px; border-bottom:1px dashed #666; line-height:1.4;">
+            <div>Spot: ${config.spot}</div>
+            <div>Cond: ${config.weather} / Bait: ${config.bait}</div>
+            <div>Target: ${config.target}</div>
+            <div>Trade: ${document.getElementById('manualTradeSlap').value} / Lure: ${config.lureType}</div>
+            <div>Rest if no disc: ${config.quitIfNoDisc ? 'ON' : 'OFF'}</div>
+        </div>
+    `;
+
+    if (stats.error) {
+        document.getElementById('debug-scenario').innerHTML = searchKeys + `<div>特定キー: ${getScenarioLabel(scenarioId)} (${scenarioId})</div>`;
+        return;
+    }
+
+    let analysisHtml = searchKeys;
+    analysisHtml += `<div>特定キー: ${getScenarioLabel(scenarioId)} (${scenarioId})</div>`;
+    if (stats.debugData && stats.debugData.rates) {
+        const fmt = (arr) => arr.map(v => (v === null ? 'null' : v + '%')).join(', ');
+        analysisHtml += `<div style="margin-top:5px; font-size:0.7rem; color:#bbb;">
+            <div>発見率: [${fmt(stats.debugData.rates.disc)}]</div>
+            <div>未発見型確定率: [${fmt(stats.debugData.rates.guar)}]</div>
+        </div>`;
     }
     
-    document.getElementById('debug-scenario').innerHTML = trace;
+    // 【修正】即竿上げ発動時の表示
+    if(stats.debugData.isQuit) {
+        analysisHtml += `<div style="color:var(--accent-red); font-weight:bold; margin-top:5px;">※未発見即竿上げ 発動</div>`;
+    }
+    
+    if (!stats.error) analysisHtml += `<div>隠し魚ヒット率 (P_Hidden): ${(stats.pHidden * 100).toFixed(2)}%</div>`;
+    document.getElementById('debug-scenario').innerHTML = analysisHtml;
+
+    if (stats.error) return;
+
+    // 重みテーブルの復元
+    let wHtml = `<table style="width:100%; border-collapse:collapse; font-size:0.7rem;">
+        <tr style="border-bottom:1px solid #666; text-align:right;">
+            <th style="text-align:left">魚種</th><th>基礎W</th><th>M</th><th>最終W</th><th>確率</th>
+        </tr>`;
+    stats.weightDetails.forEach(d => {
+        if (!d.isHidden) {
+            const prob = (stats.totalWeight > 0) ? (d.final / stats.totalWeight) * (1.0 - stats.pHidden) : 0;
+            wHtml += `<tr style="text-align:right;">
+                <td style="text-align:left">${d.name}</td>
+                <td>${d.base}</td>
+                <td>x${d.m}</td>
+                <td>${d.final.toFixed(1)}</td>
+                <td>${(prob*100).toFixed(2)}%</td>
+            </tr>`;
+        }
+    });
+    wHtml += `<tr style="border-top:1px solid #666; font-weight:bold; text-align:right;"><td colspan="3">合計(ΣW)</td><td>${stats.totalWeight.toFixed(1)}</td><td>-</td></tr>`;
+    stats.weightDetails.forEach(d => {
+        if (d.isHidden) wHtml += `<tr style="color:#888; text-align:right;"><td style="text-align:left">${d.name}(隠)</td><td>-</td><td>-</td><td>-</td><td>${(stats.pHidden*100).toFixed(2)}%</td></tr>`;
+    });
+    wHtml += `</table>`;
+    document.getElementById('debug-weights').innerHTML = wHtml;
+
+    // 時間計算詳細の復元
+    const tStat = stats.allFishStats.find(s => s.isTarget);
+    if (!tStat) {
+        document.getElementById('debug-calc-target').textContent = "ターゲット情報なし";
+        document.getElementById('debug-calc-expect').textContent = "-";
+        return;
+    }
+
+    const p = stats.debugData.p;
+    const chumTxt = isChum ? '使用(x0.6)' : '未使用';
+    const lureWaitExpr = (p.isNone) ? '0s (なし)' : `${tStat.lureTime.toFixed(1)}s (1.0 + ${p.n}×2.5 + 2.5)`;
+    const pre = isChum ? c.D_CHUM : 0;
+    
+    // 【修正】即竿上げ時の時間トレース表示
+    let targetTraceHtml = '';
+    if (stats.debugData.isQuit) {
+        // Cast + Lure*n + Rest
+        const lureActionTotal = (p.n * c.D_LURE).toFixed(1);
+        targetTraceHtml = `
+            <div style="font-size:0.8rem; color:var(--accent-red); font-weight:bold;">
+                ⚠ 発見なしのため即竿上げ (Rest Executed)
+            </div>
+            <div style="font-size:0.8rem;">
+                <strong>サイクル時間 (${tStat.cycleTime.toFixed(1)}s)</strong>
+                <div style="padding-left:10px;">
+                   撒き餌(${pre}s) + キャスト(${c.D_CAST}s) + ルアー動作(${lureActionTotal}s) + 竿上げ(${c.D_REST}s)
+                </div>
+            </div>
+        `;
+    } else {
+        targetTraceHtml = `
+            <div style="font-size:0.8rem; margin-bottom:5px;">
+                <strong>A. 待機時間 (${tStat.waitTime.toFixed(1)}s)</strong>
+                <div style="padding-left:10px;">
+                   ・補正バイト: ${tStat.biteTime.toFixed(1)}s (基礎${tStat.baseBite.toFixed(1)}s, 撒き餌:${chumTxt})<br>
+                   ・ルアー拘束: ${lureWaitExpr}<br>
+                   → 長い方を採用
+                </div>
+            </div>
+            <div style="font-size:0.8rem;">
+                <strong>B. サイクル時間 (${tStat.cycleTime.toFixed(1)}s)</strong>
+                <div style="padding-left:10px;">
+                   撒き餌(${pre}s) + キャスト(${c.D_CAST}s) + 待機(A) + 釣り上げ(${tStat.hookTime.toFixed(1)}s)
+                </div>
+            </div>
+        `;
+    }
+    document.getElementById('debug-calc-target').innerHTML = targetTraceHtml;
+
+    // 期待値計算の復元
+    const avgCycle = stats.avgCycleTime;
+    const hitRate = stats.targetHitRate;
+    const expectedTime = stats.expectedTime;
+    const targetHook = stats.debugData.targetHook;
+    const formulaStr = `(${avgCycle.toFixed(2)} - (${(hitRate*100).toFixed(2)}% × ${targetHook.toFixed(1)})) / ${(hitRate*100).toFixed(2)}%`;
+    const expectExpr = (hitRate > 0) ? `${formulaStr} = <strong>${expectedTime.toFixed(1)}s</strong>` : `ターゲット確率が 0% のため計算不可`;
+
+    const expectHtml = `
+        <div style="font-size:0.8rem;">
+            <div><strong>平均サイクル (E[Cycle]):</strong> ${avgCycle.toFixed(2)}s</div>
+            <div><strong>ターゲット確率 (P):</strong> ${(hitRate*100).toFixed(2)}%</div>
+            <div><strong>ターゲット釣り上げ動作時間:</strong> ${targetHook.toFixed(1)}s</div>
+            <hr style="margin:5px 0; border:0; border-top:1px dashed #666;">
+            <div><strong>式:</strong> (E[Cycle] - (P × 動作時間)) / P</div>
+            <div style="margin:5px 0; color:#bbb; font-size:0.75rem; line-height:1.4;">
+                ※ターゲット釣り上げ時間（成功時コスト）を除外した待機期待値
+            </div>
+            <div style="margin-top:4px; color:var(--primary);">${expectExpr}</div>
+        </div>
+    `;
+    document.getElementById('debug-calc-expect').innerHTML = expectHtml;
+}
+
+function renderStrategyDebugTable(res, label, color) {
+    if (res.error) return `<div class="debug-section" style="border-left:3px solid ${color}; padding-left:10px;"><label style="color:${color}">${label}</label><div style="color:red">${res.error}</div></div>`;
+
+    let html = `<div class="debug-section" style="border-left:3px solid ${color}; padding-left:10px;">
+        <label style="color:${color}">${label} (${res.name})</label>
+        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Trade: ${res.trade} / TotalProb: ${(res.totalProb*100).toFixed(1)}%</div>
+        <div style="overflow-x:auto; max-height:200px; overflow-y:auto; border:1px solid #444;">
+        <table style="width:100%; font-size:0.7rem; border-collapse:collapse;">
+            <thead style="position:sticky; top:0; background:#333;">
+                <tr><th>シナリオ</th><th>確率</th><th>Hit</th><th>Cycle</th><th>Exp</th></tr>
+            </thead>
+            <tbody>`;
+    
+    const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob);
+    
+    sorted.forEach(s => {
+        const quitMark = s.isQuit ? '<span style="color:red; font-weight:bold;">!</span> ' : '';
+        html += `<tr>
+            <td style="white-space:nowrap;">${quitMark}${s.label}</td>
+            <td>${(s.prob*100).toFixed(1)}%</td>
+            <td>${(s.hit*100).toFixed(1)}%</td>
+            <td>${s.cycle.toFixed(1)}s</td>
+            <td>${(s.expected === Infinity) ? '-' : s.expected.toFixed(0)}s</td>
+        </tr>`;
+    });
+
+    html += `</tbody>
+            <tfoot style="position:sticky; bottom:0; background:#333; font-weight:bold;">
+                <tr>
+                    <td>平均/合計</td>
+                    <td>${(res.totalProb*100).toFixed(0)}%</td>
+                    <td>${(res.avgHitRate*100).toFixed(2)}%</td>
+                    <td>${res.avgCycle.toFixed(1)}s</td>
+                    <td>${res.expectedTime.toFixed(1)}s</td>
+                </tr>
+            </tfoot>
+        </table></div></div>`;
+    return html;
 }
 
 init();

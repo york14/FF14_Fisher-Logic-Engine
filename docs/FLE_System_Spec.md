@@ -1,684 +1,394 @@
-プロジェクトを分析した結果、以下の3つのドキュメントを作成しました:
+# 漁師論理エンジン (FLE) システム仕様書
 
-1. **システム仕様書 (SPECIFICATION.md)** - システム全体の概要、機能、データ構造
-2. **設計書 (DESIGN.md)** - アーキテクチャ、計算ロジック、UI設計
-3. **用語集 (GLOSSARY.md)** - ゲーム用語とプロジェクト固有用語の定義
-
-これらのドキュメントがあれば、プロジェクトを知らない人やAIでもシステムの全体像を理解できます。
-
-<artifact identifier="fle-docs" type="application/vnd.ant.code" language="markdown" title="FLE System Documentation">
-# システム仕様書 (SPECIFICATION.md)
-
-## プロジェクト概要
-
-**プロジェクト名**: Fisher Logic Engine (FLE) Simulator  
-**バージョン**: v2.3.2  
-**目的**: FF14における釣りの抽選論理をシミュレートし、ターゲット魚を最短時間で獲得するための最適スキル使用戦略を科学的に検討・提示する
-
-## システム構成
-
-### ファイル構成
-```
-project/
-├── index.html          # メインHTML (UI構造)
-├── assets/
-│   ├── main.js        # アプリケーションロジック
-│   └── style.css      # スタイルシート
-└── logic_master.json  # マスターデータ (釣り場・魚・確率データ)
-```
-
-### 技術スタック
-- **フロントエンド**: Vanilla JavaScript (ES6+)
-- **UI**: HTML5 + CSS3 (カスタムCSS変数)
-- **データ形式**: JSON
-- **動作環境**: モダンブラウザ (Chrome, Firefox, Safari, Edge)
+**Version**: 3.0.0
+**Last Updated**: 2026/01/13
+**Target Logic**: FLE v2.5.4 / Data Converter v2.8
 
 ---
 
-## 機能仕様
-
-### 1. 手動設定モード (Manual Mode)
-
-**目的**: 特定の条件とスキル結果を手動で設定し、その一点における効率を評価
-
-**主要機能**:
-- 釣り場・天気・餌・ターゲット魚の選択
-- ルアー使用設定 (回数、各ステップのアクション)
-- トレード対象魚の指定
-- 撒き餌の使用/未使用切り替え
-- Catch All モード (外道も全て釣り上げる)
-
-**出力結果**:
-- **ターゲットヒット時間期待値** (秒): ターゲット1匹を釣るまでの正味待機時間
-- **ターゲットヒット率** (%): 1キャストでターゲットが釣れる確率
-- **魚種別詳細テーブル**: 各魚のヒット率、待機時間、サイクル時間
-- **シナリオ発生確率**: 設定したルアー結果パターンが発生する確率
-- **平均サイクル時間**: 1回の釣りサイクルにかかる平均時間
-
-**詳細ビュー** (右パネル):
-- 定数一覧 (D_CAST, D_LURE, etc.)
-- シナリオ解析 (検索キー、発見率、型確定率)
-- 重み・確率分配の内訳
-- ターゲットのサイクル時間内訳
-- 期待値計算の詳細式
-
-### 2. 戦略評価モード (Strategy Mode)
-
-**目的**: 戦略パターン全体の期待値を評価し、2つの戦略を比較
-
-**主要機能**:
-- 2つの戦略セット (Set A / Set B) の並列評価
-- 戦略プリセットの選択 (L2固定、L3固定、発見延長優先、etc.)
-- 各戦略ごとのルアー種類・トレード・撒き餌設定
-
-**出力結果**:
-- **ターゲット期待待機時間** (秒): 戦略全体の期待値
-- **平均ヒット率** (%): 全シナリオの加重平均
-- **平均サイクル時間** (秒): 全シナリオの加重平均
-- **発生確率Top3**: 確率の高いシナリオ3つ
-- **ヒット率Top3**: ターゲットヒット率の高いシナリオ3つ
-
-**詳細ビュー** (右パネル):
-- 全シナリオ一覧テーブル (確率順ソート)
-- 各シナリオの発生確率、ヒット率、サイクル時間、期待値
+## 目次
+1.  **ドメイン知識 (Domain Knowledge)**
+    * 1.1 釣りの基本メカニクス
+    * 1.2 抽選の仕組み (Weight System)
+    * 1.3 アクションと状態変化
+    * 1.4 隠し魚の出現論理
+2.  **システム要件 (System Requirements)**
+    * 2.1 機能構成
+    * 2.2 UI仕様と状態管理
+    * 2.3 エラーハンドリング
+3.  **ロジック仕様 (Logic Specification)**
+    * 3.1 定数定義 (GDS)
+    * 3.2 シナリオIDと状態定義
+    * 3.3 確率・重み計算ロジック
+    * 3.4 時間計算ロジック
+4.  **データ構造 (Data Structure)**
+    * 4.1 マスターデータ構造 (JSON)
+    * 4.2 データ変換ロジック (CSV to JSON)
 
 ---
 
-## データ仕様
+## 1. ドメイン知識 (Domain Knowledge)
 
-### logic_master.json 構造
+本システムがシミュレートする対象である「FF14の釣り」に関する基本概念とルールを定義する。
 
-#### 1. fish (魚マスタ)
-```json
-{
-  "魚名": {
-    "type": "small_jaws | large_jaws",  // 魚の型
-    "vibration": "! | !! | !!!",         // 演出
-    "hook_time": 5,                      // 釣り上げ動作時間 (秒)
-    "is_hidden": false,                  // 隠し魚フラグ
-    "can_trade": true                    // トレード可能フラグ
-  }
-}
-```
+### 1.1 釣りの基本メカニクス
+釣りは「キャスト（開始）」から「フッキング（釣り上げ）または竿上げ（中断）」までを1つの**サイクル**として扱う。
 
-#### 2. spots (釣り場マスタ)
-```json
-{
-  "釣り場名": {
-    "weathers": ["天気1", "天気2"],      // 利用可能な天気条件
-    "baits": ["餌1", "餌2"],             // 利用可能な餌
-    "fish_list": ["魚A", "魚B"]          // 出現魚リスト
-  }
-}
-```
+1.  **キャスト (Cast)**: 釣りを開始する動作。
+2.  **待機 (Wait)**: 魚がかかる（バイトする）までの時間。
+3.  **アタリ (Bite)**: 魚がかかった合図。振動（演出）としてプレイヤーに伝わる。
+4.  **フッキング (Hooking)**: アタリに合わせて釣り上げる動作。成功すると魚を獲得し、サイクルが終了する。
+5.  **竿上げ (Rod Lift)**: 魚がかかる前、またはかかった後に、釣らずに中断する動作。魚は獲得できず、サイクルが終了する。
 
-#### 3. weights (基礎重み・バイト時間)
-```json
-{
-  "釣り場|天気|餌": [
-    {
-      "fish": "魚名",
-      "weight": 200,        // 基礎重み
-      "bite_time": 10       // 基礎バイト時間 (秒)
-    }
-  ]
-}
-```
+### 1.2 抽選の仕組み (Weight System)
+魚の抽選は、各魚種に設定された**「重み (Weight)」**に基づく確率的抽選によって行われる。
 
-#### 4. probabilities (ルアー確率データ)
-```json
-{
-  "spot": "釣り場",
-  "weather": "天気",
-  "bait": "餌",
-  "target_hidden": "隠し魚名 | なし",
-  "trade_target": "トレード対象魚 | なし",
-  "lure_type": "アンビシャスルアー | モデストルアー",
-  
-  "disc_rates": [23.11, 24.72, 27.42],           // 各ステップの発見率 (%)
-  "guar_rates_nodisc": [3.28, 8.79, 12.38],     // 未発見時の型確定率 (%)
-  
-  "guar_rates_after_disc": {                     // 発見後の型確定率 (%)
-    "d1_g2": 10.21,  // 1回目発見 → 2回目型確定
-    "d1_g3": 21.53,  // 1回目発見 → 3回目型確定
-    "d2_g3": 21.64   // 2回目発見 → 3回目型確定
-  },
-  
-  "hidden_hit_rates": {                          // 隠し魚ヒット率 (%)
-    "n1_d1_g0": 16.28,  // 1回使用、1回目発見、型確定なし
-    "n2_d1_g2": 7.14,   // 2回使用、1回目発見、2回目型確定
-    // ... (全32パターン)
-  }
-}
-```
+* **基礎重み**: 釣り場・天気・餌の条件ごとに定義された初期値。
+* **重み補正**: プレイヤーのアクション（ルアー使用など）によって、特定の魚種の重みが増減する。
+* **抽選確率**:
+    $$P(魚種A) = \frac{\text{魚種Aの現在重み}}{\text{全候補の現在重みの総和}}$$
 
-#### 5. strategy_presets (戦略プリセット)
-```json
-{
-  "id": "fixed_l2",
-  "name": "L2固定",
-  "description": "状況に関わらず必ず2回使用して待機",
-  "eligible_scenarios": [
-    "n2_d0_g0", "n2_d0_g1", "n2_d0_g2", ...
-  ]
-}
-```
+### 1.3 アクションと状態変化
+プレイヤーは以下のスキルを使用して抽選確率や時間を操作できる。
+
+| アクション名 | ゲーム内名称 | 効果概要 |
+| :--- | :--- | :--- |
+| **撒き餌** | Chum | 魚がかかるまでの待機時間を短縮する。 |
+| **トレード** | Surface Slap | 特定の魚種を次回の抽選候補から除外する（重みを0にする）。 |
+| **ルアー** | Ambitious/Modest | 「大型」または「小型」の魚の重みを増加させ、「隠し魚」の発見を試みる。 |
+
+### 1.4 隠し魚の出現論理
+一部の魚種は**「隠し魚 (Hidden Fish)」**として設定されており、通常状態では重みが0（出現しない）である。以下の手順でのみ出現する。
+
+1.  **発見 (Discovery)**: ルアーアクションを使用した際、一定確率で「魚の気配」を発見する。
+2.  **型確定 (Identification)**: 発見後、さらにルアーを使用することで「魚の型（大型/小型）」が確定する場合がある。
+3.  **出現**: 発見状態でのみ、隠し魚は固有のヒット率を持ち、抽選テーブルに乗る。
 
 ---
 
-## 定数定義 (GDS - Game Duration Standards)
+## 2. システム要件 (System Requirements)
 
+### 2.1 機能構成
+
+#### A. 手動設定モード (Manual Mode)
+特定の条件とスキル回数を指定し、その単一シナリオにおける詳細な確率と時間を計算するモード。
+
+* **入力**: 釣り場、天気、餌、ターゲット、ルアー種類・回数、各ステップの結果(発見/型確/なし)。
+* **出力**: ターゲットヒット率、サイクル時間、期待待機時間、全魚種の内訳テーブル。
+* **実装関数**: `runManualMode(config)`
+
+#### B. 戦略評価モード (Strategy Mode)
+複数のシナリオ（成功・失敗パターン）を内包した「戦略プリセット」を選択し、戦略全体の平均的なパフォーマンスを評価・比較するモード。
+
+* **入力**: 戦略セットA/Bそれぞれのプリセット（例：「L2固定」「発見延長優先」）、ルアー設定。
+* **出力**: セットA/Bの期待値比較カード、シナリオ発生確率Top3、ヒット率Top3。
+* **実装関数**: `runStrategyMode(config)`
+
+### 2.2 UI仕様と状態管理
+
+#### レイアウト
+* **3ペイン構成**:
+    * 左パネル: 設定（入力）
+    * 中央パネル: 結果（出力）
+    * 右パネル: 詳細デバッグ（折りたたみ可能）
+* **リサイザー**: パネル間の境界線をドラッグして幅を調整可能。
+    * 実装: `initResizers()`
+
+#### 状態管理フロー
+1.  **初期状態**: `OFFLINE`。JSON読み込み待ち。全コントロール無効化。
+2.  **ロード後**: `ONLINE`。`masterDB` にデータ格納。`probabilityMap` 生成。コントロール有効化。
+3.  **再計算トリガー**: 各種プルダウン/チェックボックスの `change` イベントで `updateSimulation()` を呼び出す。
+
+### 2.3 エラーハンドリング
+
+#### データ未定義エラー
+ユーザーが選択した「釣り場」に対応する詳細データ（魚リスト等）がマスタに存在しない場合。
+
+* **検知**: `masterDB.spots[spot].fish_list.length === 0`
+* **挙動**:
+    * 計算処理を中断 (`return`)。
+    * 中央パネルに赤枠で「⚠️ データ未定義」を表示。
+    * `updateSpotDependents()` 内で制御。
+
+#### 不正な設定エラー
+* **例**: ルアー設定で「発見」を2回以上選択した場合。
+* **挙動**: 赤字で「発見は1度までです」と表示し、計算を中断。
+
+---
+
+## 3. ロジック仕様 (Logic Specification)
+
+本システムの核心となる計算アルゴリズムおよび定数を定義する。
+
+### 3.1 定数定義 (GDS)
+時間の計算および重み補正に使用する標準定数（**GDS**: Game Duration Standards）。
+
+| 定数名 | 値 | 単位 | 説明 |
+| :--- | :--- | :--- | :--- |
+| `D_CAST` | **1.0** | sec | キャスト（投げ入れ）にかかる動作時間。 |
+| `D_LURE` | **2.5** | sec | ルアーアクション1回あたりの動作時間。 |
+| `D_BLK` | **2.5** | sec | ルアー使用後の硬直時間（魚がかからない空白時間）。 |
+| `D_CHUM` | **1.0** | sec | 撒き餌を使用する際のアニメーション時間。 |
+| `D_REST` | **2.0** | sec | 竿上げ（中断/リリース）にかかる動作時間。 |
+| `C_CHUM` | **0.6** | - | 撒き餌使用時のバイト時間短縮係数（乗算）。 |
+| `M_N1` | **1.5** | - | ルアー1回使用時の、適合する型の魚への重み倍率。 |
+| `M_N2` | **2.0** | - | ルアー2回使用時の、適合する型の魚への重み倍率。 |
+| `M_N3` | **6.0** | - | ルアー3回使用時の、適合する型の魚への重み倍率。 |
+
+**実装コード (main.js)**:
 ```javascript
 const GDS = {
-    D_CAST: 1.0,    // キャスト動作時間 (秒)
-    D_LURE: 2.5,    // ルアー1回の動作時間 (秒)
-    D_BLK: 2.5,     // ルアー後の硬直時間 (秒)
-    D_CHUM: 1.0,    // 撒き餌使用動作時間 (秒)
-    D_REST: 2.0,    // 竿上げ動作時間 (秒)
-    C_CHUM: 0.6,    // 撒き餌によるバイト時間補正係数
-    M_N1: 1.5,      // ルアー1回使用時の重み補正倍率
-    M_N2: 2.0,      // ルアー2回使用時の重み補正倍率
-    M_N3: 6.0       // ルアー3回使用時の重み補正倍率
+    D_CAST: 1.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0,
+    C_CHUM: 0.6, M_N1: 1.5, M_N2: 2.0, M_N3: 6.0
 };
-```
-
----
-
-## シナリオID命名規則
-
-**形式**: `n{使用回数}_d{発見ステップ}_g{型確定ステップ列}`
-
-**例**:
-- `none_0`: ルアー未使用 (素振り)
-- `n2_d0_g0`: 2回使用、発見なし、型確定なし
-- `n2_d1_g2`: 2回使用、1回目発見、2回目型確定
-- `n3_d1_g23`: 3回使用、1回目発見、2回目と3回目で型確定
-- `n3_d2_g3`: 3回使用、2回目発見、3回目型確定
-
-**特殊ケース**:
-- 発見は最大1回まで (d0 または d1, d2, d3 のいずれか1つ)
-- 型確定は複数回可能 (g0, g1, g2, g3, g12, g13, g23, g123)
-
----
-
-## 制約事項
-
-### 現在のバージョンの制限
-1. **GP (ギャザラーポイント) は考慮しない**: 時間効率の理論最大値のみを計算
-2. **単一ターゲットのみ**: 複数魚種の同時最適化には未対応
-3. **ブラウザストレージ未使用**: セッション間でのデータ保存機能なし
-4. **静的データ**: logic_master.json の手動アップロードが必要
-
-### データ要件
-- probabilities配列は全ての条件組み合わせを網羅する必要がある
-- NULL値を含むデータはエラーとして処理される
-- 隠し魚のヒット率は全32シナリオ分のデータが必須
-
----
-
-## エラーハンドリング
-
-### 検出されるエラー
-1. **データ不足エラー**: `disc_rates[idx] === null`
-2. **条件不一致エラー**: 該当する確率データが存在しない
-3. **シナリオデータ欠損**: `hidden_hit_rates[scenarioId] === null`
-4. **JSON読み込みエラー**: 不正なJSON形式
-
-### エラー表示
-- 手動モード: 結果テーブルに赤字でエラーメッセージ表示
-- 戦略モード: カードに警告アイコンとエラー内容表示
-- 詳細ビュー: エラー発生箇所をトレース表示
-
----
-
-## UI仕様
-
-### レイアウト構成
-```
-┌─────────────────────────────────────────────────┐
-│  Header (FISHER LOGIC ENGINE v2.0)              │
-├──────────┬───────────────────────┬──────────────┤
-│  Left    │  Center               │  Right       │
-│  Panel   │  Panel                │  Panel       │
-│  (設定)  │  (結果)               │  (詳細)      │
-│  360px   │  Flex-grow            │  420px       │
-│          │  max-width: 720px     │  (折りたたみ可) │
-└──────────┴───────────────────────┴──────────────┘
-```
-
-### カラーテーマ
-```css
---primary: #3b82f6       /* メインアクセント (青) */
---bg-dark: #0f172a       /* 背景 (ダークネイビー) */
---panel-bg: #1e293b      /* パネル背景 */
---text-main: #f1f5f9     /* メインテキスト */
---text-muted: #94a3b8    /* サブテキスト */
---accent-green: #10b981  /* 成功/オンライン */
---accent-red: #ef4444    /* エラー/オフライン */
---accent-a: #60a5fa      /* Set A (青系) */
---accent-b: #f472b6      /* Set B (ピンク系) */
-```
-
-### リサイザー機能
-- 左パネル: 300px 〜 600px
-- 右パネル: 320px 〜 600px
-- ドラッグ操作でリアルタイム調整可能
-
----
-
-## パフォーマンス最適化
-
-### 実装済み最適化
-1. **確率データの高速検索**: `probabilityMap` (Map型) によるO(1)検索
-2. **イベントリスナーの適切な管理**: `addEventListener` / `removeEventListener` のペア管理
-3. **DOM操作の最小化**: `innerHTML` による一括更新
-4. **計算結果のキャッシング**: 戦略評価時の重複計算を回避
-
-### 推奨される最適化 (未実装)
-- 戦略評価の Web Worker 化
-- 大規模データセットに対する仮想スクロール
-- ユーザー設定のlocalStorage保存 (現在は制約により未実装)
-
----
-
-## ブラウザ互換性
-
-### 必須機能
-- ES6+ (const, let, arrow function, template literals)
-- FileReader API (JSONアップロード)
-- CSS Variables
-- Flexbox
-
-### 推奨ブラウザ
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-
----
-
-**文書履歴**:
-- 2026/01/11: v2.3.2 仕様書作成
-- ステップ2完了時点の仕様を反映
-
----
-
-# 設計書 (DESIGN.md)
-
-## アーキテクチャ概要
-
-### MVC的な責務分離
 
 ```
-┌─────────────────────────────────────────┐
-│  View Layer (index.html + style.css)   │
-│  - UI構造の定義                          │
-│  - スタイリング                          │
-└─────────────────┬───────────────────────┘
-                  │
-┌─────────────────▼───────────────────────┐
-│  Controller Layer (main.js)             │
-│  - イベントハンドリング                  │
-│  - UI更新制御                            │
-│  - データフロー管理                      │
-└─────────────────┬───────────────────────┘
-                  │
-┌─────────────────▼───────────────────────┐
-│  Model Layer (main.js + JSON)           │
-│  - ビジネスロジック (計算エンジン)       │
-│  - データ構造 (masterDB, probabilityMap) │
-└─────────────────────────────────────────┘
-```
 
----
+### 3.2 シナリオIDと状態定義
 
-## データフロー
+ルアーの使用結果（シナリオ）は、以下のID形式で一意に管理する。
 
-### 初期化フロー
-```
-User Action: JSONファイル選択
-    ↓
-handleFileUpload()
-    ↓
-FileReader.readAsText()
-    ↓
-JSON.parse() → masterDB
-    ↓
-generateProbabilityMap() → probabilityMap (Map型)
-    ↓
-enableControls() + populateSelectors()
-    ↓
-updateSimulation()
-```
+**フォーマット**: `n{回数}_d{発見ステップ}_g{型確定ステップ}`
 
-### 手動モード計算フロー
-```
-User Input: 設定変更
-    ↓
-updateSimulation()
-    ↓
-constructScenarioId() → "n2_d1_g2"
-    ↓
-calculateScenarioStats(config, scenarioId, isChum, tradeFish)
-    ├─ parseScenarioId() → { n: 2, d: 1, g: [2] }
-    ├─ 確率データ検索 (probabilityMap)
-    ├─ シナリオ確率計算 (ベイズ的な条件付き確率)
-    ├─ 重み補正計算 (ルアー種類・型確定状態に応じた倍率)
-    ├─ 各魚のヒット率・待機時間・サイクル時間計算
-    └─ ターゲット期待値計算
-    ↓
-renderResultTable() + renderDebugDetails()
-```
+* **n (Number)**: ルアーを使用した総回数 (0, 1, 2, 3)。
+* **d (Discovery)**: 何回目のルアーで「発見」したか (0=なし, 1, 2, 3)。発見は最大1回まで。
+* **g (Guarantee)**: 何回目のルアーで「型確定」したか (0=なし, 複数可 例:12, 23)。
 
-### 戦略モード計算フロー
-```
-User Input: 戦略設定変更
-    ↓
-updateSimulation() → runStrategyMode()
-    ↓
-calculateStrategySet() (Set A / Set B それぞれ)
-    ├─ プリセット読み込み
-    ├─ eligible_scenarios をループ
-    │   └─ 各シナリオで calculateScenarioStats()
-    ├─ 加重平均計算 (確率 × 各指標)
-    └─ 戦略全体の期待値算出
-    ↓
-renderStrategyComparison()
-```
+**生成ロジック (`constructScenarioId` / `parseScenarioId`)**:
 
----
-
-## 核心計算ロジック
-
-### 1. シナリオ確率の計算
-
-**目的**: 設定したルアー使用パターンが実際に発生する確率を計算
-
-**アルゴリズム**:
 ```javascript
-scenarioProb = 1.0;
+// ID生成のイメージ
+function constructScenarioId(count, steps) {
+    let disc = 0;
+    let guars = [];
+    steps.forEach((action, i) => {
+        if (action === 'disc' && disc === 0) disc = i + 1;
+        if (action === 'guar') guars.push(i + 1);
+    });
+    const gStr = guars.length > 0 ? guars.join('') : '0';
+    return `n${count}_d${disc}_g${gStr}`; // 例: n2_d1_g2
+}
 
-for (各ステップ i = 1 to n) {
-    if (未発見) {
-        pDisc = disc_rates[i-1] / 100;
-        pGuar = guar_rates_nodisc[i-1] / 100;
-        
-        if (このステップで発見) {
-            stepProb = pDisc;
-        } else if (このステップで型確定) {
-            stepProb = (1 - pDisc) × pGuar;
-        } else {
-            stepProb = (1 - pDisc) × (1 - pGuar);
-        }
-    } else {
-        // 発見済み
-        pGuarAfter = guar_rates_after_disc["d{発見ステップ}_g{i}"] / 100;
-        
-        if (このステップで型確定) {
-            stepProb = pGuarAfter;
-        } else {
-            stepProb = 1 - pGuarAfter;
-        }
+```
+
+### 3.3 確率・重み計算ロジック
+
+#### 3.3.1 シナリオ発生確率
+
+各シナリオが発生する確率は、マスタデータ（`probabilities`）に定義された「各ステップごとの確率」を乗算して求める。
+
+**計算フロー (`calculateScenarioStats` 内)**:
+
+```javascript
+let scenarioProb = 1.0;
+// 各ステップ i (1～n) についてループ
+for (let i = 1; i <= n; i++) {
+    let stepProb = 0;
+    if (!found) { // 未発見状態
+        // disc_rates[i-1], guar_rates_nodisc[i-1] を使用
+        if (action === 'disc') stepProb = pDisc;
+        else if (action === 'guar') stepProb = (1.0 - pDisc) * pGuar;
+        else stepProb = (1.0 - pDisc) * (1.0 - pGuar);
+    } else { // 発見済み状態
+        // guar_rates_after_disc を使用
+        stepProb = (action === 'guar') ? pGuarAfter : (1.0 - pGuarAfter);
     }
-    
     scenarioProb *= stepProb;
 }
+
 ```
 
-**例**: `n2_d1_g2` (2回使用、1回目発見、2回目型確定)
-```
-Step 1: 発見が起こる確率 = disc_rates[0] = 23.11%
-Step 2: 発見後に型確定が起こる確率 = guar_rates_after_disc["d1_g2"] = 10.21%
+#### 3.3.2 魚種ごとのヒット率 ()
 
-シナリオ確率 = 0.2311 × 0.1021 = 2.36%
-```
+シナリオ確定後の各魚種のヒット率は以下の手順で算出する。
 
-### 2. 重み補正の計算
+1. **隠し魚の判定**:
+* シナリオIDに対応する固定ヒット率をマスタから取得する ()。
+* 未発見シナリオ、またはデータがない場合は 0% とする。
 
-**目的**: ルアー使用状況に応じて各魚の出現重みを動的に変更
 
-**ルール**:
-1. **トレード対象魚**: 重み = 0 (出現しない)
-2. **型確定時の不一致魚**: 重み = 0
-3. **ルアー使用時の一致魚**: 重み × M_N{n} (1.5x, 2.0x, 6.0x)
-4. **その他**: 重み × 1.0 (変化なし)
+2. **通常魚の重み計算**:
+* 各魚種  について、基礎重み  に補正倍率  を掛ける。
+*  の決定ルール:
+* トレード対象魚: 
+* ルアー使用かつ型が一致:  (回数に応じた倍率)
+* ルアー使用かつ型が不一致:
+* 直近で型確定している場合: 
+* それ以外: 
 
-**疑似コード**:
+
+
+
+* 最終重み 
+
+
+
+**実装コード (`calculateScenarioStats` 内)**:
+
 ```javascript
-for (各魚 w) {
-    if (w.fish === tradeFish) {
-        m = 0;
-    } else if (lureType !== 'none') {
-        if (魚の型 === ルアー対象型) {
-            if (最後のステップで型確定) {
-                m = M_N{n};  // 大幅増加
-            } else {
-                m = M_N{n};  // 通常増加
-            }
-        } else {
-            if (最後のステップで型確定) {
-                m = 0;  // 不一致魚は消える
-            } else {
-                m = 1.0;
-            }
-        }
-    } else {
-        m = 1.0;
+baseWeights.forEach(w => {
+    let m = 1.0;
+    if (w.fish === tradeFish) { m = 0; }
+    else if (lureActive) {
+        if (typeMatch) m = modN; // M_N1, M_N2, M_N3
+        else m = lastGuar ? 0 : 1.0;
     }
-    
-    finalWeight = baseWeight × m;
-}
+    weightDetails.push({ final: w.weight * m, ... });
+});
+
 ```
 
-### 3. 隠し魚ヒット率の適用
+3. **確率分配**:
+* 通常魚の合計重み 
+* 通常魚  のヒット率:
 
-**仕組み**:
-- 隠し魚は `weights` では `weight: 0` として扱われる
-- `hidden_hit_rates[scenarioId]` に直接確率が格納されている
-- 通常魚の確率 = `(finalWeight / totalWeight) × (1 - pHidden)`
-- 隠し魚の確率 = `pHidden`
 
-**計算例**:
-```
-totalWeight = 560 (通常魚の合計)
-pHidden = 16.28% (シナリオ n1_d1_g0 での隠し魚率)
 
-魚A: (200 / 560) × (1 - 0.1628) = 29.86%
-魚B: (160 / 560) × (1 - 0.1628) = 23.89%
-魚C: (200 / 560) × (1 - 0.1628) = 29.86%
-隠し魚: 16.28%
 
-合計 = 99.89% ≈ 100%
-```
 
-### 4. サイクル時間の計算
+### 3.4 時間計算ロジック
 
-**定義**: 1回の釣りサイクル全体にかかる時間
+1サイクルにかかる時間は、プレイスタイル設定（特に「未発見即竿上げ」）によって計算式が異なる。
 
-**式**:
-```
-cycleTime = D_CHUM (撒き餌使用時のみ)
-          + D_CAST (1.0s)
-          + waitTime
-          + hookTime
+#### A. 通常サイクル（釣り上げ/リリース）
 
-waitTime = max(biteTime, lureTime)
+魚がかかるのを待ち、ヒット後に釣り上げる（またはリリースする）場合の所要時間。
 
-biteTime = baseBiteTime × C_CHUM (撒き餌使用時は 0.6倍)
-         = baseBiteTime (未使用時)
+* ****: 撒き餌使用時は `D_CHUM`、未使用時は 0。
+* ****: 以下の2つの値の**大きい方**を採用する。
+1. **バイト時間**: 魚固有の基礎待機時間  (`C_CHUM` or 1.0)。
+2. **ルアー拘束時間**: 
+* ※ルアー動作中は魚がかからないため、ルアー回数が多いほど最低待機時間は長くなる。
 
-lureTime = D_CAST + (n × D_LURE) + D_BLK
-         = 1.0 + (n × 2.5) + 2.5  (n > 0)
-         = 0  (n = 0, 素振り)
 
-hookTime = fish.hook_time (ターゲット or Catch All)
-         = D_REST (2.0s)  (外道リリース時)
-```
 
-**計算例** (撒き餌あり、ルアー2回、ターゲット):
-```
-baseBiteTime = 10s
-biteTime = 10 × 0.6 = 6s
-lureTime = 1.0 + (2 × 2.5) + 2.5 = 8.5s
-waitTime = max(6, 8.5) = 8.5s
-hookTime = 5s (ターゲット魚)
 
-cycleTime = 1.0 (撒き餌) + 1.0 (キャスト) + 8.5 (待機) + 5.0 (釣り上げ)
-          = 15.5s
-```
+* ****:
+* ターゲット魚またはCatchAll対象の場合: 魚固有の `hook_time`。
+* 外道（リリース）の場合: `D_REST`。
 
-### 5. ターゲット期待待機時間の計算
 
-**定義**: ターゲット1匹を得るために必要な正味の待機時間
 
-**式**:
-```
-E[Cycle] = Σ (P(魚i) × cycleTime(魚i))  // 全魚種の加重平均サイクル時間
-P(target) = ターゲットのヒット率
+**実装コード**:
 
-expectedTime = (E[Cycle] - (P(target) × hookTime(target))) / P(target)
-```
-
-**直感的説明**:
-- `E[Cycle] / P(target)` = 平均何回釣りをすればターゲットが1匹釣れるかの総時間
-- `P(target) × hookTime(target)` = その中でターゲットを釣り上げる動作時間
-- この差分 = 純粋な「待ち時間」
-
-**計算例**:
-```
-E[Cycle] = 15.2s
-P(target) = 35.7%
-hookTime(target) = 5s
-
-expectedTime = (15.2 - (0.357 × 5)) / 0.357
-             = (15.2 - 1.785) / 0.357
-             = 13.415 / 0.357
-             = 37.6s
-```
-
-### 6. 戦略全体の期待値 (加重平均)
-
-**目的**: 複数のシナリオを含む戦略全体の性能評価
-
-**アルゴリズム**:
 ```javascript
-weightedHitRate = 0;
-weightedCycle = 0;
-totalProb = 0;
+const biteTime = isChum ? (baseBite * GDS.C_CHUM) : baseBite;
+const lureTime = tCast + (n * tLureAction) + tLureBlock;
+const waitTime = Math.max(biteTime, lureTime);
+const cycleTime = tCast + waitTime + hookTime + pre;
 
-for (各シナリオ s in eligible_scenarios) {
-    stats = calculateScenarioStats(s);
-    pScenario = stats.scenarioProb;
-    
-    weightedHitRate += pScenario × stats.targetHitRate;
-    weightedCycle += pScenario × stats.avgCycleTime;
-    totalProb += pScenario;
-}
-
-// 戦略全体の期待値
-avgHitRate = weightedHitRate;
-avgCycle = weightedCycle;
-
-expectedTime = (avgCycle - (avgHitRate × targetHookTime)) / avgHitRate;
 ```
+
+#### B. 未発見即竿上げ (Rest if no disc)
+
+設定が有効で、かつ「発見」に至らなかった場合、魚がかかるのを待たずに即座に竿を上げる。
+
+* **特徴**:
+* ルアー後の空白時間 (`D_BLK`) を待たない。
+* 魚のバイト時間を待たない。
+* 必ず `D_REST` で終了する。
+* この場合、そのサイクルのヒット率は強制的に **0%** となる。
+
+
+
+**実装コード (`isQuit` true時)**:
+
+```javascript
+// D_BLKを含まず、D_RESTを加算する
+cycleTime = tCast + (p.n * tLureAction) + tRest + pre;
+hitProb = 0;
+
+```
+
+#### C. 期待値 (Expected Time)
+
+ターゲットを1匹入手するために必要な平均時間の期待値。
+
+* **分子**: 1回釣り上げるのにかかる平均時間から、「ターゲット釣り上げ動作（成功時のコスト）」を引いたもの。これにより、純粋な「待ち時間」の期待値を算出する。
+* **分母**: ターゲットのヒット率。
 
 ---
 
-## UI設計
+## 4. データ構造 (Data Structure)
 
-### 状態管理
+### 4.1 マスターデータ構造 (JSON)
 
-**グローバル変数**:
-```javascript
-let masterDB = null;           // JSONマスターデータ
-let probabilityMap = null;     // 高速検索用Map
-let currentMode = 'manual';    // 'manual' | 'strategy'
-```
+本システムがロードする `logic_master.json` のスキーマ定義。
 
-**状態遷移**:
-```
-[OFFLINE]
-   ↓ (JSON読み込み)
-[ONLINE]
-   ├─ [Manual Mode]
-   │   ├─ 設定変更 → 即時再計算
-   │   └─ 結果表示 + 詳細ビュー
-   └─ [Strategy Mode]
-       ├─ Set A/B 設定変更 → 即時再計算
-       └─ 比較カード表示 + 詳細テーブル
-```
-
-### イベント駆動設計
-
-**主要イベントハンドラー**:
-```javascript
-// ファイルアップロード
-#jsonUpload.change → handleFileUpload()
-
-// モード切替
-.tab-btn.click → currentMode切替 + updateSimulation()
-
-// 設定変更
-#currentSpot.change → updateSpotDependents() → updateSimulation()
-#lureType.change → updateLureUI() + updateSimulation()
-.step-select.change → updateSimulation()
-
-// リサイザー
-.resizer.mousedown → mousemove監視開始
-document.mousemove → パネル幅変更
-document.mouseup → mousemove監視終了
-```
-
-### レンダリング戦略
-
-**パフォーマンス重視の実装**:
-1. **innerHTML一括更新**: 複数DOM操作を文字列結合で一括化
-2. **DocumentFragment未使用**: テーブル行が少ないためinnerHTMLで十分
-3. **条件分岐でのHTML生成**: エラー時とデータ表示時で異なる構造
-
-**例** (結果テーブル):
-```javascript
-function renderResultTable(stats, targetName, ...) {
-    const tbody = document.getElementById('res-table-body');
-    tbody.innerHTML = '';  // 一括クリア
-    
-    stats.forEach(s => {
-        const tr = document.createElement('tr');
-        if (s.name === targetName) tr.classList.add('row-target');
-        tr.innerHTML = `<td>${s.name}</td>...`;
-        tbody.appendChild(tr);  // 個別追加 (数が少ないため許容)
-    });
+```json
+{
+  "version": "2.8.0",
+  "spots": {
+    "釣り場名": {
+      "expansion": "拡張名",
+      "area": "エリア名",
+      "weathers": ["晴れ", "雨"], // 利用可能な天気
+      "baits": ["虫", "ルアー"], // 利用可能な餌
+      "fish_list": ["魚A", "魚B"] // 生息する魚のリスト
+    }
+  },
+  "weights": {
+    "釣り場|天気|餌": [ // 複合キー
+      { "fish": "魚名", "weight": 200, "bite_time": 10 }
+    ]
+  },
+  "probabilities": [
+    {
+      "spot": "釣り場",
+      "weather": "天気",
+      "bait": "餌",
+      "lure_type": "ルアー種別",
+      "disc_rates": [20.5, 30.0, 45.0], // Step1~3の発見率
+      "hidden_hit_rates": {
+        "n1_d1_g0": 15.0, // n1(1回使用)のデータ
+        "n2_d1_g2": 50.0  // n2(2回使用)のデータ
+      }
+    }
+  ]
 }
+
 ```
 
-### レスポンシブ対応
+### 4.2 データ変換ロジック (CSV to JSON)
 
-**パネル幅調整**:
-- デフォルト幅: Left 360px / Right 420px
-- リサイズ範囲: Left 300-600px / Right 320-600px
-- 中央パネル: Flex-grow (残り全て) + max-width 720px で中央寄せ
+`data_converter.html` が行う処理の特記事項。
 
-**折りたたみ機能**:
-- 右パネルのみ折りたたみ可能 → 50px (縦書きタイトルのみ)
-- CSS transition 0.3s でスムーズなアニメーション
+#### スポット情報の統合
 
----
+マスタ-2（階層定義）とマスタ-3（詳細定義）を統合し、詳細データがないスポットについても空配列を持つオブジェクトとして初期化する。これにより、未定義スポット選択時のエラーハンドリングが可能となる。
 
-## エラー処理設計
+**実装コード**:
 
-### エラー検出ポイント
+```javascript
+// 階層定義から全スポットを初期化
+hierarchyData.forEach(row => {
+    master.spots[row['釣り場']] = { ..., fish_list: [] };
+});
+// 詳細定義があれば追記
+spotsData.forEach(row => { ... });
 
-1. **JSON読み込み時**:
-   ```javascript
-   try {
-       masterDB = JSON.parse(e.target.result);
-       if (!masterDB.probabilities) throw new Error("Missing probabilities");
-   } catch (err) {
-       alert(`データ読み込み中にエラーが発生しました:\n${err.message}`);
-   }
-   ```
+```
 
-2. **確率データ検索時**:
-   ```javascript
-   const probData = probabilityMap.get(searchKey);
-   if (!probData &&
+#### 隠し魚ヒット率のマッピング (ID変換)
+
+CSVのカラム名を、システム内部で使用するシナリオIDへ変換する。
+**注意**: 「ルアー1回使用」のデータは `n1`、「2回使用」は `n2` に正しくマッピングする必要がある。
+
+**マッピング定義 (`hiddenHitMap`)**:
+
+```javascript
+const hiddenHitMap = {
+    // 【重要】ヒット率1の列は n1_d1_g0 にマッピング
+    '発見1型確1なし隠しヒット率1': 'n1_d1_g0', 
+    
+    // ヒット率2の列は n2...
+    '発見1型確2あり隠しヒット率2': 'n2_d1_g2',
+    '発見2型確2なし隠しヒット率2': 'n2_d2_g0', 
+    // ...
+};
+
+```
+
+```
+
+```

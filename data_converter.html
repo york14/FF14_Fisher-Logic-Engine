@@ -1,37 +1,145 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
-    <title>FLE Logic Master Converter v2.6</title>
+    <title>FLE Logic Master Converter v2.8</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: #f1f5f9; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; background: #1e293b; padding: 20px; border-radius: 8px; }
-        h1 { border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
-        .input-group { margin-bottom: 20px; border: 2px dashed #334155; padding: 30px; text-align: center; border-radius: 8px; background: rgba(59,130,246,0.05); transition: background 0.3s; }
-        .input-group:hover { background: rgba(59,130,246,0.1); border-color: #3b82f6; }
-        label { display: block; margin-bottom: 10px; font-weight: bold; font-size: 1.2rem; cursor: pointer; }
-        input[type="file"] { display: none; }
-        .custom-file-btn { background: #3b82f6; color: white; padding: 10px 20px; border-radius: 4px; cursor: pointer; display: inline-block; }
-        button { background: #10b981; color: white; border: none; padding: 12px 30px; border-radius: 4px; cursor: pointer; font-size: 1.1rem; margin-top: 20px; display: block; width: 100%; font-weight: bold; }
-        button:disabled { background: #64748b; cursor: not-allowed; }
-        button:hover:not(:disabled) { background: #059669; }
-        
-        #file-list { text-align: left; margin-top: 15px; font-size: 0.9rem; color: #cbd5e1; }
-        .file-item { margin: 5px 0; display: flex; align-items: center; }
-        .icon-check { color: #10b981; margin-right: 8px; font-weight: bold; }
-        .icon-cross { color: #ef4444; margin-right: 8px; font-weight: bold; }
-        
-        #status { margin-top: 15px; font-weight: bold; text-align: center; white-space: pre-wrap; }
-        .error { color: #ef4444; }
-        .success { color: #10b981; }
-        pre { background: #000; padding: 10px; overflow-x: auto; border-radius: 4px; margin-top: 20px; font-size: 0.8rem; }
+        body {
+            font-family: sans-serif;
+            background: #0f172a;
+            color: #f1f5f9;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        h1 {
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            border: 2px dashed #334155;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px;
+            background: rgba(59, 130, 246, 0.05);
+            transition: background 0.3s;
+        }
+
+        .input-group:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-file-btn {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        button {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            margin-top: 20px;
+            display: block;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        #file-list {
+            text-align: left;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+
+        .file-item {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .icon-check {
+            color: #10b981;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        .icon-cross {
+            color: #ef4444;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-weight: bold;
+            text-align: center;
+            white-space: pre-wrap;
+        }
+
+        .error {
+            color: #ef4444;
+        }
+
+        .success {
+            color: #10b981;
+        }
+
+        pre {
+            background: #000;
+            padding: 10px;
+            overflow-x: auto;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-size: 0.8rem;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <h1>FLE Logic Master Converter <small>v2.6</small></h1>
-        <p>日本語マスタCSV専用コンバータ (未定義スポット対応版)</p>
+        <h1>FLE Logic Master Converter <small>v2.8</small></h1>
+        <p>日本語マスタCSV専用コンバータ (隠し魚n1対応版)</p>
 
         <div class="input-group">
             <label for="folderInput" class="custom-file-btn">📂 マスタフォルダを選択</label>
@@ -56,7 +164,7 @@
 
         let foundFiles = {};
 
-        document.getElementById('folderInput').addEventListener('change', function(e) {
+        document.getElementById('folderInput').addEventListener('change', function (e) {
             const files = e.target.files;
             foundFiles = {};
             const fileListEl = document.getElementById('file-list');
@@ -78,8 +186,8 @@
 
                 const div = document.createElement('div');
                 div.className = 'file-item';
-                div.innerHTML = isFound 
-                    ? `<span class="icon-check">✔</span> ${name}` 
+                div.innerHTML = isFound
+                    ? `<span class="icon-check">✔</span> ${name}`
                     : `<span class="icon-cross">✖</span> ${name}`;
                 fileListEl.appendChild(div);
             }
@@ -128,7 +236,7 @@
 
                 // --- 1. Master Object ---
                 const master = {
-                    version: "2.6.0",
+                    version: "2.8.0",
                     updated_at: new Date().toISOString(),
                     fish: {},
                     spots: {},
@@ -137,14 +245,12 @@
                     strategy_presets: []
                 };
 
-                // --- 2. Initialize Spots from Hierarchy (重要変更) ---
-                // マスタ-2(階層)にある全ての釣り場を先に登録する
+                // --- 2. Initialize Spots from Hierarchy ---
                 const hierarchyMap = {};
                 hierarchyData.forEach(row => {
                     const spot = row['釣り場'];
                     if (spot) {
                         hierarchyMap[spot] = { expansion: row['拡張'], area: row['エリア'] };
-                        // 初期化（データは空）
                         master.spots[spot] = {
                             expansion: row['拡張'],
                             area: row['エリア'],
@@ -158,9 +264,9 @@
                 // --- 3. Process Fish ---
                 const typeMap = { "小型": "small_jaws", "大型": "large_jaws", "中型": "medium_jaws" };
                 fishData.forEach(row => {
-                    if(!row['魚種']) return;
+                    if (!row['魚種']) return;
                     master.fish[row['魚種']] = {
-                        type: typeMap[row['型']] || "small_jaws", 
+                        type: typeMap[row['型']] || "small_jaws",
                         vibration: row['演出'],
                         hook_time: parseFloat(row['釣り上げ動作時間']),
                         is_hidden: (row['隠し判定'] == '1'),
@@ -169,24 +275,22 @@
                 });
 
                 // --- 4. Process Spots Details (Aggregation) ---
-                // マスタ-3のデータを集計して、既存のspotsオブジェクトに追記する
                 spotsData.forEach(row => {
                     const spot = row['釣り場'];
                     const type = row['データ種別'];
                     const data = row['データ'];
-                    if(!spot || !type || !data) return;
+                    if (!spot || !type || !data) return;
 
-                    // 万が一 hierarchy にない釣り場が spots にあった場合の保険作成
-                    if(!master.spots[spot]) {
+                    if (!master.spots[spot]) {
                         master.spots[spot] = {
                             expansion: "その他", area: "不明",
                             weathers: [], baits: [], fish_list: []
                         };
                     }
 
-                    if(type === '天気 / 時間') master.spots[spot].weathers.push(data);
-                    else if(type === '餌') master.spots[spot].baits.push(data);
-                    else if(type === '魚種') master.spots[spot].fish_list.push(data);
+                    if (type === '天気 / 時間') master.spots[spot].weathers.push(data);
+                    else if (type === '餌') master.spots[spot].baits.push(data);
+                    else if (type === '魚種') master.spots[spot].fish_list.push(data);
                 });
 
                 // --- 5. Process Weights ---
@@ -201,16 +305,17 @@
                 });
 
                 // --- 6. Process Probabilities ---
+                // 【修正】キーのマッピングを修正 (v2.8)
                 const hiddenHitMap = {
-                    '発見1型確1なし隠しヒット率1': 'n2_d1_g1',
+                    '発見1型確1なし隠しヒット率1': 'n1_d1_g0', // 【修正】n2 -> n1
                     '発見1型確2あり隠しヒット率2': 'n2_d1_g2',
-                    '発見1型確2なし隠しヒット率2': 'n2_d1_g2',
+                    '発見1型確2なし隠しヒット率2': 'n2_d1_g0',
                     '発見1型確3あり隠しヒット率3': 'n3_d1_g3',
-                    '発見1型確3なし隠しヒット率3': 'n3_d1_g3',
-                    '発見2型確2なし隠しヒット率2': 'n2_d2_g2',
+                    '発見1型確3なし隠しヒット率3': 'n3_d1_g0',
+                    '発見2型確2なし隠しヒット率2': 'n2_d2_g0',
                     '発見2型確3あり隠しヒット率3': 'n3_d2_g3',
-                    '発見2型確3なし隠しヒット率3': 'n3_d2_g3',
-                    '発見3型確3なし隠しヒット率3': 'n3_d3_g3'
+                    '発見2型確3なし隠しヒット率3': 'n3_d2_g0',
+                    '発見3型確3なし隠しヒット率3': 'n3_d3_g0'
                 };
 
                 probsData.forEach(row => {
@@ -221,9 +326,9 @@
                     };
                     const discRates = [parsePercent(row['発見率1']), parsePercent(row['発見率2']), parsePercent(row['発見率3'])];
                     const guarRatesNoDisc = [parsePercent(row['未発見型確定率1']), parsePercent(row['未発見型確定率2']), parsePercent(row['未発見型確定率3'])];
-                    
+
                     const guarRatesAfter = {};
-                    const addGA = (k, v) => { if(v) guarRatesAfter[k] = parsePercent(v); };
+                    const addGA = (k, v) => { if (v) guarRatesAfter[k] = parsePercent(v); };
                     addGA('d1_g2', row['発見1型確定率2']);
                     addGA('d1_g3', row['発見1型確定率3']);
                     addGA('d2_g3', row['発見2型確定率3']);
@@ -249,10 +354,10 @@
 
                 // --- 7. Process Presets ---
                 presetsData.forEach(row => {
-                    if(!row['戦略ID']) return;
+                    if (!row['戦略ID']) return;
                     const scenarios = [];
                     Object.keys(row).forEach(k => {
-                        if(k !== '戦略ID' && k !== '戦略名' && k !== '説明' && row[k] == '1') {
+                        if (k !== '戦略ID' && k !== '戦略名' && k !== '説明' && row[k] == '1') {
                             scenarios.push(k);
                         }
                     });
@@ -267,7 +372,7 @@
                 // --- Output ---
                 const jsonStr = JSON.stringify(master, null, 2);
                 previewEl.textContent = jsonStr.slice(0, 1000) + "... (省略)";
-                const blob = new Blob([jsonStr], {type: "application/json"});
+                const blob = new Blob([jsonStr], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -286,4 +391,5 @@
         }
     </script>
 </body>
+
 </html>
