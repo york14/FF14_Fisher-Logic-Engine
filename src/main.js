@@ -533,7 +533,36 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
 
         const waitTimeMin = Math.max(biteTimeMin, lureTime);
         const waitTimeMax = Math.max(biteTimeMax, lureTime);
-        const waitTimeAvg = (waitTimeMin + waitTimeMax) / 2;
+
+        // --- PROPOSED LOGIC CHANGE (v3.2.1) ---
+        // Expected Value Calculation using Integral over uniform distribution X ~ U[biteTimeMin, biteTimeMax]
+        // W = max(X, L)
+        let waitTimeAvg;
+        let cType = '';
+        if (lureTime <= biteTimeMin) {
+            // Case 1: Lure is short (L <= Min) -> Standard Average
+            waitTimeAvg = (biteTimeMin + biteTimeMax) / 2;
+            cType = 'Case1 (Standard)';
+        } else if (lureTime >= biteTimeMax) {
+            // Case 2: Lure is long (L >= Max) -> Fixed at Lure Time
+            waitTimeAvg = lureTime;
+            cType = 'Case2 (Fixed)';
+        } else {
+            // Case 3: Intersection (Min < L < Max)
+            const range = biteTimeMax - biteTimeMin;
+            if (range <= 0) {
+                waitTimeAvg = lureTime; // Fallback for zero range
+                cType = 'Case3 (ZeroRange)';
+            } else {
+                // E[W] = ( L(L-Min) + (Max^2 - L^2)/2 ) / Range
+                const term1 = lureTime * (lureTime - biteTimeMin);
+                const term2 = (Math.pow(biteTimeMax, 2) - Math.pow(lureTime, 2)) / 2;
+                waitTimeAvg = (term1 + term2) / range;
+                cType = 'Case3 (Integral)';
+            }
+        }
+
+        // Range for display (weighted) - Keep existing logic for composite display
         const waitTimeRange = (waitTimeMax - waitTimeMin) / 2;
 
         const isTarget = (fName === config.target);
@@ -555,7 +584,7 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
             name: fName, vibration: fInfo.vibration, hitRate: hitProb,
             baseBiteMin, baseBiteMax, biteTimeMin, biteTimeMax, lureTime,
             waitTimeMin, waitTimeMax, waitTimeAvg, waitTimeRange,
-            hookTime: actualHookTime, cycleTime, isTarget
+            hookTime: actualHookTime, cycleTime, isTarget, cType
         });
     });
 
@@ -625,7 +654,7 @@ function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
         const hitStr = (s.hitRate > 0) ? (s.hitRate * 100).toFixed(1) + '%' : '0.0%';
         const cycleStr = s.cycleTime.toFixed(1) + 'sec';
         const waitTimeStr = (s.waitTimeAvg !== undefined) ?
-            `${s.waitTimeAvg.toFixed(1)}<span style="font-size:0.7em">±${s.waitTimeRange.toFixed(1)}</span>` : '-';
+            `${s.waitTimeMin.toFixed(1)} ～ ${s.waitTimeMax.toFixed(1)}` : '-';
         tr.innerHTML = `<td>${s.name}</td><td>${s.vibration}</td><td>${hitStr}</td><td>${waitTimeStr}s</td><td>${cycleStr}</td>`;
         tbody.appendChild(tr);
     });
@@ -726,7 +755,8 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
                    ・基礎Range: ${tStat.baseBiteMin.toFixed(1)}～${tStat.baseBiteMax.toFixed(1)}s<br>
                    ・補正Range: ${tStat.biteTimeMin.toFixed(1)}～${tStat.biteTimeMax.toFixed(1)}s (撒き餌:${chumTxt})<br>
                    ・ルアー拘束: ${lureWaitExpr}<br>
-                   → 補正Rangeと拘束時間の大きい方を採用 (Min/Max算出)
+                   → <strong>[算出タイプ: ${tStat.cType}]</strong> を適用<br>
+                   → 期待値(Avg): <strong>${tStat.waitTimeAvg.toFixed(2)}s</strong> (Min:${tStat.waitTimeMin.toFixed(1)} / Max:${tStat.waitTimeMax.toFixed(1)})
                 </div>
             </div>
             <div style="font-size:0.8rem;">
