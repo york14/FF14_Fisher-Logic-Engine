@@ -380,6 +380,8 @@ function runManualMode(config) {
         const rangeStr = (stats.expectedTimeRange) ? stats.expectedTimeRange.toFixed(1) : '0.0';
         const expTimeStr = (stats.expectedTime === Infinity) ? '-' :
             `${stats.expectedTime.toFixed(1)}<span style="font-size:0.6em; color:#888; margin-left:5px;">±${rangeStr}</span> <span style="font-size:0.5em; color:#888;">sec</span>`;
+        const hitRateStr = (stats.targetHitRate * 100).toFixed(2) + '%';
+
         document.getElementById('main-result-time').innerHTML = expTimeStr;
         document.getElementById('main-result-hit').textContent = `Hit: ${hitRateStr}`;
         renderResultTable(stats.allFishStats, config.target, stats.scenarioStr, stats.scenarioProb, stats.avgCycleTime);
