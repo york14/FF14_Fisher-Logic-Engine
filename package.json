@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-master": "node scripts/generate-master.js"
   },
   "devDependencies": {
+    "csv-parse": "^6.1.0",
     "vite": "^6.0.0"
   }
 }

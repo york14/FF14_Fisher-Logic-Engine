@@ -1,6 +1,6 @@
 # .gitignore
 # 作業用CSVファイルを Git 管理から除外
-csv
+# csv (removed - source files now in src/data/csv)
 
 # OS/System Files
 .DS_Store
