@@ -1,5 +1,0 @@
-Feat: Update b2_guar_stop logic
-
-- Changed `b2_guar_stop` strategy to strictly stop at 2 attempts max, regardless of discovery state.
-- Only guaranteed state triggers an early stop.
-- Updated CSV and regenerated master.

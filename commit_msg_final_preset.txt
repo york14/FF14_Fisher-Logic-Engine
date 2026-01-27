@@ -1,0 +1,6 @@
+Feat: Finalize strategy presets
+
+- Updated strategy presets in CSV based on user requirements.
+- Added `b2_disc_gurastop` (Discovery priority) and `b2_guar_stop` (Strict Guaranteed Stop).
+- Corrected typos and ensured unique IDs.
+- Regenerated logic_master.json.
