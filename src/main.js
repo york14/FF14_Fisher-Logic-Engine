@@ -617,64 +617,105 @@ function updateSimulation() {
 // --- Variable Mode Implementation ---
 async function runManualModeVariable(config) {
     const resultContent = document.getElementById('result-content');
-    resultContent.innerHTML = `<div style="text-align:center; padding:20px;">Computing Variable Stats...</div>`;
 
-    // Range of p: 5% to 95%
-    const pSteps = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95];
-    const results = [];
-
+    // 1. Run simulation once with p=0.5 to extract constants
     let scenarioId = constructScenarioId();
+    const isChum = document.getElementById('manualChum').value === 'yes';
+    const slapFish = document.getElementById('manualSurfaceSlap').value;
 
-    // We need to calculate W_others first to derive w_t
-    // To do this, we call calculateScenarioStats with a dummy weight, then extract 'others' weight?
-    // Or we modify calculateScenarioStats to return it.
-    // Easier: calculateScenarioStats can accept overrideWeight.
-
-    // First pass: Calculate once with dummy to get W_others (sum of weights of non-target fish)
-    // Actually, calculateScenarioStats constructs weights internally.
-    // We need to inject logic there.
-
-    for (const p of pSteps) {
-        // We pass 'p' (assumed base hit rate) to scanner
-        const stats = calculateScenarioStats(config, scenarioId, document.getElementById('manualChum').value === 'yes', document.getElementById('manualSurfaceSlap').value, p);
-        if (stats.error) {
-            resultContent.innerHTML = `<div style="color:red">Error: ${stats.error}</div>`;
-            return;
-        }
-        results.push({ p: p, time: stats.expectedTime, hit: stats.targetHitRate });
+    // We run with p=0.5
+    const stats = calculateScenarioStats(config, scenarioId, isChum, slapFish, 0.5);
+    if (stats.error) {
+        resultContent.innerHTML = `<div style="color:red">Error: ${stats.error}</div>`;
+        return;
     }
 
-    // Render Table
-    let html = `
-        <div style="background:rgba(255,165,0,0.1); border:1px solid orange; padding:10px; border-radius:4px; margin-bottom:15px;">
-            <div style="font-weight:bold; color:orange;">変数モード (Variable Weight)</div>
-            <div style="font-size:0.85rem;">ターゲットの基礎重みを $p$ (0%～99.9%) として、各割合ごとの期待時間を算出</div>
-        </div>
-        <table style="width:100%; font-size:0.9rem;">
-            <thead>
-                <tr>
-                    <th>基礎率(p)</th>
-                    <th>補正後Hit</th>
-                    <th>期待待機時間</th>
-                </tr>
-            </thead>
-            <tbody>`;
+    // 2. Derive Constants A and B for Formula: E[Time] = A + B(1-p)/p
+    // A = TargetCycle - TargetHook (i.e. Cast + WaitAvg)
+    // B = Sum(ObservedWeight * OtherCycle) / (TargetModifier * Sum(BaseWeight_Others))
 
-    results.forEach(r => {
-        const timeStr = r.time === Infinity ? '-' : r.time.toFixed(1) + 's';
-        html += `
-            <tr>
-                <td>${(r.p * 100).toFixed(0)}%</td>
-                <td>${(r.hit * 100).toFixed(1)}%</td>
-                <td>${timeStr}</td>
-            </tr>`;
+    const tStat = stats.allFishStats.find(s => s.isTarget);
+    if (!tStat) { resultContent.innerHTML = `<div style="color:red">Error: Target stats missing</div>`; return; }
+
+    const A = tStat.cycleTime - tStat.hookTime;
+
+    const others = stats.allFishStats.filter(s => !s.isTarget && s.hitRate > 0);
+
+    let sum_w_prime_T_others = 0;
+    others.forEach(o => {
+        const wd = stats.weightDetails.find(d => d.name === o.name);
+        if (wd) sum_w_prime_T_others += (wd.final * o.cycleTime);
     });
 
-    html += `</tbody></table>`;
-    resultContent.innerHTML = html;
+    const K = stats.weightDetails.filter(d => d.name !== config.target).reduce((acc, d) => acc + d.base, 0);
+    const targetWD = stats.weightDetails.find(d => d.name === config.target);
+    const M_target = (targetWD && targetWD.m !== '-') ? targetWD.m : 1.0;
 
-    // Clear Debug
-    document.getElementById('debug-content-wrapper').innerHTML = '<div class="placeholder">変数モードでは詳細は表示されません</div>';
+    let B = 0;
+    let formulaStr = `${A.toFixed(1)}`;
+
+    if (K > 0 && M_target > 0) {
+        B = sum_w_prime_T_others / (M_target * K);
+        formulaStr += ` + ${B.toFixed(2)} * (1-p)/p`;
+    } else {
+        formulaStr += ` (Fixed)`;
+    }
+
+    const W_prime_others = others.reduce((acc, o) => {
+        const wd = stats.weightDetails.find(d => d.name === o.name);
+        return acc + (wd ? wd.final : 0);
+    }, 0);
+
+    const C = (K > 0 && M_target > 0) ? W_prime_others / (M_target * K) : 0;
+    const hitFormula = `p / (p + ${C.toFixed(2)}(1-p))`;
+
+    const chumTxt = isChum ? '使用する' : '未使用';
+    const slapTxt = (slapFish === 'なし') ? 'なし' : slapFish;
+
+    let infoHtml = `<div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>`;
+    let scnPrefix = config.lureType !== 'none' ? `(${config.lureType} ${document.getElementById('lureCount').value}回): ` : '';
+
+    resultContent.innerHTML = `
+        <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
+            <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待 (変数モード)</div>
+            <div id="main-result-time" style="font-size:1.4rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
+            <div id="main-result-hit" style="font-size:0.9rem; color:#666;">Hit: ${hitFormula}</div>
+        </div>
+        <table><thead><tr><th>魚種</th><th>演出</th><th>ヒット率</th><th>待機時間</th><th>サイクル時間</th></tr></thead><tbody id="res-table-body"></tbody></table>
+        <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+            <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">${infoHtml}</div>
+            <div id="scenario-str" style="margin-bottom: 4px;">シナリオ: ${scnPrefix}${stats.scenarioStr}</div>
+            <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;">発生確率: ${(stats.scenarioProb * 100).toFixed(2)}%</div>
+            <div id="avg-cycle-time">平均サイクル: 変数 (Variable)</div>
+        </div>`;
+
+    const tbody = document.getElementById('res-table-body');
+    tbody.innerHTML = '';
+    stats.allFishStats.forEach(s => {
+        const tr = document.createElement('tr');
+        if (s.name === config.target) tr.classList.add('row-target');
+        let hitStr = (s.name === config.target) ? '変数' : '変数';
+        let cycleStr = `${s.cycleTime.toFixed(1)}s`;
+        if (s.hitRate === 0 && s.name !== config.target) return;
+        const waitTimeStr = (s.waitTimeAvg !== undefined) ? `${s.waitTimeMin.toFixed(1)} ～ ${s.waitTimeMax.toFixed(1)}` : '-';
+        tr.innerHTML = `<td>${s.name}</td><td>${s.vibration}</td><td>${hitStr}</td><td>${waitTimeStr}s</td><td>${cycleStr}</td>`;
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById('debug-content-wrapper').innerHTML = `
+        <div class="strat-card">
+            <h4>定数解析 (Constants)</h4>
+            <div style="font-size:0.9rem;">
+                <div><strong>A (Target Cost):</strong> ${A.toFixed(2)}</div>
+                <div><strong>B (Penalty Coeff):</strong> ${B.toFixed(2)}</div>
+                <div><strong>C (Hit Rate Denom):</strong> ${C.toFixed(2)}</div>
+                <hr>
+                <div><strong>Time Formula:</strong> A + B(1-p)/p</div>
+                <div><strong>K (Base Others):</strong> ${K}</div>
+                <div><strong>M (Target Mod):</strong> ${M_target}</div>
+            </div>
+        </div>
+    `;
 }
 
 async function runStrategyModeVariable(config) {
