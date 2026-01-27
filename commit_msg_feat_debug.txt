@@ -1,3 +1,0 @@
-Feat: Add deviation display to debug analysis
-
-- Add ±Range display to the accurate Expected Time calculation in the debug analysis panel.
