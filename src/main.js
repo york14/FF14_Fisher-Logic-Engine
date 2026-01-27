@@ -4,6 +4,7 @@
  * Auto-loads logic_master.json
  */
 
+import './style.css';
 import masterDBData from './data/logic_master.json';
 
 const GDS = {
