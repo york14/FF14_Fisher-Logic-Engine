@@ -504,6 +504,7 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
     });
 
     let allFishStats = [], sumProbTotalCycle = 0, sumProb = 0;
+    let sumProbWaitRange = 0;
     const fishList = masterDB.spots[config.spot].fish_list;
     fishList.forEach(fName => {
         const wData = baseWeights.find(x => x.fish === fName);
@@ -545,6 +546,8 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
         }
 
         sumProbTotalCycle += (hitProb * cycleTime);
+        sumProbWaitRange += (hitProb * waitTimeRange);
+
         allFishStats.push({
             name: fName, vibration: fInfo.vibration, hitRate: hitProb,
             baseBiteMin, baseBiteMax, biteTimeMin, biteTimeMax, lureTime,
@@ -562,10 +565,11 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
     const targetHitRate = targetStat ? targetStat.hitRate : 0;
     const targetHookTime = targetStat ? targetStat.hookTime : 0;
     const expectedTime = (targetHitRate > 0) ? (sumProbTotalCycle - (targetHitRate * targetHookTime)) / targetHitRate : Infinity;
+    const expectedTimeRange = (targetHitRate > 0) ? (sumProbWaitRange / targetHitRate) : 0;
 
     return {
         allFishStats, totalWeight, weightDetails, pHidden, hiddenFishName, targetHitRate,
-        avgCycleTime: sumProbTotalCycle, expectedTime, scenarioStr: scenarioStrParts.join('→'), scenarioProb,
+        avgCycleTime: sumProbTotalCycle, expectedTime, expectedTimeRange, scenarioStr: scenarioStrParts.join('→'), scenarioProb,
         debugData: { p, rates: rawRates, lureTime, waitTimeAvg: targetStat?.waitTimeAvg, waitTimeRange: targetStat?.waitTimeRange, targetCycle: targetStat?.cycleTime, targetHook: targetHookTime, isQuit }
     };
 }
@@ -575,6 +579,10 @@ function renderStrategyComparison(resA, resB, config) {
     const right = document.getElementById('debug-content-wrapper');
     const buildCard = (res, label, color) => {
         const time = (res.error || res.expectedTime === Infinity) ? '∞' : res.expectedTime.toFixed(1);
+        const range = (res.error || !res.expectedTimeRange) ? '0.0' : res.expectedTimeRange.toFixed(1);
+        const timeDisplay = (res.error || res.expectedTime === Infinity) ? '∞' :
+            `${time}<span style="font-size:0.6em; margin-left:4px;">±${range}</span>`;
+
         const hit = (res.error) ? '-' : (res.avgHitRate * 100).toFixed(2) + '%';
         const cycle = (res.error) ? '-' : res.avgCycle.toFixed(1) + ' sec';
         let top3Html = '';
@@ -588,7 +596,7 @@ function renderStrategyComparison(resA, resB, config) {
         const waitTimeStr = (res.error || !res.targetHitRate || res.debugData.waitTimeAvg === undefined) ? '-' :
             `${res.debugData.waitTimeAvg.toFixed(1)} <span style="font-size:0.8rem">±${res.debugData.waitTimeRange?.toFixed(1) || '0.0'}</span>`;
 
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${time}<span style="font-size:1rem;font-weight:normal;color:#888">sec</span></div><div class="val-label">期待待機時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Wait<br><span class=\"stat-val\">${waitTimeStr}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${timeDisplay}<span style="font-size:1rem;font-weight:normal;color:#888">sec</span></div><div class="val-label">期待待機時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Wait<br><span class=\"stat-val\">${waitTimeStr}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
     };
     resultContent.innerHTML = `<div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
 
@@ -613,7 +621,8 @@ function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
         if (s.name === targetName) tr.classList.add('row-target');
         const hitStr = (s.hitRate > 0) ? (s.hitRate * 100).toFixed(1) + '%' : '0.0%';
         const cycleStr = s.cycleTime.toFixed(1) + 'sec';
-        const waitTimeStr = (s.waitTimeAvg !== undefined) ? s.waitTimeAvg.toFixed(1) : '-';
+        const waitTimeStr = (s.waitTimeAvg !== undefined) ?
+            `${s.waitTimeAvg.toFixed(1)}<span style="font-size:0.7em">±${s.waitTimeRange.toFixed(1)}</span>` : '-';
         tr.innerHTML = `<td>${s.name}</td><td>${s.vibration}</td><td>${hitStr}</td><td>${waitTimeStr}s</td><td>${cycleStr}</td>`;
         tbody.appendChild(tr);
     });
