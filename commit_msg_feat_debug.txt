@@ -1,0 +1,4 @@
+Feat: Show cycle breakdown for all hit fish in debug view
+
+- Updated `renderDebugDetails` to list cycle time and wait time details for all fish with hit rates > 0%, instead of showing only the target fish.
+- Removed the exclusive "Target Cycle Time Breakdown" section requested by the user.

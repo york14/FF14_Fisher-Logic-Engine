@@ -1,6 +1,0 @@
-Feat: Improve wait time average calculation logic
-
-- Implemented integral-based expected value calculation for cases where lure constraint intersects with bite time distribution.
-- Updated result table to show "Min ~ Max" instead of "Avg ± Range" for clarity.
-- Added calculation type details to debug view.
-- Spec: docs/reference/spec_update_wait_time_calc.md

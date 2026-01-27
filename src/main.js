@@ -748,24 +748,27 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
             </div>
         `;
     } else {
-        targetTraceHtml = `
-            <div style="font-size:0.8rem; margin-bottom:5px;">
-                <strong>A. 待機時間 (Avg ${tStat.waitTimeAvg.toFixed(1)}s ±${tStat.waitTimeRange.toFixed(1)})</strong>
-                <div style="padding-left:10px;">
-                   ・基礎Range: ${tStat.baseBiteMin.toFixed(1)}～${tStat.baseBiteMax.toFixed(1)}s<br>
-                   ・補正Range: ${tStat.biteTimeMin.toFixed(1)}～${tStat.biteTimeMax.toFixed(1)}s (撒き餌:${chumTxt})<br>
-                   ・ルアー拘束: ${lureWaitExpr}<br>
-                   → <strong>[算出タイプ: ${tStat.cType}]</strong> を適用<br>
-                   → 期待値(Avg): <strong>${tStat.waitTimeAvg.toFixed(2)}s</strong> (Min:${tStat.waitTimeMin.toFixed(1)} / Max:${tStat.waitTimeMax.toFixed(1)})
+        // Updated to show breakdowns for ALL fish with Hit Rate > 0
+        targetTraceHtml = '';
+        const activeStats = stats.allFishStats.filter(s => s.hitRate > 0).sort((a, b) => b.hitRate - a.hitRate);
+
+        activeStats.forEach(s => {
+            const isTgt = s.isTarget;
+            const style = isTgt ? 'color:var(--accent-a); font-weight:bold;' : 'color:#ddd;';
+            const mark = isTgt ? '★' : '';
+
+            targetTraceHtml += `
+            <div style="margin-bottom:10px; border-bottom:1px dashed #444; padding-bottom:5px;">
+                <div style="font-size:0.85rem; ${style}">
+                    ${mark} ${s.name} (Hit: ${(s.hitRate * 100).toFixed(1)}%)
                 </div>
-            </div>
-            <div style="font-size:0.8rem;">
-                <strong>B. サイクル時間 (${tStat.cycleTime.toFixed(1)}s)</strong>
-                <div style="padding-left:10px;">
-                   撒き餌(${pre}s) + キャスティング(${c.D_CAST}s) + 待機(A_Avg) + 釣り上げ(${tStat.hookTime.toFixed(1)}s)
+                <div style="font-size:0.75rem; margin-top:2px;">
+                     <strong>待機:</strong> ${s.waitTimeAvg.toFixed(2)}s (Min ${s.waitTimeMin.toFixed(1)} ～ Max ${s.waitTimeMax.toFixed(1)})
+                     <span style="color:#888; font-size:0.7em;">[${s.cType}]</span><br>
+                     <strong>サイクル (${s.cycleTime.toFixed(1)}s):</strong> <span style="color:#aaa;">撒き餌(${pre}) + キャス(${c.D_CAST}) + 待機(Avg) + 釣り上げ(${s.hookTime})</span>
                 </div>
-            </div>
-        `;
+            </div>`;
+        });
     }
     document.getElementById('debug-calc-target').innerHTML = targetTraceHtml;
 
