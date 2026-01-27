@@ -750,12 +750,31 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
     } else {
         // Updated to show breakdowns for ALL fish with Hit Rate > 0
         targetTraceHtml = '';
-        const activeStats = stats.allFishStats.filter(s => s.hitRate > 0).sort((a, b) => b.hitRate - a.hitRate);
+        // 1. Sort by Master Order (Result Table order) -> Filter by hitRate > 0
+        const activeStats = stats.allFishStats.filter(s => s.hitRate > 0);
 
         activeStats.forEach(s => {
             const isTgt = s.isTarget;
             const style = isTgt ? 'color:var(--accent-a); font-weight:bold;' : 'color:#ddd;';
             const mark = isTgt ? '★' : '';
+
+            // 2. Color code Calculation Type
+            const isIntegral = s.cType.includes('Integral');
+            const cTypeColor = isIntegral ? '#ffaa00' : '#888';
+
+            // 3. Hide zero-value components
+            const parts = [];
+            if (pre > 0) parts.push(`撒き餌(${pre})`);
+            if (c.D_CAST > 0) parts.push(`キャス(${c.D_CAST})`);
+            parts.push(`待機(Avg)`);
+
+            // 4. Hook vs Lift
+            const isCatch = (s.isTarget || config.isCatchAll);
+            const actionName = isCatch ? '釣り上げ' : '竿上げ';
+            parts.push(`${actionName}(${s.hookTime})`);
+
+            const breakdownStr = parts.join(' + ');
+            const chumTxt = isChum ? '(撒き餌有)' : '';
 
             targetTraceHtml += `
             <div style="margin-bottom:10px; border-bottom:1px dashed #444; padding-bottom:5px;">
@@ -763,9 +782,15 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
                     ${mark} ${s.name} (Hit: ${(s.hitRate * 100).toFixed(1)}%)
                 </div>
                 <div style="font-size:0.75rem; margin-top:2px;">
-                     <strong>待機:</strong> ${s.waitTimeAvg.toFixed(2)}s (Min ${s.waitTimeMin.toFixed(1)} ～ Max ${s.waitTimeMax.toFixed(1)})
-                     <span style="color:#888; font-size:0.7em;">[${s.cType}]</span><br>
-                     <strong>サイクル (${s.cycleTime.toFixed(1)}s):</strong> <span style="color:#aaa;">撒き餌(${pre}) + キャス(${c.D_CAST}) + 待機(Avg) + 釣り上げ(${s.hookTime})</span>
+                     <div>・補正待機: ${s.biteTimeMin.toFixed(1)}～${s.biteTimeMax.toFixed(1)}s ${chumTxt}</div>
+                     <div>・ルアー拘束: ${s.lureTime.toFixed(1)}s</div>
+                     <div>
+                        <strong>待機(Avg):</strong> ${s.waitTimeAvg.toFixed(2)}s (Min ${s.waitTimeMin.toFixed(1)} ～ Max ${s.waitTimeMax.toFixed(1)})
+                        <span style="color:${cTypeColor}; font-size:0.8em;">[${s.cType}]</span>
+                     </div>
+                     <div style="color:#aaa;">
+                         <strong>サイクル (${s.cycleTime.toFixed(1)}s):</strong> ${breakdownStr}
+                     </div>
                 </div>
             </div>`;
         });

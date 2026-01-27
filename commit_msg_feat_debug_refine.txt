@@ -1,0 +1,7 @@
+Feat: Refine debug details display
+
+- Display fish stats in Master Order (same as result table).
+- Highlight "Integral" calculation type in orange.
+- Hide zero-value components in cycle breakdown.
+- Distinguish between "Hook" (Target/All) and "Lift" (Non-target) actions.
+- Explicitly show Corrected Wait Time Range and Lure Constraint Time.
