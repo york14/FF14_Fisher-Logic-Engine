@@ -37,6 +37,7 @@ function init() {
             statusEl.style.color = 'var(--accent-green)';
         }
 
+
         // Enable Controls
         document.querySelectorAll('select:disabled, input:disabled').forEach(el => el.disabled = false);
         const isCatchAll = document.getElementById('isCatchAll');
@@ -595,12 +596,192 @@ function updateSimulation() {
         bait: document.getElementById('currentBait').value,
         target: document.getElementById('targetFishName').value,
         isCatchAll: document.getElementById('isCatchAll').checked,
+        isVariableMode: document.getElementById('isVariableMode').checked,
         lureType: document.getElementById('lureType').value,
         quitIfNoDisc: false // Manual mode always false
     };
 
-    if (currentMode === 'manual') runManualMode(config);
-    else runStrategyMode(config);
+    if (currentMode === 'manual') {
+        if (config.isVariableMode) runManualModeVariable(config);
+        else runManualMode(config);
+    }
+    else {
+        // Strategy Variable Mode implementation will be later or we can pass flag
+        // For now, only Normal Strategy Mode is standard. Variable Strategy Mode TBD.
+        // Actually, user requested Strategy Mode comparison too.
+        if (config.isVariableMode) runStrategyModeVariable(config);
+        else runStrategyMode(config);
+    }
+}
+
+// --- Variable Mode Implementation ---
+async function runManualModeVariable(config) {
+    const resultContent = document.getElementById('result-content');
+    resultContent.innerHTML = `<div style="text-align:center; padding:20px;">Computing Variable Stats...</div>`;
+
+    // Range of p: 5% to 95%
+    const pSteps = [0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80, 0.90, 0.95];
+    const results = [];
+
+    let scenarioId = constructScenarioId();
+
+    // We need to calculate W_others first to derive w_t
+    // To do this, we call calculateScenarioStats with a dummy weight, then extract 'others' weight?
+    // Or we modify calculateScenarioStats to return it.
+    // Easier: calculateScenarioStats can accept overrideWeight.
+
+    // First pass: Calculate once with dummy to get W_others (sum of weights of non-target fish)
+    // Actually, calculateScenarioStats constructs weights internally.
+    // We need to inject logic there.
+
+    for (const p of pSteps) {
+        // We pass 'p' (assumed base hit rate) to scanner
+        const stats = calculateScenarioStats(config, scenarioId, document.getElementById('manualChum').value === 'yes', document.getElementById('manualSurfaceSlap').value, p);
+        if (stats.error) {
+            resultContent.innerHTML = `<div style="color:red">Error: ${stats.error}</div>`;
+            return;
+        }
+        results.push({ p: p, time: stats.expectedTime, hit: stats.targetHitRate });
+    }
+
+    // Render Table
+    let html = `
+        <div style="background:rgba(255,165,0,0.1); border:1px solid orange; padding:10px; border-radius:4px; margin-bottom:15px;">
+            <div style="font-weight:bold; color:orange;">変数モード (Variable Weight)</div>
+            <div style="font-size:0.85rem;">ターゲットの基礎重みを $p$ (0%～99.9%) として、各割合ごとの期待時間を算出</div>
+        </div>
+        <table style="width:100%; font-size:0.9rem;">
+            <thead>
+                <tr>
+                    <th>基礎率(p)</th>
+                    <th>補正後Hit</th>
+                    <th>期待待機時間</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+    results.forEach(r => {
+        const timeStr = r.time === Infinity ? '-' : r.time.toFixed(1) + 's';
+        html += `
+            <tr>
+                <td>${(r.p * 100).toFixed(0)}%</td>
+                <td>${(r.hit * 100).toFixed(1)}%</td>
+                <td>${timeStr}</td>
+            </tr>`;
+    });
+
+    html += `</tbody></table>`;
+    resultContent.innerHTML = html;
+
+    // Clear Debug
+    document.getElementById('debug-content-wrapper').innerHTML = '<div class="placeholder">変数モードでは詳細は表示されません</div>';
+}
+
+async function runStrategyModeVariable(config) {
+    const resultContent = document.getElementById('result-content');
+    resultContent.innerHTML = `<div style="text-align:center; padding:20px;">Finding Boundary...</div>`;
+
+    // We search for p where E_A(p) approx E_B(p)
+    // Range 0.001 to 0.999
+
+    const sets = ['A', 'B'];
+    const strategies = {};
+    sets.forEach(set => {
+        const sDat = document.getElementById(`strat${set}Preset`) ?
+            // Normal Mode read
+            {
+                lureType: document.getElementById(`strat${set}Lure`).value,
+                quit: document.getElementById(`strat${set}Quit`).value,
+                preset: document.getElementById(`strat${set}Preset`).value,
+                slap: document.getElementById(`strat${set}Slap`).value,
+                chum: document.getElementById(`strat${set}Chum`).value
+            } :
+            // Share Mode read (config has stratA object)
+            {
+                lureType: config[`strat${set}`].lureType,
+                quit: config[`strat${set}`].quit,
+                preset: config[`strat${set}`].preset,
+                slap: config[`strat${set}`].slap,
+                chum: config[`strat${set}`].chum
+            };
+        strategies[set] = sDat;
+    });
+
+    // Helper calculate function
+    const getExpectations = (p) => {
+        const res = {};
+        sets.forEach(set => {
+            const sCfg = strategies[set];
+            const preset = masterDB.strategy_presets.find(pr => pr.id === sCfg.preset);
+            // We need calculateStrategySet to accept 'variableP'
+            const stats = calculateStrategySet(config, {
+                lureType: sCfg.lureType,
+                quitIfNoDisc: sCfg.quit === 'yes',
+                slapFish: sCfg.slap,
+                isChum: sCfg.chum === 'yes',
+                presetId: sCfg.preset
+            }, preset, p);
+            res[set] = stats.expectedTime;
+        });
+        return res;
+    };
+
+    // Binary Search or Scan
+    // Function f(p) = TimeA(p) - TimeB(p). Find root.
+    // Scan 1% increments first to see behavior
+    let boundary = null;
+    let betterBelow = null;
+    let betterAbove = null;
+
+    // Simple scan for demo
+    const pPoints = [0.01, 0.1, 0.3, 0.5, 0.7, 0.9, 0.99];
+    const log = [];
+
+    // Determine winner at extremes
+    const resLow = getExpectations(0.001);
+    const winnerLow = resLow.A < resLow.B ? 'A' : 'B';
+
+    const resHigh = getExpectations(0.999);
+    const winnerHigh = resHigh.A < resHigh.B ? 'A' : 'B';
+
+    // Render result
+    let msg = "";
+    if (winnerLow === winnerHigh) {
+        msg = `常に <strong style="color:var(--accent-${winnerLow.toLowerCase()})">Set ${winnerLow}</strong> が有利です。`;
+    } else {
+        // Find approximate cross point
+        let lo = 0.001, hi = 0.999;
+        for (let i = 0; i < 10; i++) { // 10 iterations is enough for rough display
+            let mid = (lo + hi) / 2;
+            let r = getExpectations(mid);
+            let diff = r.A - r.B;
+            // Assuming monotonicity which is usually true for fishery logic
+            // If winnerLow is A (A < B), then diff < 0 at Low.
+            // If winnerHigh is B (B < A), then diff > 0 at High.
+            // If diff < 0 at mid, mid is still in Low territory.
+            if (winnerLow === 'A') {
+                if (diff < 0) lo = mid; else hi = mid;
+            } else { // WinnerLow B (A > B), diff > 0 at Low
+                if (diff > 0) lo = mid; else hi = mid;
+            }
+        }
+        let border = (lo + hi) / 2;
+        boundary = (border * 100).toFixed(1);
+        msg = `基礎ヒット率 <strong>${boundary}%</strong> を境界に有利な戦略が入れ替わります。<br>` +
+            `約 ${boundary}% 未満: <strong style="color:var(--accent-${winnerLow.toLowerCase()})">Set ${winnerLow}</strong><br>` +
+            `約 ${boundary}% 以上: <strong style="color:var(--accent-${winnerHigh.toLowerCase()})">Set ${winnerHigh}</strong>`;
+    }
+
+    resultContent.innerHTML = `
+        <div class="strat-card" style="width:100%">
+            <h4>変数モード解析結果</h4>
+            <div style="margin:10px 0; font-size:1.1rem;">${msg}</div>
+            <div style="font-size:0.85rem; color:#666;">
+                p=0.1%時: A=${resLow.A.toFixed(1)}s, B=${resLow.B.toFixed(1)}s <br>
+                p=99.9%時: A=${resHigh.A.toFixed(1)}s, B=${resHigh.B.toFixed(1)}s
+            </div>
+        </div>`;
+    document.getElementById('debug-content-wrapper').innerHTML = '';
 }
 
 function runManualMode(config) {
@@ -691,14 +872,14 @@ function runStrategyMode(config) {
     renderStrategyComparison(results.A, results.B, config);
 }
 
-function calculateStrategySet(config, setConfig, preset) {
+function calculateStrategySet(config, setConfig, preset, overrideP = null) {
     if (!preset) return { error: "プリセット未選択" };
     const scenarios = [];
     let weightedHitRate = 0, weightedCycle = 0, totalProb = 0, error = null;
 
     for (const sid of preset.eligible_scenarios) {
         const scenarioConfig = { ...config, lureType: setConfig.lureType, quitIfNoDisc: setConfig.quitIfNoDisc };
-        const stats = calculateScenarioStats(scenarioConfig, sid, setConfig.isChum, setConfig.slapFish);
+        const stats = calculateScenarioStats(scenarioConfig, sid, setConfig.isChum, setConfig.slapFish, overrideP);
         if (stats.error) { error = stats.error; break; }
         if (stats.scenarioProb === null) { error = "確率計算不能"; break; }
 
@@ -719,11 +900,28 @@ function calculateStrategySet(config, setConfig, preset) {
     return { name: preset.name, description: preset.description, Slap: setConfig.slapFish, scenarios, totalProb, avgHitRate: weightedHitRate, avgCycle: weightedCycle, avgCastCount, expectedTime, error: null };
 }
 
-function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
+function calculateScenarioStats(config, scenarioId, isChum, slapFish, overrideP = null) {
     if (!masterDB.spots[config.spot]) return { error: "釣り場データが見つかりません" };
     const p = parseScenarioId(scenarioId);
     const weightKey = `${config.spot}|${config.weather}|${config.bait}`;
-    const baseWeights = masterDB.weights[weightKey] || [];
+    const originalWeights = masterDB.weights[weightKey] || [];
+
+    // --- Variable Mode Logic ---
+    // If overrideP is provided, we calculate the target's base weight from p
+    let baseWeights = originalWeights.map(w => ({ ...w })); // Shallow copy to modify
+    if (overrideP !== null) {
+        const othersSum = baseWeights.reduce((sum, w) => (w.fish !== config.target) ? sum + w.weight : sum, 0);
+        if (othersSum > 0 && overrideP < 1.0) {
+            const derivedW = (overrideP * othersSum) / (1.0 - overrideP);
+            const targetEntry = baseWeights.find(w => w.fish === config.target);
+            if (targetEntry) targetEntry.weight = derivedW;
+            else baseWeights.push({ fish: config.target, weight: derivedW, bite_time_min: 0, bite_time_max: 0 }); // Should exist but fallback
+        } else if (othersSum === 0) {
+            // Only target exists or p=1.0 -> Weight can be anything > 0. Let's say 100.
+            const targetEntry = baseWeights.find(w => w.fish === config.target);
+            if (targetEntry) targetEntry.weight = 100;
+        }
+    }
 
     let probData = null;
     if (config.lureType !== 'none') {
