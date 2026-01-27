@@ -1,0 +1,4 @@
+Fix: Add missing spot definition for Michita Genkan
+
+- Added "満ちた玄関" (Michita Genkan) to `マスタ - 3_釣り場定義.csv` to resolve the "Data Not Found" error.
+- Includes Weather, Bait, and Fish List definitions consistent with the weights CSV.
