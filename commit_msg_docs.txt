@@ -1,5 +1,0 @@
-Docs: Update Foundation and Specs for v3.3.0
-
-- Updated Tech Spec, Roadmap, and Tasks to reflect latest changes (v3.2.1 Integral Calc, v3.3.0 Share).
-- Updated Game Domain Spec with rigorous definition of Wait Time Calculation.
-- Added troubleshooting logs for Git errors and Logic precision issues.

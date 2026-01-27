@@ -90,11 +90,17 @@ async function initShareMode() {
         probabilityMap = generateProbabilityMap(masterDB.probabilities);
 
         const params = new URLSearchParams(window.location.search);
-        const dataStr = params.get('data');
+        let dataStr = params.get('data');
 
         if (!dataStr) {
             document.getElementById('result-content').innerHTML = '<div style="padding:20px; text-align:center; color:red;">結果データが見つかりません (No Data)</div>';
             return;
+        }
+
+        // Fix: Space characters in URL parameters might have been converted from '+'
+        // If not properly encoded, restore them.
+        if (dataStr.includes(' ')) {
+            dataStr = dataStr.replace(/ /g, '+');
         }
 
         // Decode Base64 -> JSON
@@ -182,7 +188,10 @@ function serializeStateToURL() {
         const jsonStr = JSON.stringify(state);
         const base64 = btoa(unescape(encodeURIComponent(jsonStr))); // UTF-8 safe
 
-        const url = `${window.location.origin}/share.html?data=${base64}`;
+        // Encode Base64 string to be URL-safe (handles +, /, =)
+        const safeBase64 = encodeURIComponent(base64);
+
+        const url = `${window.location.origin}/share.html?data=${safeBase64}`;
         console.log("Generated URL:", url);
         return url;
     } catch (e) {
