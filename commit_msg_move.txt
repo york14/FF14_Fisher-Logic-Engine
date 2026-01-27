@@ -1,5 +1,0 @@
-Move CSV files to src/data/csv and update generation script
-
-- Move old/csv to src/data/csv
-- Update scripts/generate-master.js to reflect new path
-- Ensure CSV files are tracked by git

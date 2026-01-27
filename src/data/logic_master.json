@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-01-27T04:58:12.276Z",
+  "updated_at": "2026-01-27T06:06:34.739Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -122,130 +122,212 @@
       {
         "fish": "エレクトロベタ",
         "weight": 200,
-        "bite_time": 10
+        "bite_time_min": 10,
+        "bite_time_max": 10
       },
       {
         "fish": "サンダーレッド",
         "weight": 200,
-        "bite_time": 12
+        "bite_time_min": 12,
+        "bite_time_max": 12
       },
       {
         "fish": "ヤースラニボウフィン",
         "weight": 160,
-        "bite_time": 15
+        "bite_time_min": 15,
+        "bite_time_max": 15
       },
       {
         "fish": "ヘリテージグルーパー",
         "weight": 0,
-        "bite_time": 0
+        "bite_time_min": 0,
+        "bite_time_max": 0
       },
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time": 25
+        "bite_time_min": 25,
+        "bite_time_max": 25
       }
     ],
     "アレクサンドリア旧市街|霧晴れ12-16|ポッパールアー": [
       {
         "fish": "エレクトロベタ",
         "weight": 150,
-        "bite_time": 10
+        "bite_time_min": 10,
+        "bite_time_max": 10
       },
       {
         "fish": "サンダーレッド",
         "weight": 150,
-        "bite_time": 12
+        "bite_time_min": 12,
+        "bite_time_max": 12
       },
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
-        "bite_time": 15
+        "bite_time_min": 15,
+        "bite_time_max": 15
       },
       {
         "fish": "ヘリテージグルーパー",
         "weight": 2,
-        "bite_time": 30
+        "bite_time_min": 30,
+        "bite_time_max": 30
       },
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time": 25
+        "bite_time_min": 25,
+        "bite_time_max": 25
       }
     ],
     "アレクサンドリア旧市街|それ以外|紅サシ": [
       {
         "fish": "エレクトロベタ",
         "weight": 200,
-        "bite_time": 10
+        "bite_time_min": 10,
+        "bite_time_max": 10
       },
       {
         "fish": "サンダーレッド",
         "weight": 200,
-        "bite_time": 12
+        "bite_time_min": 12,
+        "bite_time_max": 12
       },
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
-        "bite_time": 15
+        "bite_time_min": 15,
+        "bite_time_max": 15
       },
       {
         "fish": "ヘリテージグルーパー",
         "weight": 0,
-        "bite_time": 0
+        "bite_time_min": 0,
+        "bite_time_max": 0
       },
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time": 30
+        "bite_time_min": 30,
+        "bite_time_max": 30
       }
     ],
     "アレクサンドリア旧市街|それ以外|ポッパールアー": [
       {
         "fish": "エレクトロベタ",
         "weight": 150,
-        "bite_time": 10
+        "bite_time_min": 10,
+        "bite_time_max": 10
       },
       {
         "fish": "サンダーレッド",
         "weight": 150,
-        "bite_time": 12
+        "bite_time_min": 12,
+        "bite_time_max": 12
       },
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
-        "bite_time": 15
+        "bite_time_min": 15,
+        "bite_time_max": 15
       },
       {
         "fish": "ヘリテージグルーパー",
         "weight": 0,
-        "bite_time": 0
+        "bite_time_min": 0,
+        "bite_time_max": 0
       },
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time": 25
+        "bite_time_min": 25,
+        "bite_time_max": 25
       }
     ],
     "テスト釣り場1|天気1|テストルアー1": [
       {
         "fish": "テスト小型1",
         "weight": 200,
-        "bite_time": 10
+        "bite_time_min": 10,
+        "bite_time_max": 15
       },
       {
         "fish": "テスト小型2",
         "weight": 200,
-        "bite_time": 15
+        "bite_time_min": 15,
+        "bite_time_max": 20
       },
       {
         "fish": "テスト大型1",
         "weight": 100,
-        "bite_time": 15
+        "bite_time_min": 15,
+        "bite_time_max": 20
       },
       {
         "fish": "テスト大型2",
         "weight": 100,
-        "bite_time": 20
+        "bite_time_min": 20,
+        "bite_time_max": 25
+      }
+    ],
+    "満ちた玄関|それ以外|ゴーストニッパー": [
+      {
+        "fish": "理王魚",
+        "weight": 25,
+        "bite_time_min": 10,
+        "bite_time_max": 18
+      },
+      {
+        "fish": "縦笛魚",
+        "weight": 25,
+        "bite_time_min": 11,
+        "bite_time_max": 18
+      },
+      {
+        "fish": "ブルーパース",
+        "weight": 25,
+        "bite_time_min": 15,
+        "bite_time_max": 27
+      },
+      {
+        "fish": "金の鉾",
+        "weight": 25,
+        "bite_time_min": 18,
+        "bite_time_max": 31
+      }
+    ],
+    "満ちた玄関|曇り雨16-18|ゴーストニッパー": [
+      {
+        "fish": "理王魚",
+        "weight": 25,
+        "bite_time_min": 10,
+        "bite_time_max": 18
+      },
+      {
+        "fish": "縦笛魚",
+        "weight": 25,
+        "bite_time_min": 11,
+        "bite_time_max": 18
+      },
+      {
+        "fish": "ブルーパース",
+        "weight": 25,
+        "bite_time_min": 15,
+        "bite_time_max": 27
+      },
+      {
+        "fish": "金の鉾",
+        "weight": 25,
+        "bite_time_min": 18,
+        "bite_time_max": 31
+      },
+      {
+        "fish": "リッチパース",
+        "weight": 1,
+        "bite_time_min": 35,
+        "bite_time_max": 35
       }
     ]
   },

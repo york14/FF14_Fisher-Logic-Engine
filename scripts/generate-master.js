@@ -107,7 +107,8 @@ async function main() {
             master.weights[key].push({
                 fish: row['魚種'],
                 weight: parseFloat(row['基礎重み']),
-                bite_time: parseFloat(row['基礎待機時間'])
+                bite_time_min: parseFloat(row['基礎待機時間min']),
+                bite_time_max: parseFloat(row['基礎待機時間max'])
             });
         });
 

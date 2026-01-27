@@ -1,0 +1,10 @@
+Update wait time logic and parameters (v3.2.0)
+
+- Update specs with min/max wait time, new chum coefficient, and cast time exclusion
+- Update generate-master.js to parse min/max wait times
+- Update main.js:
+  - D_CAST = 0.0
+  - C_CHUM = 0.5
+  - Implement min/max wait time calculation
+  - Display WaitTime as "Avg (±Range)"
+- Regenerate logic_master.json

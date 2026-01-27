@@ -8,8 +8,8 @@ import './style.css';
 import masterDBData from './data/logic_master.json';
 
 const GDS = {
-    D_CAST: 1.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0,
-    C_CHUM: 0.6, M_N1: 1.5, M_N2: 2.0, M_N3: 6.0
+    D_CAST: 0.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0,
+    C_CHUM: 0.5, M_N1: 1.5, M_N2: 2.0, M_N3: 6.0
 };
 
 let masterDB = null;
@@ -520,9 +520,18 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
             }
         }
         sumProb += hitProb;
-        const baseBite = wData.bite_time;
-        const biteTime = isChum ? (baseBite * GDS.C_CHUM) : baseBite;
-        const waitTime = Math.max(biteTime, lureTime);
+        sumProb += hitProb;
+        const baseBiteMin = wData.bite_time_min;
+        const baseBiteMax = wData.bite_time_max;
+
+        const biteTimeMin = isChum ? (baseBiteMin * GDS.C_CHUM) : baseBiteMin;
+        const biteTimeMax = isChum ? (baseBiteMax * GDS.C_CHUM) : baseBiteMax;
+
+        const waitTimeMin = Math.max(biteTimeMin, lureTime);
+        const waitTimeMax = Math.max(biteTimeMax, lureTime);
+        const waitTimeAvg = (waitTimeMin + waitTimeMax) / 2;
+        const waitTimeRange = (waitTimeMax - waitTimeMin) / 2;
+
         const isTarget = (fName === config.target);
         const actualHookTime = (isTarget || config.isCatchAll) ? fInfo.hook_time : tRest;
 
@@ -532,11 +541,16 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
         if (isQuit) {
             cycleTime = tCast + (p.n * tLureAction) + tRest + pre;
         } else {
-            cycleTime = tCast + waitTime + actualHookTime + pre;
+            cycleTime = tCast + waitTimeAvg + actualHookTime + pre;
         }
 
         sumProbTotalCycle += (hitProb * cycleTime);
-        allFishStats.push({ name: fName, vibration: fInfo.vibration, hitRate: hitProb, baseBite, biteTime, lureTime, waitTime, hookTime: actualHookTime, cycleTime, isTarget });
+        allFishStats.push({
+            name: fName, vibration: fInfo.vibration, hitRate: hitProb,
+            baseBiteMin, baseBiteMax, biteTimeMin, biteTimeMax, lureTime,
+            waitTimeMin, waitTimeMax, waitTimeAvg, waitTimeRange,
+            hookTime: actualHookTime, cycleTime, isTarget
+        });
     });
 
     if (isQuit) {
@@ -552,7 +566,7 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
     return {
         allFishStats, totalWeight, weightDetails, pHidden, hiddenFishName, targetHitRate,
         avgCycleTime: sumProbTotalCycle, expectedTime, scenarioStr: scenarioStrParts.join('→'), scenarioProb,
-        debugData: { p, rates: rawRates, lureTime, biteTime: targetStat?.biteTime, waitTime: targetStat?.waitTime, targetCycle: targetStat?.cycleTime, targetHook: targetHookTime, isQuit }
+        debugData: { p, rates: rawRates, lureTime, waitTimeAvg: targetStat?.waitTimeAvg, waitTimeRange: targetStat?.waitTimeRange, targetCycle: targetStat?.cycleTime, targetHook: targetHookTime, isQuit }
     };
 }
 
@@ -571,7 +585,10 @@ function renderStrategyComparison(resA, resB, config) {
                 <div class="top3-stats"><span>Hit:${(s.hit * 100).toFixed(1)}%</span><span>発生:${(s.prob * 100).toFixed(1)}%</span></div></div>
             `).join('')}</div>`;
         }
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${time}<span style="font-size:1rem;font-weight:normal;color:#888">sec</span></div><div class="val-label">期待待機時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
+        const waitTimeStr = (res.error || !res.targetHitRate) ? '-' :
+            `${res.debugData.waitTimeAvg.toFixed(1)} <span style="font-size:0.8rem">±${res.debugData.waitTimeRange.toFixed(1)}</span>`;
+
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${time}<span style="font-size:1rem;font-weight:normal;color:#888">sec</span></div><div class="val-label">期待待機時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Wait<br><span class=\"stat-val\">${waitTimeStr}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
     };
     resultContent.innerHTML = `<div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
 
