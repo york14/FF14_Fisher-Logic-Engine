@@ -2,6 +2,24 @@
 # 作業用CSVファイルを Git 管理から除外
 csv
 
-# OSが生成する一時ファイル
+# OS/System Files
 .DS_Store
 Thumbs.db
+Desktop.ini
+
+# Project Structure Exclusions
+old/
+blueprint/
+
+# Node/Vite
+node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/

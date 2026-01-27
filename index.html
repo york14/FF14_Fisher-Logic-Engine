@@ -2,232 +2,233 @@
 <html lang="ja">
 
 <head>
-    <meta charset="UTF-8">
-    <title>FLE Simulator v2.5</title>
-    <link rel="stylesheet" href="assets/style.css">
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FLE Simulator v3.0</title>
 </head>
 
 <body>
-    <div class="app-container">
-        <header class="app-header">
-            <h1>FISHER LOGIC ENGINE <small>v2.5</small></h1>
-            <div>
-                <span id="db-status" style="color:var(--accent-red);">OFFLINE</span>
-                <button class="btn-load" onclick="document.getElementById('jsonUpload').click()">Load JSON</button>
-                <input type="file" id="jsonUpload" class="hidden" accept=".json">
+    <div id="app">
+        <div class="app-container">
+            <header class="app-header">
+                <h1>FISHER LOGIC ENGINE <small>v3.0</small></h1>
+                <div>
+                    <span id="db-status" style="color:var(--accent-red);">Connecting...</span>
+                </div>
+            </header>
+
+            <div class="main-layout" id="main-layout">
+                <aside class="panel" id="panel-left">
+                    <h3>📍 設定</h3>
+
+                    <div class="section-label">共通設定</div>
+
+                    <div class="input-group">
+                        <label>拡張 (Expansion)</label>
+                        <select id="currentExpansion" disabled></select>
+                    </div>
+                    <div class="input-group">
+                        <label>エリア (Area)</label>
+                        <select id="currentArea" disabled></select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>釣り場 (Spot)</label>
+                        <select id="currentSpot" disabled>
+                            <option>Loading...</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>天気/時間 (Condition)</label>
+                        <select id="currentWeather" disabled></select>
+                    </div>
+                    <div class="input-group">
+                        <label>餌 (Bait)</label>
+                        <select id="currentBait" disabled></select>
+                    </div>
+                    <div class="input-group">
+                        <label>ターゲット魚 (Target)</label>
+                        <select id="targetFishName" disabled></select>
+                    </div>
+                    <div class="input-group checkbox-group" style="margin-bottom: 15px;">
+                        <input type="checkbox" id="isCatchAll" disabled>
+                        <label for="isCatchAll">外道も全て釣る (Catch All)</label>
+                    </div>
+
+                    <div class="tab-group">
+                        <button class="tab-btn active" data-mode="manual">手動設定</button>
+                        <button class="tab-btn" data-mode="strategy">戦略評価</button>
+                    </div>
+
+                    <div id="mode-manual" class="mode-container active">
+                        <div class="input-group">
+                            <label>トレードリリース (Surface Slap)</label>
+                            <select id="manualSurfaceSlap" disabled>
+                                <option value="なし">なし</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>撒き餌 (Chum)</label>
+                            <select id="manualChum" disabled>
+                                <option value="no">未使用</option>
+                                <option value="yes">使用する</option>
+                            </select>
+                        </div>
+                        <hr class="divider">
+                        <div class="input-group">
+                            <label>使用ルアー (Lure Type)</label>
+                            <select id="lureType" disabled>
+                                <option value="none">使用しない</option>
+                                <option value="アンビシャスルアー">アンビシャスルアー</option>
+                                <option value="モデストルアー">モデストルアー</option>
+                            </select>
+                        </div>
+
+                        <div id="lure-settings-container">
+                            <div class="input-group">
+                                <label>回数 (Count)</label>
+                                <select id="lureCount" disabled>
+                                    <option value="1">1回</option>
+                                    <option value="2" selected>2回</option>
+                                    <option value="3">3回</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>1回目 (Step 1)</label>
+                                <select id="lureStep1" class="step-select" disabled>
+                                    <option value="none">何もなし</option>
+                                    <option value="disc">発見</option>
+                                    <option value="guar">型確定</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>2回目 (Step 2)</label>
+                                <select id="lureStep2" class="step-select" disabled>
+                                    <option value="none">何もなし</option>
+                                    <option value="disc">発見</option>
+                                    <option value="guar">型確定</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>3回目 (Step 3)</label>
+                                <select id="lureStep3" class="step-select" disabled>
+                                    <option value="none">何もなし</option>
+                                    <option value="disc">発見</option>
+                                    <option value="guar">型確定</option>
+                                </select>
+                            </div>
+                            <div id="lure-error-msg"
+                                style="color:var(--accent-red); font-weight:bold; font-size:0.85rem; margin-top:10px; display:none;">
+                                ※発見は１度まで
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="mode-strategy" class="mode-container">
+                        <div class="strategy-set-group" style="border-left: 3px solid var(--accent-a);">
+                            <div class="set-label" style="color:var(--accent-a)">セット A</div>
+                            <div class="input-group">
+                                <label>使用ルアー</label>
+                                <select id="stratALure" disabled>
+                                    <option value="none">使用しない</option>
+                                    <option value="アンビシャスルアー">アンビシャスルアー</option>
+                                    <option value="モデストルアー">モデストルアー</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>未発見即竿上げ</label>
+                                <select id="stratAQuit" disabled>
+                                    <option value="no">しない</option>
+                                    <option value="yes">する</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>戦略プリセット</label>
+                                <select id="stratAPreset" disabled></select>
+                            </div>
+                            <div class="input-group">
+                                <label>トレードリリース</label>
+                                <select id="stratASlap" disabled>
+                                    <option value="なし">なし</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>撒き餌</label>
+                                <select id="stratAChum" disabled>
+                                    <option value="no">未使用</option>
+                                    <option value="yes">使用する</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="strategy-set-group"
+                            style="border-left: 3px solid var(--accent-b); margin-top: 15px;">
+                            <div class="set-label" style="color:var(--accent-b)">セット B</div>
+                            <div class="input-group">
+                                <label>使用ルアー</label>
+                                <select id="stratBLure" disabled>
+                                    <option value="none">使用しない</option>
+                                    <option value="アンビシャスルアー">アンビシャスルアー</option>
+                                    <option value="モデストルアー">モデストルアー</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>未発見即竿上げ</label>
+                                <select id="stratBQuit" disabled>
+                                    <option value="no">しない</option>
+                                    <option value="yes">する</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>戦略プリセット</label>
+                                <select id="stratBPreset" disabled></select>
+                            </div>
+                            <div class="input-group">
+                                <label>トレードリリース</label>
+                                <select id="stratBSlap" disabled>
+                                    <option value="なし">なし</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>撒き餌</label>
+                                <select id="stratBChum" disabled>
+                                    <option value="no">未使用</option>
+                                    <option value="yes">使用する</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="resizer" id="resizer-left"></div>
+
+                <section class="panel" id="panel-center">
+                    <h3>📊 結果</h3>
+                    <div class="content-container">
+                        <div id="result-content">
+                            <div style="padding:20px; color:var(--text-muted); text-align:center;">
+                                初期化中...
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="resizer" id="resizer-right"></div>
+
+                <article class="panel" id="panel-right">
+                    <h3>
+                        🔍 詳細
+                        <span class="toggle-btn" id="toggle-right" title="開閉">▶</span>
+                    </h3>
+                    <div id="debug-content-wrapper">
+                        <div class="placeholder">設定を変更すると詳細が表示されます</div>
+                    </div>
+                </article>
             </div>
-        </header>
-
-        <div class="main-layout" id="main-layout">
-            <aside class="panel" id="panel-left">
-                <h3>📍 設定</h3>
-
-                <div class="section-label">共通設定</div>
-                
-                <div class="input-group">
-                    <label>拡張 (Expansion)</label>
-                    <select id="currentExpansion" disabled></select>
-                </div>
-                <div class="input-group">
-                    <label>エリア (Area)</label>
-                    <select id="currentArea" disabled></select>
-                </div>
-
-                <div class="input-group">
-                    <label>釣り場 (Spot)</label>
-                    <select id="currentSpot" disabled>
-                        <option>Load JSON first</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label>天気/時間 (Condition)</label>
-                    <select id="currentWeather" disabled></select>
-                </div>
-                <div class="input-group">
-                    <label>餌 (Bait)</label>
-                    <select id="currentBait" disabled></select>
-                </div>
-                <div class="input-group">
-                    <label>ターゲット魚 (Target)</label>
-                    <select id="targetFishName" disabled></select>
-                </div>
-                <div class="input-group checkbox-group" style="margin-bottom: 15px;">
-                    <input type="checkbox" id="isCatchAll" disabled>
-                    <label for="isCatchAll">外道も全て釣る (Catch All)</label>
-                </div>
-
-                <div class="tab-group">
-                    <button class="tab-btn active" data-mode="manual">手動設定</button>
-                    <button class="tab-btn" data-mode="strategy">戦略評価</button>
-                </div>
-
-                <div id="mode-manual" class="mode-container active">
-                    <div class="input-group">
-                        <label>トレードリリース (Surface Slap)</label>
-                        <select id="manualSurfaceSlap" disabled>
-                            <option value="なし">なし</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <label>撒き餌 (Chum)</label>
-                        <select id="manualChum" disabled>
-                            <option value="no">未使用</option>
-                            <option value="yes">使用する</option>
-                        </select>
-                    </div>
-                    <hr class="divider">
-                    <div class="input-group">
-                        <label>使用ルアー (Lure Type)</label>
-                        <select id="lureType" disabled>
-                            <option value="none">使用しない</option>
-                            <option value="アンビシャスルアー">アンビシャスルアー</option>
-                            <option value="モデストルアー">モデストルアー</option>
-                        </select>
-                    </div>
-                    
-                    <div id="lure-settings-container">
-                        <div class="input-group">
-                            <label>回数 (Count)</label>
-                            <select id="lureCount" disabled>
-                                <option value="1">1回</option>
-                                <option value="2" selected>2回</option>
-                                <option value="3">3回</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>1回目 (Step 1)</label>
-                            <select id="lureStep1" class="step-select" disabled>
-                                <option value="none">何もなし</option>
-                                <option value="disc">発見</option>
-                                <option value="guar">型確定</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>2回目 (Step 2)</label>
-                            <select id="lureStep2" class="step-select" disabled>
-                                <option value="none">何もなし</option>
-                                <option value="disc">発見</option>
-                                <option value="guar">型確定</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>3回目 (Step 3)</label>
-                            <select id="lureStep3" class="step-select" disabled>
-                                <option value="none">何もなし</option>
-                                <option value="disc">発見</option>
-                                <option value="guar">型確定</option>
-                            </select>
-                        </div>
-                        <div id="lure-error-msg"
-                            style="color:var(--accent-red); font-weight:bold; font-size:0.85rem; margin-top:10px; display:none;">
-                            ※発見は１度まで
-                        </div>
-                    </div>
-                </div>
-
-                <div id="mode-strategy" class="mode-container">
-                    <div class="strategy-set-group" style="border-left: 3px solid var(--accent-a);">
-                        <div class="set-label" style="color:var(--accent-a)">セット A</div>
-                        <div class="input-group">
-                            <label>使用ルアー</label>
-                            <select id="stratALure" disabled>
-                                <option value="none">使用しない</option>
-                                <option value="アンビシャスルアー">アンビシャスルアー</option>
-                                <option value="モデストルアー">モデストルアー</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>未発見即竿上げ</label>
-                            <select id="stratAQuit" disabled>
-                                <option value="no">しない</option>
-                                <option value="yes">する</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>戦略プリセット</label>
-                            <select id="stratAPreset" disabled></select>
-                        </div>
-                        <div class="input-group">
-                            <label>トレードリリース</label>
-                            <select id="stratASlap" disabled>
-                                <option value="なし">なし</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>撒き餌</label>
-                            <select id="stratAChum" disabled>
-                                <option value="no">未使用</option>
-                                <option value="yes">使用する</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="strategy-set-group" style="border-left: 3px solid var(--accent-b); margin-top: 15px;">
-                        <div class="set-label" style="color:var(--accent-b)">セット B</div>
-                        <div class="input-group">
-                            <label>使用ルアー</label>
-                            <select id="stratBLure" disabled>
-                                <option value="none">使用しない</option>
-                                <option value="アンビシャスルアー">アンビシャスルアー</option>
-                                <option value="モデストルアー">モデストルアー</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>未発見即竿上げ</label>
-                            <select id="stratBQuit" disabled>
-                                <option value="no">しない</option>
-                                <option value="yes">する</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>戦略プリセット</label>
-                            <select id="stratBPreset" disabled></select>
-                        </div>
-                        <div class="input-group">
-                            <label>トレードリリース</label>
-                            <select id="stratBSlap" disabled>
-                                <option value="なし">なし</option>
-                            </select>
-                        </div>
-                        <div class="input-group">
-                            <label>撒き餌</label>
-                            <select id="stratBChum" disabled>
-                                <option value="no">未使用</option>
-                                <option value="yes">使用する</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-
-            <div class="resizer" id="resizer-left"></div>
-
-            <section class="panel" id="panel-center">
-                <h3>📊 結果</h3>
-                <div class="content-container">
-                    <div id="result-content">
-                        <div style="padding:20px; color:var(--text-muted); text-align:center;">
-                            JSONデータを読み込んでください
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <div class="resizer" id="resizer-right"></div>
-
-            <article class="panel" id="panel-right">
-                <h3>
-                    🔍 詳細
-                    <span class="toggle-btn" id="toggle-right" title="開閉">▶</span>
-                </h3>
-                <div id="debug-content-wrapper">
-                    <div class="placeholder">設定を変更すると詳細が表示されます</div>
-                </div>
-            </article>
         </div>
     </div>
-
-    <script src="assets/main.js"></script>
+    <script type="module" src="/src/main.js"></script>
 </body>
 
 </html>

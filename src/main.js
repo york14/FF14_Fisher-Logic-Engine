@@ -1,7 +1,10 @@
 /**
- * Fisherman Logic Engine (FLE) v2.5.4
- * Update: Removed 'Rest if no disc' from Manual UI, changed Strategy UI to Select, fixed sort order.
+ * Fisherman Logic Engine (FLE) v3.0
+ * Ported to Vite + Module system.
+ * Auto-loads logic_master.json
  */
+
+import masterDBData from './data/logic_master.json';
 
 const GDS = {
     D_CAST: 1.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0,
@@ -14,13 +17,46 @@ let currentMode = 'manual';
 
 function init() {
     console.log("FLE: init() start");
-    setupEventListeners();
-    initResizers();
+
+    // Initialize Master Data directly
+    try {
+        masterDB = masterDBData;
+        if (!masterDB || !masterDB.probabilities) throw new Error("Invalid JSON: missing probabilities");
+        probabilityMap = generateProbabilityMap(masterDB.probabilities);
+
+        const statusEl = document.getElementById('db-status');
+        if (statusEl) {
+            statusEl.textContent = `ONLINE (v${masterDB.version})`;
+            statusEl.style.color = 'var(--accent-green)';
+        }
+
+        // Enable Controls
+        document.querySelectorAll('select:disabled, input:disabled').forEach(el => el.disabled = false);
+        const isCatchAll = document.getElementById('isCatchAll');
+        if (isCatchAll && isCatchAll.checked) {
+            const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
+            slapOpts.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.value = 'なし'; el.disabled = true; }
+            });
+        }
+
+        setupEventListeners();
+        initResizers();
+        updateLureUI();
+        populateSelectors();
+
+    } catch (err) {
+        console.error(err);
+        const statusEl = document.getElementById('db-status');
+        if (statusEl) {
+            statusEl.textContent = `ERROR: ${err.message}`;
+        }
+    }
 }
 
 function setupEventListeners() {
-    const uploadBtn = document.getElementById('jsonUpload');
-    if (uploadBtn) uploadBtn.addEventListener('change', handleFileUpload);
+    // Removed file upload listener
 
     const rightToggle = document.getElementById('toggle-right');
     const rightPanel = document.getElementById('panel-right');
@@ -46,7 +82,7 @@ function setupEventListeners() {
 
     ['currentWeather', 'currentBait', 'targetFishName', 'manualSurfaceSlap'].forEach(id => {
         const el = document.getElementById(id);
-        if(el) el.addEventListener('change', updateSimulation);
+        if (el) el.addEventListener('change', updateSimulation);
     });
 
     document.getElementById('isCatchAll').addEventListener('change', (e) => {
@@ -54,70 +90,35 @@ function setupEventListeners() {
         const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
         slapOpts.forEach(id => {
             const el = document.getElementById(id);
-            if(el) { el.value = 'なし'; el.disabled = disabled; }
+            if (el) { el.value = 'なし'; el.disabled = disabled; }
         });
         updateSimulation();
     });
 
-    // Removed lureQuitCheck listener
     ['manualChum', 'lureType', 'lureCount', 'lureStep1', 'lureStep2', 'lureStep3'].forEach(id => {
         const el = document.getElementById(id);
-        if(el) el.addEventListener('change', () => {
-            if(id.startsWith('lure')) updateLureUI();
+        if (el) el.addEventListener('change', () => {
+            if (id.startsWith('lure')) updateLureUI();
             updateSimulation();
         });
     });
 
     ['stratALure', 'stratAQuit', 'stratAPreset', 'stratASlap', 'stratAChum',
-     'stratBLure', 'stratBQuit', 'stratBPreset', 'stratBSlap', 'stratBChum'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.addEventListener('change', () => {
-            if (id.includes('Lure')) updateStrategyPresetsFilter();
-            updateSimulation();
+        'stratBLure', 'stratBQuit', 'stratBPreset', 'stratBSlap', 'stratBChum'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => {
+                if (id.includes('Lure')) updateStrategyPresetsFilter();
+                updateSimulation();
+            });
         });
-    });
-}
-
-function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            console.log("FLE: JSON Parsing...");
-            masterDB = JSON.parse(e.target.result);
-            if (!masterDB || !masterDB.probabilities) throw new Error("Invalid JSON: missing probabilities");
-            probabilityMap = generateProbabilityMap(masterDB.probabilities);
-            
-            document.getElementById('db-status').textContent = `ONLINE (v${masterDB.version})`;
-            document.getElementById('db-status').style.color = 'var(--accent-green)';
-            
-            document.querySelectorAll('select:disabled, input:disabled').forEach(el => el.disabled = false);
-            const isCatchAll = document.getElementById('isCatchAll');
-            if(isCatchAll.checked) {
-                const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
-                slapOpts.forEach(id => {
-                    const el = document.getElementById(id);
-                    if(el) { el.value='なし'; el.disabled=true; }
-                });
-            }
-            updateLureUI();
-            populateSelectors();
-        } catch (err) {
-            console.error(err);
-            alert(`Load Error: ${err.message}`);
-        }
-    };
-    reader.readAsText(file);
 }
 
 function populateSelectors() {
     if (!masterDB) return;
     const expansionSet = new Set();
-    Object.values(masterDB.spots).forEach(s => { if(s.expansion) expansionSet.add(s.expansion); });
+    Object.values(masterDB.spots).forEach(s => { if (s.expansion) expansionSet.add(s.expansion); });
     const expSelect = document.getElementById('currentExpansion');
     expSelect.innerHTML = '';
-    // Fixed sort order (removed .sort().reverse())
     Array.from(expansionSet).forEach(exp => expSelect.appendChild(new Option(exp, exp)));
     const presets = masterDB.strategy_presets || [];
     ['stratAPreset', 'stratBPreset'].forEach(id => {
@@ -135,7 +136,6 @@ function updateAreaOptions() {
     Object.values(masterDB.spots).forEach(s => { if (s.expansion === currentExp && s.area) areaSet.add(s.area); });
     const areaSelect = document.getElementById('currentArea');
     areaSelect.innerHTML = '';
-    // Fixed sort order (removed .sort())
     Array.from(areaSet).forEach(area => areaSelect.appendChild(new Option(area, area)));
     updateSpotOptions();
 }
@@ -163,7 +163,7 @@ function updateSpotDependents() {
         updateSelect('currentBait', []);
         updateSelect('targetFishName', []);
         const resultContent = document.getElementById('result-content');
-        if(resultContent) {
+        if (resultContent) {
             resultContent.innerHTML = `
                 <div style="padding:30px; text-align:center; color:var(--accent-red); border:2px dashed var(--accent-red); border-radius:8px; background:rgba(239, 68, 68, 0.1);">
                     <div style="font-size:1.5rem; margin-bottom:10px;">⚠️ データ未定義</div>
@@ -176,14 +176,14 @@ function updateSpotDependents() {
     updateSelect('currentWeather', spotData.weathers);
     updateSelect('currentBait', spotData.baits);
     updateSelect('targetFishName', spotData.fish_list);
-    
+
     const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
     slapOpts.forEach(id => {
         const sel = document.getElementById(id);
         sel.innerHTML = '<option value="なし">なし</option>';
         spotData.fish_list.forEach(f => sel.appendChild(new Option(f, f)));
         if (document.getElementById('isCatchAll').checked) {
-            sel.value='なし'; sel.disabled=true;
+            sel.value = 'なし'; sel.disabled = true;
         }
     });
 
@@ -192,7 +192,7 @@ function updateSpotDependents() {
 
 function updateSelect(id, items) {
     const el = document.getElementById(id);
-    if(!el) return;
+    if (!el) return;
     const val = el.value;
     el.innerHTML = '';
     items.forEach(item => el.appendChild(new Option(item, item)));
@@ -205,9 +205,9 @@ function updateStrategyPresetsFilter() {
         const presetSel = document.getElementById(`strat${set}Preset`);
         const quitSelect = document.getElementById(`strat${set}Quit`);
         const isNoLure = (lureVal === 'none');
-        
+
         quitSelect.disabled = isNoLure;
-        if(isNoLure) quitSelect.value = 'no'; // Changed logic for select
+        if (isNoLure) quitSelect.value = 'no';
 
         Array.from(presetSel.options).forEach(opt => {
             const isNoLureStrat = (opt.value === 'no_lure');
@@ -224,14 +224,12 @@ function updateLureUI() {
     const count = parseInt(document.getElementById('lureCount').value, 10);
     const isLureActive = (type !== 'none');
     document.getElementById('lureCount').disabled = !isLureActive;
-    
-    // Removed lureQuitCheck logic here
 
-    for(let i=1; i<=3; i++) {
+    for (let i = 1; i <= 3; i++) {
         const el = document.getElementById(`lureStep${i}`);
         el.disabled = !isLureActive || count < i;
         el.style.opacity = (!isLureActive || count < i) ? '0.3' : '1.0';
-        if(el.disabled) el.value = 'none';
+        if (el.disabled) el.value = 'none';
     }
 }
 
@@ -243,12 +241,13 @@ function constructScenarioId() {
     let guaranteeSteps = [];
     for (let i = 1; i <= count; i++) {
         const val = document.getElementById(`lureStep${i}`).value;
-        if (val === 'disc') { if (discoveryStep === 0) discoveryStep = i; } 
+        if (val === 'disc') { if (discoveryStep === 0) discoveryStep = i; }
         else if (val === 'guar') { guaranteeSteps.push(i); }
     }
     const gStr = guaranteeSteps.length > 0 ? guaranteeSteps.join('') : '0';
     return `n${count}_d${discoveryStep}_g${gStr}`;
 }
+
 function generateProbabilityMap(probabilities) {
     const map = new Map();
     if (!Array.isArray(probabilities)) return map;
@@ -258,13 +257,15 @@ function generateProbabilityMap(probabilities) {
     });
     return map;
 }
+
 function parseScenarioId(id) {
     if (id === 'none_0') return { fullId: id, n: 0, d: 0, g: [], isNone: true };
     const match = id.match(/^n(\d+)_d(\d+)_g(\d+)$/);
-    if (!match) return { fullId: id, n:0, d:0, g:[], isNone: true };
+    if (!match) return { fullId: id, n: 0, d: 0, g: [], isNone: true };
     const g = (match[3] === '0') ? [] : match[3].split('').map(Number);
     return { fullId: id, n: parseInt(match[1]), d: parseInt(match[2]), g, isNone: false };
 }
+
 function getScenarioLabel(id) {
     const p = parseScenarioId(id);
     if (p.isNone) return "素振り";
@@ -272,6 +273,39 @@ function getScenarioLabel(id) {
     text += (p.d > 0) ? `: 発見${p.d}` : "";
     text += (p.g.length > 0) ? ` (型確${p.g.join(',')})` : "";
     return text;
+}
+
+// --- Init Resizers ---
+function initResizers() {
+    const resizerLeft = document.getElementById('resizer-left');
+    const panelLeft = document.getElementById('panel-left');
+    const resizerRight = document.getElementById('resizer-right');
+    const panelRight = document.getElementById('panel-right');
+
+    const initDrag = (resizer, panel, isRight) => {
+        let startX, startWidth;
+        const doDrag = (e) => {
+            const dx = e.clientX - startX;
+            const newW = startWidth + (isRight ? -dx : dx);
+            panel.style.width = `${newW}px`;
+        };
+        const stopDrag = () => {
+            document.removeEventListener('mousemove', doDrag);
+            document.removeEventListener('mouseup', stopDrag);
+            resizer.classList.remove('active');
+        };
+        resizer.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            startWidth = parseInt(getComputedStyle(panel).width, 10);
+            resizer.classList.add('active');
+            document.addEventListener('mousemove', doDrag);
+            document.addEventListener('mouseup', stopDrag);
+            e.preventDefault();
+        });
+    };
+
+    initDrag(resizerLeft, panelLeft, false);
+    initDrag(resizerRight, panelRight, true);
 }
 
 // --- Main Calc ---
@@ -309,7 +343,7 @@ function runManualMode(config) {
             <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;"></div>
             <div id="avg-cycle-time">平均サイクル時間: -</div>
         </div>`;
-    
+
     document.getElementById('debug-content-wrapper').innerHTML = `
         <div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>
         <div class="debug-section"><label>【シナリオ解析】</label><div id="debug-scenario" class="formula-box"></div></div>
@@ -357,7 +391,7 @@ function runStrategyMode(config) {
     sets.forEach(set => {
         const setConfig = {
             lureType: document.getElementById(`strat${set}Lure`).value,
-            quitIfNoDisc: document.getElementById(`strat${set}Quit`).value === 'yes', // Changed to value comparison
+            quitIfNoDisc: document.getElementById(`strat${set}Quit`).value === 'yes',
             slapFish: document.getElementById(`strat${set}Slap`).value,
             isChum: document.getElementById(`strat${set}Chum`).value === 'yes',
             presetId: document.getElementById(`strat${set}Preset`).value
@@ -401,7 +435,7 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
     const p = parseScenarioId(scenarioId);
     const weightKey = `${config.spot}|${config.weather}|${config.bait}`;
     const baseWeights = masterDB.weights[weightKey] || [];
-    
+
     let probData = null;
     if (config.lureType !== 'none') {
         const searchKey = `${config.spot}|${config.weather}|${config.bait}|${config.lureType}|${slapFish}`;
@@ -411,8 +445,7 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
     if (!probData && config.lureType !== 'none') return { error: "条件に合う確率データがありません", debugData: { rates: rawRates } };
 
     const tCast = GDS.D_CAST, tLureAction = GDS.D_LURE, tLureBlock = GDS.D_BLK, tChum = GDS.D_CHUM, tRest = GDS.D_REST;
-    
-    // 【仕様】未発見即竿上げロジック (Rest if no disc)
+
     const isQuit = (config.quitIfNoDisc && !p.isNone && p.d === 0);
     const lureTime = p.isNone ? 0 : (tCast + (p.n * tLureAction) + tLureBlock);
 
@@ -450,16 +483,16 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
     }
 
     let totalWeight = 0, weightDetails = [];
-    let modN = (p.n===1) ? GDS.M_N1 : (p.n===2 ? GDS.M_N2 : (p.n===3 ? GDS.M_N3 : 1.0));
+    let modN = (p.n === 1) ? GDS.M_N1 : (p.n === 2 ? GDS.M_N2 : (p.n === 3 ? GDS.M_N3 : 1.0));
     const currentLureJaws = (config.lureType === 'アンビシャスルアー') ? 'large_jaws' : (config.lureType === 'モデストルアー' ? 'small_jaws' : null);
-    const lastGuar = (p.g.length > 0 && p.g[p.g.length-1] === p.n);
+    const lastGuar = (p.g.length > 0 && p.g[p.g.length - 1] === p.n);
 
     baseWeights.forEach(w => {
         const info = masterDB.fish[w.fish];
         if (!info) return;
         let m = 1.0;
         if (w.fish === hiddenFishName) { weightDetails.push({ name: w.fish, base: w.weight, m: '-', final: '-', isHidden: true }); return; }
-        if (w.fish === slapFish) { m = 0; } 
+        if (w.fish === slapFish) { m = 0; }
         else if (config.lureType !== 'none') {
             const match = (info.type === currentLureJaws);
             if (match) m = modN; else m = lastGuar ? 0 : 1.0;
@@ -475,7 +508,7 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
         const wData = baseWeights.find(x => x.fish === fName);
         const fInfo = masterDB.fish[fName];
         if (!wData || !fInfo) return;
-        
+
         let hitProb = 0;
         if (isQuit) hitProb = 0;
         else {
@@ -491,16 +524,13 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
         const waitTime = Math.max(biteTime, lureTime);
         const isTarget = (fName === config.target);
         const actualHookTime = (isTarget || config.isCatchAll) ? fInfo.hook_time : tRest;
-        
-        // 【仕様】サイクル時間計算
+
         let cycleTime = 0;
         const pre = (isChum ? tChum : 0);
-        
+
         if (isQuit) {
-            // キャスト + (ルアー動作 * n) + 竿上げ (BlockTimeはカット)
-            cycleTime = tCast + (p.n * tLureAction) + tRest + pre; 
+            cycleTime = tCast + (p.n * tLureAction) + tRest + pre;
         } else {
-            // 通常: キャスト + 待機(ルアー拘束込み) + 釣り上げ(or竿上げ)
             cycleTime = tCast + waitTime + actualHookTime + pre;
         }
 
@@ -509,7 +539,6 @@ function calculateScenarioStats(config, scenarioId, isChum, slapFish) {
     });
 
     if (isQuit) {
-        // ヒット率0でも時間はかかるので補正 (100%の確率で即竿上げサイクルが発生)
         const pre = (isChum ? tChum : 0);
         sumProbTotalCycle = tCast + (p.n * tLureAction) + tRest + pre;
     }
@@ -537,20 +566,19 @@ function renderStrategyComparison(resA, resB, config) {
         if (!res.error && res.scenarios) {
             const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob).slice(0, 3);
             top3Html = `<div class="top3-container"><div class="top3-title">高確率シナリオ Top3</div>${sorted.map(s => `
-                <div class="top3-item"><div style="color:${color};font-weight:bold;">${s.label} ${(s.isQuit?'<span style="color:red">!</span>':'')}</div>
-                <div class="top3-stats"><span>Hit:${(s.hit*100).toFixed(1)}%</span><span>発生:${(s.prob*100).toFixed(1)}%</span></div></div>
+                <div class="top3-item"><div style="color:${color};font-weight:bold;">${s.label} ${(s.isQuit ? '<span style="color:red">!</span>' : '')}</div>
+                <div class="top3-stats"><span>Hit:${(s.hit * 100).toFixed(1)}%</span><span>発生:${(s.prob * 100).toFixed(1)}%</span></div></div>
             `).join('')}</div>`;
         }
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description||''}</div><div class="main-val">${time}<span style="font-size:1rem;font-weight:normal;color:#888">sec</span></div><div class="val-label">期待待機時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div></div>${res.error?`<div style="color:red">⚠️ ${res.error}</div>`:top3Html}</div>`;
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${time}<span style="font-size:1rem;font-weight:normal;color:#888">sec</span></div><div class="val-label">期待待機時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
     };
-    resultContent.innerHTML = `<div class="comparison-container" style="align-items:stretch;">${buildCard(resA,"Set A","var(--accent-a)")}${buildCard(resB,"Set B","var(--accent-b)")}</div>`;
-    
-    // Debug info
+    resultContent.innerHTML = `<div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
+
     let debugHtml = `<div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>`;
     debugHtml += renderStrategyDebugTable(resA, "Set A", "var(--accent-a)");
     debugHtml += renderStrategyDebugTable(resB, "Set B", "var(--accent-b)");
     right.innerHTML = debugHtml;
-    
+
     const tCast = GDS.D_CAST, tLure = GDS.D_LURE, tRest = GDS.D_REST, tBlk = GDS.D_BLK;
     document.getElementById('debug-constants').innerHTML = `Cast:${tCast}s / Lure:${tLure}s / Block:${tBlk}s / Rest:${tRest}s`;
 }
@@ -559,9 +587,9 @@ function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
     const tbody = document.getElementById('res-table-body');
     tbody.innerHTML = '';
     document.getElementById('scenario-str').textContent = `シナリオ: ${scnStr}`;
-    document.getElementById('scenario-prob').textContent = `発生確率: ${(scnProb!==null?(scnProb*100).toFixed(2)+'%':'-')}`;
-    document.getElementById('avg-cycle-time').textContent = `平均サイクル: ${(avgCycle>0?avgCycle.toFixed(1)+'sec':'-')}`;
-    
+    document.getElementById('scenario-prob').textContent = `発生確率: ${(scnProb !== null ? (scnProb * 100).toFixed(2) + '%' : '-')}`;
+    document.getElementById('avg-cycle-time').textContent = `平均サイクル: ${(avgCycle > 0 ? avgCycle.toFixed(1) + 'sec' : '-')}`;
+
     stats.forEach(s => {
         const tr = document.createElement('tr');
         if (s.name === targetName) tr.classList.add('row-target');
@@ -572,7 +600,6 @@ function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
     });
 }
 
-// 【復元】詳細デバッグ表示ロジック
 function renderDebugDetails(stats, config, isChum, scenarioId) {
     const c = GDS;
     document.getElementById('debug-constants').innerHTML = `Cast:${c.D_CAST}s / Lure:${c.D_LURE}s / Block:${c.D_BLK}s / Rest:${c.D_REST}s / Chum:${c.D_CHUM}s`;
@@ -601,18 +628,16 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
             <div>未発見型確定率: [${fmt(stats.debugData.rates.guar)}]</div>
         </div>`;
     }
-    
-    // 【修正】即竿上げ発動時の表示
-    if(stats.debugData.isQuit) {
+
+    if (stats.debugData.isQuit) {
         analysisHtml += `<div style="color:var(--accent-red); font-weight:bold; margin-top:5px;">※未発見即竿上げ 発動</div>`;
     }
-    
+
     if (!stats.error) analysisHtml += `<div>隠し魚ヒット率 (P_Hidden): ${(stats.pHidden * 100).toFixed(2)}%</div>`;
     document.getElementById('debug-scenario').innerHTML = analysisHtml;
 
     if (stats.error) return;
 
-    // 重みテーブルの復元
     let wHtml = `<table style="width:100%; border-collapse:collapse; font-size:0.7rem;">
         <tr style="border-bottom:1px solid #666; text-align:right;">
             <th style="text-align:left">魚種</th><th>基礎W</th><th>M</th><th>最終W</th><th>確率</th>
@@ -625,18 +650,17 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
                 <td>${d.base}</td>
                 <td>x${d.m}</td>
                 <td>${d.final.toFixed(1)}</td>
-                <td>${(prob*100).toFixed(2)}%</td>
+                <td>${(prob * 100).toFixed(2)}%</td>
             </tr>`;
         }
     });
     wHtml += `<tr style="border-top:1px solid #666; font-weight:bold; text-align:right;"><td colspan="3">合計(ΣW)</td><td>${stats.totalWeight.toFixed(1)}</td><td>-</td></tr>`;
     stats.weightDetails.forEach(d => {
-        if (d.isHidden) wHtml += `<tr style="color:#888; text-align:right;"><td style="text-align:left">${d.name}(隠)</td><td>-</td><td>-</td><td>-</td><td>${(stats.pHidden*100).toFixed(2)}%</td></tr>`;
+        if (d.isHidden) wHtml += `<tr style="color:#888; text-align:right;"><td style="text-align:left">${d.name}(隠)</td><td>-</td><td>-</td><td>-</td><td>${(stats.pHidden * 100).toFixed(2)}%</td></tr>`;
     });
     wHtml += `</table>`;
     document.getElementById('debug-weights').innerHTML = wHtml;
 
-    // 時間計算詳細の復元
     const tStat = stats.allFishStats.find(s => s.isTarget);
     if (!tStat) {
         document.getElementById('debug-calc-target').textContent = "ターゲット情報なし";
@@ -648,11 +672,9 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
     const chumTxt = isChum ? '使用(x0.6)' : '未使用';
     const lureWaitExpr = (p.isNone) ? '0s (なし)' : `${tStat.lureTime.toFixed(1)}s (1.0 + ${p.n}×2.5 + 2.5)`;
     const pre = isChum ? c.D_CHUM : 0;
-    
-    // 【修正】即竿上げ時の時間トレース表示
+
     let targetTraceHtml = '';
     if (stats.debugData.isQuit) {
-        // Cast + Lure*n + Rest
         const lureActionTotal = (p.n * c.D_LURE).toFixed(1);
         targetTraceHtml = `
             <div style="font-size:0.8rem; color:var(--accent-red); font-weight:bold;">
@@ -685,18 +707,17 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
     }
     document.getElementById('debug-calc-target').innerHTML = targetTraceHtml;
 
-    // 期待値計算の復元
     const avgCycle = stats.avgCycleTime;
     const hitRate = stats.targetHitRate;
     const expectedTime = stats.expectedTime;
     const targetHook = stats.debugData.targetHook;
-    const formulaStr = `(${avgCycle.toFixed(2)} - (${(hitRate*100).toFixed(2)}% × ${targetHook.toFixed(1)})) / ${(hitRate*100).toFixed(2)}%`;
+    const formulaStr = `(${avgCycle.toFixed(2)} - (${(hitRate * 100).toFixed(2)}% × ${targetHook.toFixed(1)})) / ${(hitRate * 100).toFixed(2)}%`;
     const expectExpr = (hitRate > 0) ? `${formulaStr} = <strong>${expectedTime.toFixed(1)}s</strong>` : `ターゲット確率が 0% のため計算不可`;
 
     const expectHtml = `
         <div style="font-size:0.8rem;">
             <div><strong>平均サイクル (E[Cycle]):</strong> ${avgCycle.toFixed(2)}s</div>
-            <div><strong>ターゲット確率 (P):</strong> ${(hitRate*100).toFixed(2)}%</div>
+            <div><strong>ターゲット確率 (P):</strong> ${(hitRate * 100).toFixed(2)}%</div>
             <div><strong>ターゲット釣り上げ動作時間:</strong> ${targetHook.toFixed(1)}s</div>
             <hr style="margin:5px 0; border:0; border-top:1px dashed #666;">
             <div><strong>式:</strong> (E[Cycle] - (P × 動作時間)) / P</div>
@@ -714,22 +735,22 @@ function renderStrategyDebugTable(res, label, color) {
 
     let html = `<div class="debug-section" style="border-left:3px solid ${color}; padding-left:10px;">
         <label style="color:${color}">${label} (${res.name})</label>
-        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Slap: ${res.Slap} / TotalProb: ${(res.totalProb*100).toFixed(1)}%</div>
+        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Slap: ${res.Slap} / TotalProb: ${(res.totalProb * 100).toFixed(1)}%</div>
         <div style="overflow-x:auto; max-height:200px; overflow-y:auto; border:1px solid #444;">
         <table style="width:100%; font-size:0.7rem; border-collapse:collapse;">
             <thead style="position:sticky; top:0; background:#333;">
                 <tr><th>シナリオ</th><th>確率</th><th>Hit</th><th>Cycle</th><th>Exp</th></tr>
             </thead>
             <tbody>`;
-    
+
     const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob);
-    
+
     sorted.forEach(s => {
         const quitMark = s.isQuit ? '<span style="color:red; font-weight:bold;">!</span> ' : '';
         html += `<tr>
             <td style="white-space:nowrap;">${quitMark}${s.label}</td>
-            <td>${(s.prob*100).toFixed(1)}%</td>
-            <td>${(s.hit*100).toFixed(1)}%</td>
+            <td>${(s.prob * 100).toFixed(1)}%</td>
+            <td>${(s.hit * 100).toFixed(1)}%</td>
             <td>${s.cycle.toFixed(1)}s</td>
             <td>${(s.expected === Infinity) ? '-' : s.expected.toFixed(0)}s</td>
         </tr>`;
@@ -739,8 +760,8 @@ function renderStrategyDebugTable(res, label, color) {
             <tfoot style="position:sticky; bottom:0; background:#333; font-weight:bold;">
                 <tr>
                     <td>平均/合計</td>
-                    <td>${(res.totalProb*100).toFixed(0)}%</td>
-                    <td>${(res.avgHitRate*100).toFixed(2)}%</td>
+                    <td>${(res.totalProb * 100).toFixed(0)}%</td>
+                    <td>${(res.avgHitRate * 100).toFixed(2)}%</td>
                     <td>${res.avgCycle.toFixed(1)}s</td>
                     <td>${res.expectedTime.toFixed(1)}s</td>
                 </tr>
