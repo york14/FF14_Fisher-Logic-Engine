@@ -1,0 +1,3 @@
+Fix: undefined waitTimeAvg handling
+
+- Add safety check for undefined waitTimeAvg/waitTimeRange in renderStrategyComparison to prevent runtime errors when target fish is not found.

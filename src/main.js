@@ -585,8 +585,8 @@ function renderStrategyComparison(resA, resB, config) {
                 <div class="top3-stats"><span>Hit:${(s.hit * 100).toFixed(1)}%</span><span>発生:${(s.prob * 100).toFixed(1)}%</span></div></div>
             `).join('')}</div>`;
         }
-        const waitTimeStr = (res.error || !res.targetHitRate) ? '-' :
-            `${res.debugData.waitTimeAvg.toFixed(1)} <span style="font-size:0.8rem">±${res.debugData.waitTimeRange.toFixed(1)}</span>`;
+        const waitTimeStr = (res.error || !res.targetHitRate || res.debugData.waitTimeAvg === undefined) ? '-' :
+            `${res.debugData.waitTimeAvg.toFixed(1)} <span style="font-size:0.8rem">±${res.debugData.waitTimeRange?.toFixed(1) || '0.0'}</span>`;
 
         return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${time}<span style="font-size:1rem;font-weight:normal;color:#888">sec</span></div><div class="val-label">期待待機時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Wait<br><span class=\"stat-val\">${waitTimeStr}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
     };
