@@ -1,9 +1,0 @@
-Feat: Refine Manual and Strategy Mode UI
-
-- Manual Mode:
-  - Display "Trade Release" and "Chum" info above the scenario string.
-  - Include Lure Name and Count in the scenario description string.
-- Strategy Mode:
-  - Removed "Wait" item from Strategy Assessment cards to avoid confusion.
-  - Added ±Range display to the footer of the Strategy Debug Table (Expected Time).
-- UI: Adjusted table styling in Strategy Debug.

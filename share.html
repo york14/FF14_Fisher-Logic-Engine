@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FLE Result View</title>
+</head>
+
+<body class="share-page">
+    <div id="app">
+        <header class="share-header">
+            <h1>FISHER LOGIC ENGINE <small>Result View</small></h1>
+        </header>
+
+        <div class="share-container">
+            <!-- Parameter Decode Status/Message -->
+            <div id="share-status" style="display:none; padding:20px; text-align:center; color:#888;"></div>
+
+            <!-- Result Section -->
+            <section class="share-panel">
+                <h3>📊 結果</h3>
+                <div id="result-content">
+                    <div style="padding:20px; color:var(--text-muted); text-align:center;">
+                        Loading result...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Debug Detail Section -->
+            <article class="share-panel" style="margin-top:20px;">
+                <h3>🔍 詳細</h3>
+                <div id="share-debug-wrapper">
+                    <!-- Content will be injected here if simplified, or we reuse main logic -->
+                    <div id="debug-content-wrapper"></div>
+                </div>
+            </article>
+        </div>
+    </div>
+
+    <!-- Using the same main.js, but it will detect share.html context -->
+    <script type="module" src="/src/main.js"></script>
+
+    <style>
+        /* Specific styles for share page */
+        body.share-page {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .share-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-grid);
+        }
+
+        .share-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .share-container {
+            max-width: 900px;
+            /* Limit width for readability */
+            margin: 0 auto;
+        }
+
+        .share-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-panel);
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .share-panel h3 {
+            margin-top: 0;
+            border-bottom: 1px solid var(--border-grid);
+            padding-bottom: 8px;
+            color: var(--text-head);
+        }
+
+        /* Reuse existing app styles from main.js import, but override layout for share page */
+    </style>
+</body>
+
+</html>

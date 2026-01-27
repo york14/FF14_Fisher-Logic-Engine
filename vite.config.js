@@ -7,7 +7,13 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    sourcemap: true
+    sourcemap: true,
+    rollupOptions: {
+      input: {
+        index: 'index.html',
+        share: 'share.html'
+      }
+    }
   },
   server: {
     port: 3000,

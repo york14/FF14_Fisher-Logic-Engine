@@ -19,6 +19,12 @@ let currentMode = 'manual';
 function init() {
     console.log("FLE: init() start");
 
+    // Detect Share Mode
+    if (document.body.classList.contains('share-page')) {
+        initShareMode();
+        return;
+    }
+
     // Initialize Master Data directly
     try {
         masterDB = masterDBData;
@@ -47,6 +53,25 @@ function init() {
         updateLureUI();
         populateSelectors();
 
+        // Share Button Listener
+        const shareBtn = document.getElementById('btn-share-result');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', async () => {
+                const url = serializeStateToURL();
+                if (url) {
+                    try {
+                        await navigator.clipboard.writeText(url);
+                        const originalText = shareBtn.textContent;
+                        shareBtn.textContent = "✅ Copied!";
+                        setTimeout(() => shareBtn.textContent = originalText, 2000);
+                    } catch (err) {
+                        console.error('Failed to copy: ', err);
+                        alert('URLの生成に成功しましたが、コピーに失敗しました。\nコンソールを確認してください。');
+                    }
+                }
+            });
+        }
+
     } catch (err) {
         console.error(err);
         const statusEl = document.getElementById('db-status');
@@ -54,6 +79,245 @@ function init() {
             statusEl.textContent = `ERROR: ${err.message}`;
         }
     }
+}
+
+// --- Share Mode Logic ---
+async function initShareMode() {
+    console.log("FLE: Share Mode Init");
+    try {
+        // Load Master Data (Required for rendering)
+        masterDB = masterDBData;
+        probabilityMap = generateProbabilityMap(masterDB.probabilities);
+
+        const params = new URLSearchParams(window.location.search);
+        const dataStr = params.get('data');
+
+        if (!dataStr) {
+            document.getElementById('result-content').innerHTML = '<div style="padding:20px; text-align:center; color:red;">結果データが見つかりません (No Data)</div>';
+            return;
+        }
+
+        // Decode Base64 -> JSON
+        let config;
+        try {
+            const jsonStr = decodeURIComponent(escape(atob(dataStr))); // Handles UTF-8 strings
+            config = JSON.parse(jsonStr);
+        } catch (e) {
+            console.error(e);
+            throw new Error("データの読み込みに失敗しました (Invalid Data)");
+        }
+
+        console.log("Restored Config:", config);
+
+        // Setup Dummy DOM elements for render functions if needed, or directly call render
+        // Since render functions rely on DOM elements (like 'manualChum' value etc) in some places or strict arguments,
+        // we might need to mock or ensure arguments are passed fully.
+        // Actually, main render functions (runManualMode, runStrategyMode) read from DOM.
+        // -> Refactoring 'runManualMode' to accept a full 'state' object would be cleaner, but for now we can mock the DOM or shim it.
+        // BETTER APPROACH: deserialize into the in-memory config and call render functions with that config, 
+        // BUT 'runManualMode' reads document.getElementById... So we need to populate hidden/dummy elements or Refactor.
+        // Given constraint, I will create simple shim functions that render based on the 'config' object directly, 
+        // effectively duplicating the 'reading' part but reusing the 'rendering' part.
+
+        // Actually, 'config' object passed to runManualMode is mostly complete. 
+        // checking runManualMode... it reads 'manualChum', 'slapFish', 'lure*', etc again.
+        // So we MUST populate a Mock DOM or real invisible DOM. 
+        // Since share.html doesn't have these inputs, let's create a "State Context" and temporary override.
+
+        // Let's implement a specific renderer for Share Mode that reuses 'renderResultTable' and 'renderDebugDetails'.
+
+        currentMode = config.mode;
+
+        if (config.mode === 'manual') {
+            await renderShareManual(config);
+        } else {
+            // Strategy Mode
+            await renderShareStrategy(config);
+        }
+
+    } catch (err) {
+        document.getElementById('result-content').innerHTML = `<div style="padding:20px; text-align:center; color:red;">エラー: ${err.message}</div>`;
+    }
+}
+
+function serializeStateToURL() {
+    // 1. Collect Current State
+    const state = {
+        version: 3,
+        mode: currentMode,
+        spot: document.getElementById('currentSpot').value,
+        weather: document.getElementById('currentWeather').value,
+        bait: document.getElementById('currentBait').value,
+        target: document.getElementById('targetFishName').value,
+        isCatchAll: document.getElementById('isCatchAll').checked,
+
+        // Manual Mode Specifics
+        slapFish: document.getElementById('manualSurfaceSlap').value,
+        isChum: document.getElementById('manualChum').value === 'yes',
+        lureType: document.getElementById('lureType').value,
+        lureCount: document.getElementById('lureCount').value,
+        lureStep1: document.getElementById('lureStep1').value,
+        lureStep2: document.getElementById('lureStep2').value,
+        lureStep3: document.getElementById('lureStep3').value,
+
+        // Strategy Mode Specifics
+        stratA: {
+            lureType: document.getElementById('stratALure').value,
+            quit: document.getElementById('stratAQuit').value,
+            preset: document.getElementById('stratAPreset').value,
+            slap: document.getElementById('stratASlap').value,
+            chum: document.getElementById('stratAChum').value
+        },
+        stratB: {
+            lureType: document.getElementById('stratBLure').value,
+            quit: document.getElementById('stratBQuit').value,
+            preset: document.getElementById('stratBPreset').value,
+            slap: document.getElementById('stratBSlap').value,
+            chum: document.getElementById('stratBChum').value
+        }
+    };
+
+    // 2. Encode
+    try {
+        const jsonStr = JSON.stringify(state);
+        const base64 = btoa(unescape(encodeURIComponent(jsonStr))); // UTF-8 safe
+
+        const url = `${window.location.origin}/share.html?data=${base64}`;
+        console.log("Generated URL:", url);
+        return url;
+    } catch (e) {
+        console.error("Serialization failed:", e);
+        return null;
+    }
+}
+
+async function renderShareManual(config) {
+    // Reconstruct 'config' for passed to calculation functions
+    const calcConfig = {
+        spot: config.spot,
+        weather: config.weather,
+        bait: config.bait,
+        target: config.target,
+        isCatchAll: config.isCatchAll,
+        lureType: config.lureType,
+        quitIfNoDisc: false
+    };
+
+    // We need to Mock document.getElementById for specifically 'lureCount' etc because constructScenarioId reads them.
+    // OR, we rewrite constructScenarioId to accept args.
+    // Easier: Mock the document.getElementById in this scope? No, unsafe.
+    // Solution: Pass explicit object to modified functions? 
+    // -> 'constructScenarioId' reads DOM. Let's patch it or create a helper.
+
+    // For now, I will manually construct the scenarioID string from config here.
+    let scenarioId = 'normal';
+    if (config.lureType !== 'none') {
+        const steps = [];
+        for (let i = 1; i <= parseInt(config.lureCount); i++) {
+            steps.push(config[`lureStep${i}`]);
+        }
+        scenarioId = steps.join('_');
+    }
+
+    const stats = calculateScenarioStats(calcConfig, scenarioId, config.isChum, config.slapFish);
+
+    // Render
+    const resultContent = document.getElementById('result-content');
+
+    if (stats.error) {
+        resultContent.innerHTML = `<div style="color:var(--accent-red)">Error: ${stats.error}</div>`;
+        return;
+    }
+
+    const rangeStr = (stats.expectedTimeRange) ? stats.expectedTimeRange.toFixed(1) : '0.0';
+    const expTimeStr = (stats.expectedTime === Infinity) ? '-' :
+        `${stats.expectedTime.toFixed(1)}<span style="font-size:0.6em; color:#888; margin-left:5px;">±${rangeStr}</span> <span style="font-size:0.5em; color:#888;">sec</span>`;
+    const hitRateStr = (stats.targetHitRate * 100).toFixed(2) + '%';
+
+    // Header Info
+    const chumTxt = config.isChum ? '使用する' : '未使用';
+    const slapTxt = (config.slapFish === 'なし') ? 'なし' : config.slapFish;
+
+    let scnPrefix = '';
+    if (config.lureType !== 'none') {
+        scnPrefix = `(${config.lureType} ${config.lureCount}回): `;
+    }
+
+    resultContent.innerHTML = `
+        <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
+            <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待</div>
+            <div style="font-size:2rem; font-weight:bold; color:var(--primary);">${expTimeStr}</div>
+            <div style="font-size:0.9rem;">Hit: ${hitRateStr}</div>
+            <div style="font-size:0.8rem; margin-top:5px; color:#666;">
+                 Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+            </div>
+        </div>
+        <table><thead><tr><th>魚種</th><th>演出</th><th>ヒット率</th><th>待機時間</th><th>サイクル時間</th></tr></thead><tbody id="res-table-body"></tbody></table>
+        <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+            <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
+                 <div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>
+            </div>
+            <div style="margin-bottom: 4px;">${scnPrefix + stats.scenarioStr}</div>
+            <div style="color: var(--primary); font-weight: bold; margin-bottom: 8px;">${(stats.scenarioProb * 100).toFixed(1)}%</div>
+            <div>平均サイクル時間: ${stats.avgCycleTime.toFixed(1)}s</div>
+        </div>`;
+
+    renderResultTable(stats.allFishStats, config.target, scnPrefix + stats.scenarioStr, stats.scenarioProb, stats.avgCycleTime);
+
+    // Debug
+    // We need to inject the debug structure because share.html has a simplier one
+    document.getElementById('share-debug-wrapper').innerHTML = `
+        <div id="debug-content-wrapper">
+            <div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>
+            <div class="debug-section"><label>【シナリオ解析】</label><div id="debug-scenario" class="formula-box"></div></div>
+            <div class="debug-section"><label>【重み・確率分配の内訳】</label><div id="debug-weights" style="font-size:0.75rem;"></div></div>
+            <div class="debug-section"><label>【ターゲットのサイクル時間内訳】</label><div id="debug-calc-target" class="formula-box"></div></div>
+            <div class="debug-section"><label>【期待値計算の詳細】</label><div id="debug-calc-expect" class="formula-box"></div></div>
+        </div>`;
+
+    renderDebugDetails(stats, calcConfig, config.isChum, scenarioId);
+}
+
+async function renderShareStrategy(config) {
+    const sets = ['A', 'B'];
+    const results = {};
+    const calcConfig = {
+        spot: config.spot,
+        weather: config.weather,
+        bait: config.bait,
+        target: config.target,
+        isCatchAll: config.isCatchAll,
+    };
+
+    sets.forEach(set => {
+        const sDat = config[`strat${set}`];
+        const setConfig = {
+            lureType: sDat.lureType,
+            quitIfNoDisc: sDat.quit === 'yes',
+            slapFish: sDat.slap,
+            isChum: sDat.chum === 'yes',
+            presetId: sDat.preset
+        };
+        const preset = masterDB.strategy_presets.find(p => p.id === setConfig.presetId);
+        results[set] = calculateStrategySet(calcConfig, setConfig, preset);
+    });
+
+    const resultContent = document.getElementById('result-content');
+    const debugWrapper = document.getElementById('share-debug-wrapper');
+
+    // Reuse renderStrategyComparison logic but adapted for separate DOMs
+    // Actually renderStrategyComparison uses 'result-content' and 'debug-content-wrapper' by ID.
+    // So if share.html uses same IDs, it should just work!
+    // share.html has 'result-content'. It needs 'debug-content-wrapper'.
+    debugWrapper.innerHTML = '<div id="debug-content-wrapper"></div>';
+
+    renderStrategyComparison(results.A, results.B, calcConfig);
+
+    // Append Info to Result Content
+    const infoDiv = document.createElement('div');
+    infoDiv.style.cssText = "margin-top:15px; text-align:center; font-size:0.8rem; color:#666;";
+    infoDiv.innerHTML = `Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}`;
+    resultContent.prepend(infoDiv);
 }
 
 function setupEventListeners() {
