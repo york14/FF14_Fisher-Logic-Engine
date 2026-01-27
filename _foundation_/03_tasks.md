@@ -1,29 +1,19 @@
 # タスク一覧 (Tasks)
 
-## 進行中のフェーズ: Vercel移行 & 基盤整備
+## 進行中のフェーズ: 機能拡張・UX改善
 
 - [x] **プロジェクト分析とセットアップ**
-    - [x] 既存ファイルの分析 (index.html, main.js, logic_master.json, specs)
-    - [x] Vercel移行の実装計画作成
-    - [x] プロジェクト標準文書の整備 (`_foundation_` フォルダ)
-
-- [ ] **実装フェーズ**
-    - [ ] Vercel対応プロジェクト構造の初期化 (Vite)
-        - [ ] `npm create vite@latest` の実行
-        - [ ] `vite.config.js` の設定
-    - [ ] main.js と index.html のロジック移植
-        - [ ] ロジックを `src/main.js` へ移動しモジュール化
-        - [ ] CSSを `src/style.css` へ移動
-        - [ ] ルートディレクトリに `index.html` を配置
-    - [ ] JSON自動読み込みの実装
-        - [ ] `logic_master.json` を直接インポートするよう変更
-        - [ ] 手動アップロードUIの削除
-
-- [ ] **検証フェーズ**
-    - [ ] ローカルテスト (`npm run dev`)
-        - [ ] 自動読み込み機能の確認
-        - [ ] 計算ロジックの整合性確認
-    - [ ] ビルド検証 (`npm run build`)
+- [x] **実装フェーズ (Vercel移行 v3.0)**
+    - [x] Viteプロジェクト構造化
+    - [x] main.js / index.html ロジック移植
+    - [x] JSON自動読み込み実装
+- [x] **機能拡張 (v3.1 - v3.3)**
+    - [x] 待機時間計算ロジック刷新 (積分法)
+    - [x] UI/UX改善 (詳細表示、手動設定UI)
+    - [x] 結果共有機能 (share.html)
+- [x] **検証フェーズ**
+    - [x] ローカルテスト
+    - [x] ビルド検証
 
 ## 将来の予定
 - [ ] Vercelへのデプロイ

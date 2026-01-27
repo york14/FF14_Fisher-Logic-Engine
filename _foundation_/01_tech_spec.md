@@ -38,11 +38,12 @@ $$P_i = \frac{w_i}{\sum w_k}$$
   $$T_{Cycle} = T_{Pre} + D_{Cast} + \max(T_{Bite}, T_{Lure}) + T_{End}$$
   - $T_{End}$ は釣り上げ($D_{Hook}$)または竿上げ($D_{Rest}$)のいずれか。
   - **未発見即竿上げ**の場合: $T_{Wait}$ を待たず、ルアー動作後に即座に竿上げを行う。
+  - **待機時間期待値**: 一様分布とルアー拘束時間の積分計算 (Game Domain Spec 5.2参照)。
 
 ### 2.3 データ構造 (JSON Schema)
 ```json
 {
-  "version": "2.8.0",
+  "version": "3.3.0",
   "spots": { ... },
   "weights": { "key": [...] },
   "probabilities": [...]
