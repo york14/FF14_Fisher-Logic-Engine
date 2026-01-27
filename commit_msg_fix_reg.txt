@@ -1,0 +1,3 @@
+Fix: Restore missing hitRateStr definition
+
+- Fixed ReferenceError by restoring the line `const hitRateStr = ...` that was accidentally removed in the previous commit.

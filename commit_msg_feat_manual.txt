@@ -1,4 +1,0 @@
-Feat: Add deviation to manual result header
-
-- Update Manual Mode result header to display "Target Expected Time ± Range".
-- Use innerHTML to style the deviation with smaller font.
