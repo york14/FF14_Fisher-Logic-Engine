@@ -1,0 +1,5 @@
+Feat: Display Formula in Variable Weight Mode
+
+- Changed Variable Mode (Manual) to display the derived formula (A + B(1-p)/p) instead of a data table.
+- Maintained the same UI layout as Normal Mode.
+- Added debug details for formula constants.

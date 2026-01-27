@@ -1,5 +1,0 @@
-Fix: Resolve ReferenceError in Variable Weight Mode
-
-- Removed accidental duplicate dummy function definition of `calculateScenarioStats`.
-- Updated the actual `calculateScenarioStats` function signature to accept `overrideP` parameter.
-- This fixes "overrideP is not defined" error during variable mode execution.
