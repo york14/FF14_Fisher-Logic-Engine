@@ -1,0 +1,5 @@
+Feat: Add master data validation script
+
+- Added `scripts/validate-master.js` to check referential integrity of generated JSON.
+- Added `npm run validate-master` command.
+- Verified "Michita Genkan" data integrity.

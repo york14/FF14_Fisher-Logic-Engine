@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-01-27T07:09:10.300Z",
+  "updated_at": "2026-01-27T07:30:07.209Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -64,11 +64,46 @@
       "hook_time": 10,
       "is_hidden": false,
       "can_slap": true
+    },
+    "理王魚": {
+      "type": "small_jaws",
+      "vibration": "!",
+      "hook_time": 5,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "縦笛魚": {
+      "type": "large_jaws",
+      "vibration": "!!",
+      "hook_time": 10,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "ブルーパース": {
+      "type": "large_jaws",
+      "vibration": "!!",
+      "hook_time": 10,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "金の鉾": {
+      "type": "large_jaws",
+      "vibration": "!!",
+      "hook_time": 10,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "リッチパース": {
+      "type": "large_jaws",
+      "vibration": "!!!",
+      "hook_time": 15,
+      "is_hidden": false,
+      "can_slap": false
     }
   },
   "spots": {
     "アレクサンドリア旧市街": {
-      "expansion": "黄金",
+      "expansion": "黄金の遺産_7.x",
       "area": "ヘリテージファウンド",
       "weathers": [
         "霧晴れ12-16",
@@ -86,12 +121,19 @@
         "ゴールデングルーパー"
       ]
     },
+    "帯雷危険水域": {
+      "expansion": "黄金の遺産_7.x",
+      "area": "ヘリテージファウンド",
+      "weathers": [],
+      "baits": [],
+      "fish_list": []
+    },
     "満ちた玄関": {
-      "expansion": "黄金",
+      "expansion": "黄金の遺産_7.x",
       "area": "トライヨラ",
       "weathers": [
-        "それ以外",
-        "曇り雨16-18"
+        "曇り雨16-18",
+        "それ以外"
       ],
       "baits": [
         "ゴーストニッパー"
@@ -103,13 +145,6 @@
         "金の鉾",
         "リッチパース"
       ]
-    },
-    "帯雷危険水域": {
-      "expansion": "黄金",
-      "area": "ヘリテージファウンド",
-      "weathers": [],
-      "baits": [],
-      "fish_list": []
     },
     "テスト釣り場1": {
       "expansion": "テスト拡張1",
@@ -1330,6 +1365,142 @@
         "n3_d2_g0": 0,
         "n3_d3_g0": 0
       }
+    },
+    {
+      "spot": "満ちた玄関",
+      "weather": "それ以外",
+      "bait": "ゴーストニッパー",
+      "target_hidden": null,
+      "slap_target": "金の鉾",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        6,
+        12,
+        17
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "満ちた玄関",
+      "weather": "曇り雨16-18",
+      "bait": "ゴーストニッパー",
+      "target_hidden": null,
+      "slap_target": "金の鉾",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        6,
+        12,
+        17
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "満ちた玄関",
+      "weather": "それ以外",
+      "bait": "ゴーストニッパー",
+      "target_hidden": null,
+      "slap_target": "ブルーパース",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        6,
+        12,
+        17
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "満ちた玄関",
+      "weather": "曇り雨16-18",
+      "bait": "ゴーストニッパー",
+      "target_hidden": null,
+      "slap_target": "ブルーパース",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        6,
+        12,
+        17
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
     }
   ],
   "strategy_presets": [
@@ -1401,17 +1572,15 @@
     },
     {
       "id": "b2_guar_stop",
-      "name": "型確定停止優先(基本2回)",
-      "description": "何もなければ2回で待機、発見済なら3回まで使用するが、型確定したらそこで待機",
+      "name": "型確定停止(基本2回)",
+      "description": "何もなければ2回で待機、型確定したらそこで待機",
       "eligible_scenarios": [
         "n1_d0_g1",
         "n2_d0_g0",
         "n2_d0_g2",
+        "n2_d1_g0",
         "n2_d1_g2",
-        "n3_d1_g0",
-        "n3_d1_g3",
-        "n3_d2_g0",
-        "n3_d2_g3"
+        "n2_d2_g0"
       ]
     },
     {
