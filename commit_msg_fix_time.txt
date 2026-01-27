@@ -1,0 +1,4 @@
+Fix: Restore missing expectedTime definition
+
+- Fixed ReferenceError by restoring the line `const expectedTime = ...` that was accidentally removed in a previous commit.
+- This resolves the `expectedTime is not defined` error in the debug analysis panel.

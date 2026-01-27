@@ -741,6 +741,7 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
 
     const avgCycle = stats.avgCycleTime;
     const hitRate = stats.targetHitRate;
+    const expectedTime = stats.expectedTime;
     const expectedTimeRange = stats.expectedTimeRange || 0;
     const targetHook = stats.debugData.targetHook;
     const formulaStr = `(${avgCycle.toFixed(2)} - (${(hitRate * 100).toFixed(2)}% × ${targetHook.toFixed(1)})) / ${(hitRate * 100).toFixed(2)}%`;
