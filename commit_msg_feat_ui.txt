@@ -1,5 +1,0 @@
-Feat: Add deviation (range) display to results
-
-- Calculate weighted average range for Expected Time.
-- Display "Expected Time ± Range" in Strategy Evaluation cards.
-- Display "Avg ± Range" in Wait Time column of Manual Mode result table.

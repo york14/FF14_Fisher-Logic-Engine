@@ -738,10 +738,10 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
 
     const avgCycle = stats.avgCycleTime;
     const hitRate = stats.targetHitRate;
-    const expectedTime = stats.expectedTime;
-    const targetHook = stats.debugData.targetHook;
+    const expectedTimeRange = stats.expectedTimeRange || 0;
     const formulaStr = `(${avgCycle.toFixed(2)} - (${(hitRate * 100).toFixed(2)}% × ${targetHook.toFixed(1)})) / ${(hitRate * 100).toFixed(2)}%`;
-    const expectExpr = (hitRate > 0) ? `${formulaStr} = <strong>${expectedTime.toFixed(1)}s</strong>` : `ターゲット確率が 0% のため計算不可`;
+    const rangeStr = `<span style="font-size:0.8em; color:#888;">±${expectedTimeRange.toFixed(1)}s</span>`;
+    const expectExpr = (hitRate > 0) ? `${formulaStr} = <strong>${expectedTime.toFixed(1)}s</strong> ${rangeStr}` : `ターゲット確率が 0% のため計算不可`;
 
     const expectHtml = `
         <div style="font-size:0.8rem;">
