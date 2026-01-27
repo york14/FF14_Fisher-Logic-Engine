@@ -613,7 +613,8 @@ function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
         if (s.name === targetName) tr.classList.add('row-target');
         const hitStr = (s.hitRate > 0) ? (s.hitRate * 100).toFixed(1) + '%' : '0.0%';
         const cycleStr = s.cycleTime.toFixed(1) + 'sec';
-        tr.innerHTML = `<td>${s.name}</td><td>${s.vibration}</td><td>${hitStr}</td><td>${s.waitTime.toFixed(1)}s</td><td>${cycleStr}</td>`;
+        const waitTimeStr = (s.waitTimeAvg !== undefined) ? s.waitTimeAvg.toFixed(1) : '-';
+        tr.innerHTML = `<td>${s.name}</td><td>${s.vibration}</td><td>${hitStr}</td><td>${waitTimeStr}s</td><td>${cycleStr}</td>`;
         tbody.appendChild(tr);
     });
 }
@@ -708,17 +709,18 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
     } else {
         targetTraceHtml = `
             <div style="font-size:0.8rem; margin-bottom:5px;">
-                <strong>A. 待機時間 (${tStat.waitTime.toFixed(1)}s)</strong>
+                <strong>A. 待機時間 (Avg ${tStat.waitTimeAvg.toFixed(1)}s ±${tStat.waitTimeRange.toFixed(1)})</strong>
                 <div style="padding-left:10px;">
-                   ・補正バイト: ${tStat.biteTime.toFixed(1)}s (基礎${tStat.baseBite.toFixed(1)}s, 撒き餌:${chumTxt})<br>
+                   ・基礎Range: ${tStat.baseBiteMin.toFixed(1)}～${tStat.baseBiteMax.toFixed(1)}s<br>
+                   ・補正Range: ${tStat.biteTimeMin.toFixed(1)}～${tStat.biteTimeMax.toFixed(1)}s (撒き餌:${chumTxt})<br>
                    ・ルアー拘束: ${lureWaitExpr}<br>
-                   → 長い方を採用
+                   → 補正Rangeと拘束時間の大きい方を採用 (Min/Max算出)
                 </div>
             </div>
             <div style="font-size:0.8rem;">
                 <strong>B. サイクル時間 (${tStat.cycleTime.toFixed(1)}s)</strong>
                 <div style="padding-left:10px;">
-                   撒き餌(${pre}s) + キャスティング(${c.D_CAST}s) + 待機(A) + 釣り上げ(${tStat.hookTime.toFixed(1)}s)
+                   撒き餌(${pre}s) + キャスティング(${c.D_CAST}s) + 待機(A_Avg) + 釣り上げ(${tStat.hookTime.toFixed(1)}s)
                 </div>
             </div>
         `;

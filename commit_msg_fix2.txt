@@ -1,0 +1,4 @@
+Fix: undefined waitTime references in debug UI
+
+- Replace all remaining references to the deprecated `waitTime`, `baseBite`, `biteTime` properties with their new Min/Max/Avg counterparts in `renderResultTable` and `renderDebugDetails`.
+- Fixes TypeError when rendering result tables manually.
