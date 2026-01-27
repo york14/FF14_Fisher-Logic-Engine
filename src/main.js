@@ -340,6 +340,7 @@ function runManualMode(config) {
         </div>
         <table><thead><tr><th>魚種</th><th>演出</th><th>ヒット率</th><th>待機時間</th><th>サイクル時間</th></tr></thead><tbody id="res-table-body"></tbody></table>
         <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+            <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;"></div>
             <div id="scenario-str" style="margin-bottom: 4px;"></div>
             <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;"></div>
             <div id="avg-cycle-time">平均サイクル時間: -</div>
@@ -382,9 +383,20 @@ function runManualMode(config) {
             `${stats.expectedTime.toFixed(1)}<span style="font-size:0.6em; color:#888; margin-left:5px;">±${rangeStr}</span> <span style="font-size:0.5em; color:#888;">sec</span>`;
         const hitRateStr = (stats.targetHitRate * 100).toFixed(2) + '%';
 
+        const chumTxt = isChum ? '使用する' : '未使用';
+        const slapTxt = (slapFish === 'なし') ? 'なし' : slapFish;
+        document.getElementById('manual-header-info').innerHTML =
+            `<div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>`;
+
+        let scnPrefix = '';
+        if (config.lureType !== 'none') {
+            const cnt = document.getElementById('lureCount').value;
+            scnPrefix = `(${config.lureType} ${cnt}回): `;
+        }
+
         document.getElementById('main-result-time').innerHTML = expTimeStr;
         document.getElementById('main-result-hit').textContent = `Hit: ${hitRateStr}`;
-        renderResultTable(stats.allFishStats, config.target, stats.scenarioStr, stats.scenarioProb, stats.avgCycleTime);
+        renderResultTable(stats.allFishStats, config.target, scnPrefix + stats.scenarioStr, stats.scenarioProb, stats.avgCycleTime);
         renderDebugDetails(stats, config, isChum, scenarioId);
     }
 }
@@ -628,7 +640,7 @@ function renderStrategyComparison(resA, resB, config) {
         const waitTimeStr = (res.error || !res.targetHitRate || res.debugData.waitTimeAvg === undefined) ? '-' :
             `${res.debugData.waitTimeAvg.toFixed(1)} <span style="font-size:0.8rem">±${res.debugData.waitTimeRange?.toFixed(1) || '0.0'}</span>`;
 
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${timeDisplay}<span style="font-size:1rem;font-weight:normal;color:#888">sec</span></div><div class="val-label">期待待機時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Wait<br><span class=\"stat-val\">${waitTimeStr}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${timeDisplay}<span style="font-size:1rem;font-weight:normal;color:#888">sec</span></div><div class="val-label">期待待機時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
     };
     resultContent.innerHTML = `<div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
 
@@ -853,9 +865,12 @@ function renderStrategyDebugTable(res, label, color) {
                 <tr>
                     <td>平均/合計</td>
                     <td>${(res.totalProb * 100).toFixed(0)}%</td>
-                    <td>${(res.avgHitRate * 100).toFixed(2)}%</td>
-                    <td>${res.avgCycle.toFixed(1)}s</td>
-                    <td>${res.expectedTime.toFixed(1)}s</td>
+                    <td style="text-align:right;">${res.avgHitRate > 0 ? (res.avgHitRate * 100).toFixed(2) + '%' : '-'}</td>
+                    <td style="text-align:right;">${res.avgCycle.toFixed(1)}s</td>
+                    <td style="text-align:right;">
+                        ${res.expectedTime === Infinity ? '-' : res.expectedTime.toFixed(1) + 's'}
+                        <span style="font-size:0.8em; color:#888;">±${res.expectedTimeRange ? res.expectedTimeRange.toFixed(1) : '0.0'}</span>
+                    </td>
                 </tr>
             </tfoot>
         </table></div></div>`;
