@@ -1,0 +1,3 @@
+Fix: Restore missing targetHook definition
+
+- Fixed ReferenceError by restoring the line `const targetHook = ...` that was accidentally removed in a previous commit during UI updates.

@@ -1,4 +1,0 @@
-Fix: Restore hitRateStr definition and regenerate master
-
-- Re-apply the fix for ReferenceError in runManualMode.
-- Regenerate logic_master.json to ensure data consistency.
