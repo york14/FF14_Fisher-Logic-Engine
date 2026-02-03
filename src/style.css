@@ -119,3 +119,46 @@ tr:nth-child(even) { background: rgba(255,255,255,0.03); }
 .top3-label { font-weight: bold; color: #ddd; }
 .top3-desc { font-weight: normal; color: #999; font-size: 0.75rem; margin-left: 5px; }
 .top3-stats { display: flex; justify-content: space-between; color: #bbb; margin-top: 3px; font-family: monospace; }
+
+/* --- Specific styles for share page (Moved from share.html) --- */
+body.share-page {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+.share-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.share-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.share-container {
+    max-width: 900px;
+    /* Limit width for readability */
+    margin: 0 auto;
+}
+
+.share-panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.share-panel h3 {
+    margin-top: 0;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    color: var(--text-main);
+}
