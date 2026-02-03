@@ -1,0 +1,1 @@
+Cleanup: Remove test commit message file
