@@ -9,31 +9,149 @@
 </head>
 
 <body class="share-page">
-    <div id="app">
-        <header class="share-header">
+    <div class="app-container">
+        <header class="app-header">
             <h1>FISHER LOGIC ENGINE <small>Result View</small></h1>
+            <div><span id="db-status">Loaded</span></div>
         </header>
 
-        <div class="share-container">
-            <!-- Parameter Decode Status/Message -->
-            <div id="share-status" style="display:none; padding:20px; text-align:center; color:#888;"></div>
+        <div class="main-layout" id="main-layout">
+            <!-- LEFT PANEL (Settings) -->
+            <aside class="panel" id="panel-left">
+                <h3>📍 設定 (Read Only)</h3>
+                <div class="section-label">共通設定</div>
+                <div class="input-group"><label>拡張</label><select id="currentExpansion" disabled></select></div>
+                <div class="input-group"><label>エリア</label><select id="currentArea" disabled></select></div>
+                <div class="input-group"><label>釣り場</label><select id="currentSpot" disabled>
+                        <option>Loading...</option>
+                    </select></div>
+                <div class="input-group"><label>天気/時間</label><select id="currentWeather" disabled></select></div>
+                <div class="input-group"><label>餌</label><select id="currentBait" disabled></select></div>
+                <div class="input-group"><label>ターゲット魚</label><select id="targetFishName" disabled></select></div>
+                <div class="input-group checkbox-group" style="margin-bottom: 15px;">
+                    <input type="checkbox" id="isCatchAll" disabled>
+                    <label for="isCatchAll">外道も全て釣る</label>
+                </div>
+                <div class="input-group checkbox-group" style="margin-bottom: 15px;">
+                    <input type="checkbox" id="isVariableMode" disabled>
+                    <label for="isVariableMode">基礎重み不明として計算</label>
+                </div>
 
-            <!-- Result Section -->
-            <section class="share-panel">
+                <div class="tab-group">
+                    <button class="tab-btn active" data-mode="manual" disabled>手動設定</button>
+                    <button class="tab-btn" data-mode="strategy" disabled>戦略評価</button>
+                </div>
+
+                <!-- ID for mode-manual is required for logic -->
+                <div id="mode-manual" class="mode-container active">
+                    <div class="input-group"><label>トレードリリース</label><select id="manualSurfaceSlap" disabled>
+                            <option value="なし">なし</option>
+                        </select></div>
+                    <div class="input-group"><label>撒き餌</label><select id="manualChum" disabled>
+                            <option value="no">未使用</option>
+                            <option value="yes">使用する</option>
+                        </select></div>
+                    <hr class="divider">
+                    <div class="input-group"><label>使用ルアー</label><select id="lureType" disabled>
+                            <option value="none">使用しない</option>
+                            <option value="アンビシャスルアー">アンビシャスルアー</option>
+                            <option value="モデストルアー">モデストルアー</option>
+                        </select></div>
+                    <div id="lure-settings-container">
+                        <div class="input-group"><label>回数</label><select id="lureCount" disabled>
+                                <option value="1">1回</option>
+                                <option value="2">2回</option>
+                                <option value="3">3回</option>
+                            </select></div>
+                        <div class="input-group"><label>1回目</label><select id="lureStep1" disabled>
+                                <option value="disc">発見</option>
+                                <option value="guar">型確定</option>
+                                <option value="none">何もなし</option>
+                            </select></div>
+                        <div class="input-group"><label>2回目</label><select id="lureStep2" disabled>
+                                <option value="disc">発見</option>
+                                <option value="guar">型確定</option>
+                                <option value="none">何もなし</option>
+                            </select></div>
+                        <div class="input-group"><label>3回目</label><select id="lureStep3" disabled>
+                                <option value="disc">発見</option>
+                                <option value="guar">型確定</option>
+                                <option value="none">何もなし</option>
+                            </select></div>
+                    </div>
+                </div>
+
+                <div id="mode-strategy" class="mode-container">
+                    <div class="strategy-set-group" style="border-left: 3px solid var(--accent-a);">
+                        <div class="set-label" style="color:var(--accent-a)">セット A</div>
+                        <div class="input-group"><label>使用ルアー</label><select id="stratALure" disabled>
+                                <option value="none">使用しない</option>
+                                <option value="アンビシャスルアー">アンビシャスルアー</option>
+                                <option value="モデストルアー">モデストルアー</option>
+                            </select></div>
+                        <div class="input-group"><label>即竿上げ</label><select id="stratAQuit" disabled>
+                                <option value="no">しない</option>
+                                <option value="yes">する</option>
+                            </select></div>
+                        <div class="input-group"><label>プリセット</label><select id="stratAPreset" disabled></select></div>
+                        <div class="input-group"><label>トレード</label><select id="stratASlap" disabled>
+                                <option value="なし">なし</option>
+                            </select></div>
+                        <div class="input-group"><label>撒き餌</label><select id="stratAChum" disabled>
+                                <option value="no">未使用</option>
+                                <option value="yes">使用する</option>
+                            </select></div>
+                    </div>
+                    <div class="strategy-set-group" style="border-left: 3px solid var(--accent-b);">
+                        <div class="set-label" style="color:var(--accent-b)">セット B</div>
+                        <div class="input-group"><label>使用ルアー</label><select id="stratBLure" disabled>
+                                <option value="none">使用しない</option>
+                                <option value="アンビシャスルアー">アンビシャスルアー</option>
+                                <option value="モデストルアー">モデストルアー</option>
+                            </select></div>
+                        <div class="input-group"><label>即竿上げ</label><select id="stratBQuit" disabled>
+                                <option value="no">しない</option>
+                                <option value="yes">する</option>
+                            </select></div>
+                        <div class="input-group"><label>プリセット</label><select id="stratBPreset" disabled></select></div>
+                        <div class="input-group"><label>トレード</label><select id="stratBSlap" disabled>
+                                <option value="なし">なし</option>
+                            </select></div>
+                        <div class="input-group"><label>撒き餌</label><select id="stratBChum" disabled>
+                                <option value="no">未使用</option>
+                                <option value="yes">使用する</option>
+                            </select></div>
+                    </div>
+                </div>
+            </aside>
+
+            <div class="resizer" id="resizer-left"></div>
+
+            <!-- CENTER PANEL (Results) -->
+            <section class="panel" id="panel-center">
                 <h3>📊 結果</h3>
-                <div id="result-content">
-                    <div style="padding:20px; color:var(--text-muted); text-align:center;">
-                        Loading result...
+                <div class="content-container">
+                    <div id="result-content">
+                        <div style="padding:20px; color:var(--text-muted); text-align:center;">Analyzing...</div>
                     </div>
                 </div>
             </section>
 
-            <!-- Debug Detail Section -->
-            <article class="share-panel" style="margin-top:20px;">
-                <h3>🔍 詳細</h3>
+            <div class="resizer" id="resizer-right"></div>
+
+            <!-- RIGHT PANEL (Debug) -->
+            <article class="panel" id="panel-right">
+                <h3>🔍 詳細 <span class="toggle-btn" id="toggle-right">▶</span></h3>
                 <div id="share-debug-wrapper">
-                    <!-- Content will be injected here if simplified, or we reuse main logic -->
+                    <!-- Re-using wrapper ID from previous share.html to keep render code working -->
                     <div id="debug-content-wrapper"></div>
+                    <div style="margin-top:20px; border-top:1px solid #444; padding-top:10px;">
+                        <div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div>
+                        <div id="debug-scenario" class="formula-box"></div>
+                        <div id="debug-weights" style="font-size:0.75rem;"></div>
+                        <div id="debug-calc-target" class="formula-box"></div>
+                        <div id="debug-calc-expect" class="formula-box"></div>
+                    </div>
                 </div>
             </article>
         </div>
@@ -45,7 +163,7 @@
     <style>
         /* Specific styles for share page */
         body.share-page {
-            background-color: var(--bg-main);
+            background-color: var(--bg-dark);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
             margin: 0;
@@ -56,7 +174,7 @@
             text-align: center;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 1px solid var(--border-grid);
+            border-bottom: 1px solid var(--border);
         }
 
         .share-header h1 {
@@ -72,8 +190,8 @@
         }
 
         .share-panel {
-            background: var(--bg-panel);
-            border: 1px solid var(--border-panel);
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
             border-radius: 6px;
             padding: 15px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
@@ -81,9 +199,9 @@
 
         .share-panel h3 {
             margin-top: 0;
-            border-bottom: 1px solid var(--border-grid);
+            border-bottom: 1px solid var(--border);
             padding-bottom: 8px;
-            color: var(--text-head);
+            color: var(--text-main);
         }
 
         /* Reuse existing app styles from main.js import, but override layout for share page */

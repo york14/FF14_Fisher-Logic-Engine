@@ -99,7 +99,6 @@ async function initShareMode() {
         }
 
         // Fix: Space characters in URL parameters might have been converted from '+'
-        // If not properly encoded, restore them.
         if (dataStr.includes(' ')) {
             dataStr = dataStr.replace(/ /g, '+');
         }
@@ -111,39 +110,90 @@ async function initShareMode() {
             config = JSON.parse(jsonStr);
         } catch (e) {
             console.error(e);
-            throw new Error("データの読み込みに失敗しました (Invalid Data)");
+            throw new Error(`データの読み込みに失敗しました (${e.message})`);
         }
 
         console.log("Restored Config:", config);
-
-        // Setup Dummy DOM elements for render functions if needed, or directly call render
-        // Since render functions rely on DOM elements (like 'manualChum' value etc) in some places or strict arguments,
-        // we might need to mock or ensure arguments are passed fully.
-        // Actually, main render functions (runManualMode, runStrategyMode) read from DOM.
-        // -> Refactoring 'runManualMode' to accept a full 'state' object would be cleaner, but for now we can mock the DOM or shim it.
-        // BETTER APPROACH: deserialize into the in-memory config and call render functions with that config, 
-        // BUT 'runManualMode' reads document.getElementById... So we need to populate hidden/dummy elements or Refactor.
-        // Given constraint, I will create simple shim functions that render based on the 'config' object directly, 
-        // effectively duplicating the 'reading' part but reusing the 'rendering' part.
-
-        // Actually, 'config' object passed to runManualMode is mostly complete. 
-        // checking runManualMode... it reads 'manualChum', 'slapFish', 'lure*', etc again.
-        // So we MUST populate a Mock DOM or real invisible DOM. 
-        // Since share.html doesn't have these inputs, let's create a "State Context" and temporary override.
-
-        // Let's implement a specific renderer for Share Mode that reuses 'renderResultTable' and 'renderDebugDetails'.
-
         currentMode = config.mode;
 
+        // --- UI Population (Read Only) ---
+        // Helper to set value if element exists
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+        const setCheck = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
+        const addOpt = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val) { el.innerHTML = ''; el.appendChild(new Option(val, val)); el.value = val; }
+        };
+
+        // Lookup Spot Info for Expansion/Area (since they are not in config)
+        if (config.spot && masterDB.spots[config.spot]) {
+            const sInfo = masterDB.spots[config.spot];
+            addOpt('currentExpansion', sInfo.expansion);
+            addOpt('currentArea', sInfo.area);
+        }
+
+        addOpt('currentSpot', config.spot);
+        addOpt('currentWeather', config.weather);
+        addOpt('currentBait', config.bait);
+        addOpt('targetFishName', config.target);
+        setCheck('isCatchAll', config.isCatchAll);
+        setCheck('isVariableMode', config.isVariableMode);
+
+        // Mode Tab Reflection
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            // Disable all tabs visually but set active state
+            b.classList.toggle('active', b.dataset.mode === config.mode);
+        });
+        document.querySelectorAll('.mode-container').forEach(c => {
+            c.classList.toggle('active', c.id === `mode-${config.mode}`);
+        });
+
         if (config.mode === 'manual') {
-            await renderShareManual(config);
+            addOpt('manualSurfaceSlap', config.slapFish);
+            setVal('manualChum', config.isChum ? 'yes' : 'no');
+            setVal('lureType', config.lureType);
+            setVal('lureCount', config.lureCount || "1");
+            for (let i = 1; i <= 3; i++) {
+                setVal(`lureStep${i}`, config[`lureStep${i}`] || 'none');
+            }
         } else {
             // Strategy Mode
-            await renderShareStrategy(config);
+            ['A', 'B'].forEach(set => {
+                const sDat = config[`strat${set}`];
+                if (sDat) {
+                    setVal(`strat${set}Lure`, sDat.lureType);
+                    setVal(`strat${set}Quit`, sDat.quit || 'no'); // Fallback
+                    addOpt(`strat${set}Preset`, sDat.preset);
+                    addOpt(`strat${set}Slap`, sDat.slap || 'なし');
+                    setVal(`strat${set}Chum`, sDat.chum ? 'yes' : 'no');
+                }
+            });
+        }
+
+        // --- Mode Dispatch ---
+        if (config.mode === 'manual') {
+            if (config.isVariableMode) {
+                // Ensure the renderer supports direct config
+                await runManualModeVariable(config);
+            } else {
+                await renderShareManual(config);
+            }
+        } else {
+            // Strategy Mode
+            if (config.isVariableMode) {
+                await runStrategyModeVariable(config);
+            } else {
+                await renderShareStrategy(config);
+            }
         }
 
     } catch (err) {
-        document.getElementById('result-content').innerHTML = `<div style="padding:20px; text-align:center; color:red;">エラー: ${err.message}</div>`;
+        document.getElementById('result-content').innerHTML = `
+            <div style="padding:20px; text-align:center; color:red; border:1px solid red; background:#fff0f0;">
+                <h3>エラーが発生しました</h3>
+                <p>${err.message}</p>
+                <small>Console logs may have more details.</small>
+            </div>`;
     }
 }
 
@@ -157,6 +207,7 @@ function serializeStateToURL() {
         bait: document.getElementById('currentBait').value,
         target: document.getElementById('targetFishName').value,
         isCatchAll: document.getElementById('isCatchAll').checked,
+        isVariableMode: document.getElementById('isVariableMode').checked,
 
         // Manual Mode Specifics
         slapFish: document.getElementById('manualSurfaceSlap').value,
@@ -210,6 +261,7 @@ async function renderShareManual(config) {
         target: config.target,
         isCatchAll: config.isCatchAll,
         lureType: config.lureType,
+        slapFish: config.slapFish,
         quitIfNoDisc: false
     };
 
@@ -267,9 +319,9 @@ async function renderShareManual(config) {
             <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
                  <div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>
             </div>
-            <div style="margin-bottom: 4px;">${scnPrefix + stats.scenarioStr}</div>
-            <div style="color: var(--primary); font-weight: bold; margin-bottom: 8px;">${(stats.scenarioProb * 100).toFixed(1)}%</div>
-            <div>平均サイクル時間: ${stats.avgCycleTime.toFixed(1)}s</div>
+            <div id="scenario-str" style="margin-bottom: 4px;">${scnPrefix + stats.scenarioStr}</div>
+            <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;">${(stats.scenarioProb * 100).toFixed(1)}%</div>
+            <div id="avg-cycle-time">平均サイクル時間: ${stats.avgCycleTime.toFixed(1)}s</div>
         </div>`;
 
     renderResultTable(stats.allFishStats, config.target, scnPrefix + stats.scenarioStr, stats.scenarioProb, stats.avgCycleTime);
@@ -619,9 +671,41 @@ async function runManualModeVariable(config) {
     const resultContent = document.getElementById('result-content');
 
     // 1. Run simulation once with p=0.5 to extract constants
-    let scenarioId = constructScenarioId();
-    const isChum = document.getElementById('manualChum').value === 'yes';
-    const slapFish = document.getElementById('manualSurfaceSlap').value;
+    let scenarioId;
+    let isChum, slapFish;
+
+    // Patch: Use config if keys exist (Share Mode safe)
+    if (config.isChum !== undefined) {
+        // Construct Scenario ID from Config (Share Mode)
+        if (config.lureType === 'none') {
+            scenarioId = 'none_0';
+        } else {
+            const steps = [];
+            const count = parseInt(config.lureCount || 0, 10);
+            for (let i = 1; i <= count; i++) {
+                steps.push(config[`lureStep${i}`] || 'none');
+            }
+            // Logic to convert steps array to ID (Simplified: assuming Disc is first 'disc', Guars are 'guar')
+            // Reusing logic similar to constructScenarioId but from array
+            let discoveryStep = 0;
+            let guaranteeSteps = [];
+            steps.forEach((val, idx) => {
+                const i = idx + 1;
+                if (val === 'disc') { if (discoveryStep === 0) discoveryStep = i; }
+                else if (val === 'guar') { guaranteeSteps.push(i); }
+            });
+            const gStr = guaranteeSteps.length > 0 ? guaranteeSteps.join('') : '0';
+            scenarioId = `n${count}_d${discoveryStep}_g${gStr}`;
+        }
+
+        isChum = config.isChum;
+        slapFish = config.slapFish;
+    } else {
+        // DOM Access (Original Manual Mode)
+        scenarioId = constructScenarioId();
+        isChum = document.getElementById('manualChum').value === 'yes';
+        slapFish = document.getElementById('manualSurfaceSlap').value;
+    }
 
     // We run with p=0.5
     const stats = calculateScenarioStats(config, scenarioId, isChum, slapFish, 0.5);
@@ -673,7 +757,8 @@ async function runManualModeVariable(config) {
     const slapTxt = (slapFish === 'なし') ? 'なし' : slapFish;
 
     let infoHtml = `<div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>`;
-    let scnPrefix = config.lureType !== 'none' ? `(${config.lureType} ${document.getElementById('lureCount').value}回): ` : '';
+    const lureCountVal = (config.lureCount !== undefined) ? config.lureCount : document.getElementById('lureCount').value;
+    let scnPrefix = config.lureType !== 'none' ? `(${config.lureType} ${lureCountVal}回): ` : '';
 
     resultContent.innerHTML = `
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
@@ -1188,12 +1273,14 @@ function renderDebugDetails(stats, config, isChum, scenarioId) {
     const c = GDS;
     document.getElementById('debug-constants').innerHTML = `Cast:${c.D_CAST}s / Lure:${c.D_LURE}s / Block:${c.D_BLK}s / Rest:${c.D_REST}s / Chum:${c.D_CHUM}s`;
 
+    const slapVal = config.slapFish || (document.getElementById('manualSurfaceSlap') ? document.getElementById('manualSurfaceSlap').value : 'なし');
+
     const searchKeys = `
         <div style="font-size:0.7rem; color:#ccc; margin-bottom:6px; padding-bottom:6px; border-bottom:1px dashed #666; line-height:1.4;">
             <div>Spot: ${config.spot}</div>
             <div>Cond: ${config.weather} / Bait: ${config.bait}</div>
             <div>Target: ${config.target}</div>
-            <div>Slap: ${document.getElementById('manualSurfaceSlap').value} / Lure: ${config.lureType}</div>
+            <div>Slap: ${slapVal} / Lure: ${config.lureType}</div>
             <div>Rest if no disc: ${config.quitIfNoDisc ? 'ON' : 'OFF'}</div>
         </div>
     `;
