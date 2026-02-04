@@ -1,0 +1,5 @@
+feat(optimizer): refine logic v3.3 manual slap fallback and rich purse fix
+- Fix simulateMixedStrategy ignoring strategy-specific lure type
+- Add fallback to No Slap data when Slap data is missing in calculator
+- Update debug logging in optimizer UI
+- Add verification tasks to task list

@@ -1,0 +1,19 @@
+docs: add foundation directory for AI handoff and project cleanup
+
+- Create foundation/ directory with 4 core documents:
+  - README.md: AI onboarding guide and project overview
+  - core_formulas.md: Essential calculation formulas (GDS, P_i, P_Scenario, time models)
+  - rules_and_mechanics.md: Game mechanics invariant rules
+  - data_generation.md: CSV to JSON conversion workflow
+
+- Add metadata protection to existing docs:
+  - docs/System_Spec.md: Add foundation/ navigation
+  - docs/reference/Game_Domain_Spec.md: Add CANONICAL status and IMMUTABLE_SECTIONS
+  - docs/specs/Logic_Core.md: Add CANONICAL status and IMMUTABLE_SECTIONS
+
+- Archive old documentation:
+  - Move plans_and_specs/ to archive/plans_and_specs/
+  - Move temporary commit message files to archive/
+  - Move archive_migration.py to archive/
+
+Purpose: Solve AI handoff failures by establishing Single Source of Truth

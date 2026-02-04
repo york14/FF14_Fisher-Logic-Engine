@@ -1,7 +1,26 @@
+---
+STATUS: INDEX
+VERSION: 3.1.0
+LAST_UPDATED: 2026/02/03
+TARGET_LOGIC: FLE v3.0 (Modular Architecture)
+---
+
 # Fisher Logic Engine (FLE) システム仕様書
 
-**Version**: 3.1.0
-**Last Updated**: 2026/02/03
+## 🚀 初めての方へ
+
+このプロジェクトを初めて扱う場合、以下の順序で読むことを推奨します：
+
+1. **[Foundation README](../foundation/README.md)** - プロジェクト概要（必読）
+2. **[核心計算式](../foundation/core_formulas.md)** - 計算ロジックの基礎（必読）
+3. **[不変ルール](../foundation/rules_and_mechanics.md)** - ゲームメカニクス（必読）
+4. **[データ生成フロー](../foundation/data_generation.md)** - CSV→JSON変換（必読）
+5. 本ドキュメント - システム全体の構成
+
+---
+
+**Version**: 3.1.0  
+**Last Updated**: 2026/02/03  
 **Target Logic**: FLE v3.0 (Modular Architecture)
 
 ---

@@ -1,6 +1,24 @@
+---
+STATUS: CANONICAL (正本)
+VERSION: 3.1.0
+IMMUTABLE_SECTIONS: 
+  - 定数定義（1節）
+  - 計算式（全セクション）
+LAST_VERIFIED: 2026-02-04
+---
+
 # 論理仕様書: コア計算ロジック
 
-本書は、Fisher Logic Engine (FLE) で使用される中核的な数学モデル、定数、およびアルゴリズムを詳述する。
+> [!CAUTION]
+> **このドキュメントは実装の根拠となる正本です**
+> 
+> 以下のセクションは**絶対に要約・削除しないこと**：
+> - 定数定義（1節）
+> - 計算式（数式記号を含む全ての式）
+> 
+> AI更新時は、必ず元の情報を保持してください。
+
+本書は、Fisher Logic Engine (FLE) で使用される中核的な数学モデル、定数、およびアルゴリズムを詳述する。  
 実装: `src/core/calculator.js`, `src/core/scenario.js`
 
 ## 1. 定数定義 (GDS)
