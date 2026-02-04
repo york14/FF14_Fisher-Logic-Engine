@@ -350,4 +350,53 @@ export function renderDebugDetails(stats, config, isChum, scenarioId) {
     `;
     const dbgCalcE = document.getElementById('debug-calc-expect');
     if (dbgCalcE) dbgCalcE.innerHTML = expectHtml;
+
+    // --- GP Analysis Section ---
+    const gpWrapper = document.getElementById('debug-calc-gp');
+    if (!gpWrapper && wrapper) {
+        // dynamic addition if missing element
+        const div = document.createElement('div');
+        div.id = 'debug-calc-gp';
+        div.className = 'formula-box';
+        div.style.marginTop = '10px';
+        wrapper.appendChild(div);
+    }
+    const gpEl = document.getElementById('debug-calc-gp');
+
+    if (gpEl && stats.gpStats) {
+        const gp = stats.gpStats;
+        const b = gp.balance;
+        const c = gp.cost;
+
+        let costHtml = c.details.map(d => `${d.name}: ${d.cost}`).join(', ');
+        const recNatural = (b.recovered - (b.itemRecovery || 0)).toFixed(1);
+        const recItem = (b.itemRecovery || 0).toFixed(1);
+
+        const susColor = b.sustainable ? 'var(--accent-green)' : 'var(--accent-red)';
+        const susText = b.sustainable ? 'Sustainable (持続可能)' : `枯渇まで: 約${b.castsUntilDeplete.toFixed(1)}キャスト`;
+
+        const gpmHtml = `
+            <div style="font-size:0.8rem;">
+                <div style="font-weight:bold; color:#ddd;">GP Analysis</div>
+                <hr style="margin:5px 0; border:0; border-top:1px dashed #666;">
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div>
+                        <div style="color:#aaa;">消費 (Cost)</div>
+                        <div style="font-size:1.1rem;">${c.total} <span style="font-size:0.7rem;">(${costHtml})</span></div>
+                    </div>
+                    <div>
+                        <div style="color:#aaa;">収支 (Balance)</div>
+                        <div style="font-size:1.1rem; color:${b.balance >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
+                            ${b.balance >= 0 ? '+' : ''}${b.balance.toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top:5px; font-size:0.75rem;">
+                    <div>回復内訳: 自然 +${recNatural} / アイテム +${recItem}</div>
+                    <div style="margin-top:4px; font-weight:bold; color:${susColor};">${susText}</div>
+                </div>
+            </div>
+        `;
+        gpEl.innerHTML = gpmHtml;
+    }
 }

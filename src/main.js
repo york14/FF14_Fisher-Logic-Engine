@@ -15,6 +15,7 @@ import {
 import {
     renderManualModeResult, renderStrategyComparison, renderDebugDetails, renderResultTable
 } from './ui/render.js';
+import { initOptimizerTab } from './ui/tab_optimizer.js';
 
 let masterDB = null;
 let probabilityMap = null;
@@ -58,6 +59,7 @@ function init() {
         populateSelectors(masterDB);
         updateAreaOptions(masterDB);
         updateSpotDependents(masterDB, updateSimulation);
+        initOptimizerTab(masterDB, probabilityMap);
 
         // Share Button Listener
         const shareBtn = document.getElementById('btn-share-result');
@@ -269,7 +271,18 @@ function setupEventListeners() {
             currentMode = tab.dataset.mode;
             document.querySelectorAll('.mode-container').forEach(c => c.classList.remove('active'));
             document.getElementById(`mode-${currentMode}`).classList.add('active');
-            updateSimulation();
+
+            // Toggle Result Containers
+            const resManStrat = document.getElementById('result-content');
+            const resOpt = document.getElementById('opt-results-container');
+            if (currentMode === 'optimizer') {
+                resManStrat.style.display = 'none';
+                resOpt.style.display = 'block';
+            } else {
+                resManStrat.style.display = 'block';
+                resOpt.style.display = 'none';
+                updateSimulation();
+            }
         });
     });
 

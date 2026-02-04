@@ -26,27 +26,37 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
     const weightKey = `${config.spot}|${config.weather}|${config.bait}`;
     const originalWeights = masterDB.weights[weightKey] || [];
 
-    // --- Variable Mode Logic ---
+    // --- Variable Mode Logic (v3.2 Update: Base Weight Override) ---
     let baseWeights = originalWeights.map(w => ({ ...w })); // Shallow copy
     if (overrideP !== null) {
-        const othersSum = baseWeights.reduce((sum, w) => (w.fish !== config.target) ? sum + w.weight : sum, 0);
-        if (othersSum > 0 && overrideP < 1.0) {
-            const derivedW = (overrideP * othersSum) / (1.0 - overrideP);
-            const targetEntry = baseWeights.find(w => w.fish === config.target);
-            if (targetEntry) targetEntry.weight = derivedW;
-            else baseWeights.push({ fish: config.target, weight: derivedW, bite_time_min: 0, bite_time_max: 0 });
-        } else if (othersSum === 0) {
-            const targetEntry = baseWeights.find(w => w.fish === config.target);
-            if (targetEntry) targetEntry.weight = 100;
+        // overrideP is now interpreted as "Target Base Weight" (not Probability)
+        const overrideWeight = overrideP;
+        const targetEntry = baseWeights.find(w => w.fish === config.target);
+        if (targetEntry) {
+            targetEntry.weight = overrideWeight;
+        } else {
+            // If target not in original weights, add it
+            baseWeights.push({ fish: config.target, weight: overrideWeight, bite_time_min: 0, bite_time_max: 0 });
         }
     }
 
     let probData = null;
+    let fallbackUsed = false;
     if (config.lureType !== 'none') {
+        // Try exact match first
         const searchKey = `${config.spot}|${config.weather}|${config.bait}|${config.lureType}|${slapFish}`;
         if (probabilityMap) probData = probabilityMap.get(searchKey);
+
+        // Fallback: If no data for this Slap, try 'none' (No Slap)
+        // This assumes that Slap doesn't fundamentally change the 'Scenario' (Discovery/Type rates) 
+        // for Normal fish, or at least provides a reasonable approximation.
+        if (!probData && slapFish !== 'なし') {
+            const fallbackKey = `${config.spot}|${config.weather}|${config.bait}|${config.lureType}|なし`;
+            if (probabilityMap) probData = probabilityMap.get(fallbackKey);
+            if (probData) fallbackUsed = true;
+        }
     }
-    const rawRates = probData ? { disc: probData.disc_rates, guar: probData.guar_rates_nodisc } : null;
+    const rawRates = probData ? { disc: probData.disc_rates, guar: probData.guar_rates_nodisc, fallback: fallbackUsed } : null;
     if (!probData && config.lureType !== 'none') return { error: "条件に合う確率データがありません", debugData: { rates: rawRates } };
 
     const tCast = GDS.D_CAST, tLureAction = GDS.D_LURE, tLureBlock = GDS.D_BLK, tChum = GDS.D_CHUM, tRest = GDS.D_REST;
@@ -190,8 +200,10 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
     const expectedTimeRange = (targetHitRate > 0) ? (sumProbWaitRange / targetHitRate) : 0;
 
     // --- GP Calculation ---
-    const gpCostObj = calculateGPCost({ slapFish, isChum });
-    const gpBalanceObj = calculateGPBalance(sumProbTotalCycle, gpCostObj.total);
+    // p.n is lure count for this scenario
+    const gpCostObj = calculateGPCost({ slapFish, isChum, lureCount: p.n });
+    // Note: useHiCordial is not yet in config, default false
+    const gpBalanceObj = calculateGPBalance(sumProbTotalCycle, gpCostObj.total, config.useHiCordial);
 
     return {
         allFishStats, totalWeight, weightDetails, pHidden, hiddenFishName, targetHitRate,
@@ -206,21 +218,34 @@ export function calculateStrategySet(masterDB, probabilityMap, config, setConfig
     const scenarios = [];
     let weightedHitRate = 0, weightedCycle = 0, totalProb = 0, error = null;
 
+    // Track weighted GP Cost as well
+    let weightedGPCost = 0;
+
     for (const sid of preset.eligible_scenarios) {
         const scenarioConfig = { ...config, lureType: setConfig.lureType, quitIfNoDisc: setConfig.quitIfNoDisc };
         const stats = calculateScenarioStats(masterDB, probabilityMap, scenarioConfig, sid, setConfig.isChum, setConfig.slapFish, overrideP);
-        if (stats.error) { error = stats.error; break; }
+        if (stats.error) {
+            console.error(`Calc Error [${preset.name}][${sid}]:`, stats.error, stats.debugData);
+            error = stats.error; break;
+        }
         if (stats.scenarioProb === null) { error = "確率計算不能"; break; }
 
         totalProb += stats.scenarioProb;
         weightedHitRate += (stats.scenarioProb * stats.targetHitRate);
         weightedCycle += (stats.scenarioProb * stats.avgCycleTime);
+
+        // Accumulate Weighted Cost
+        weightedGPCost += (stats.scenarioProb * stats.gpStats.cost.total);
+
         scenarios.push({
             id: sid, label: getScenarioLabel(sid), prob: stats.scenarioProb, cycle: stats.avgCycleTime, hit: stats.targetHitRate, expected: stats.expectedTime, pObj: stats.debugData.p, isQuit: stats.debugData.isQuit,
             gpStats: stats.gpStats
         });
     }
-    if (error) return { error, name: preset.name, description: preset.description };
+    if (error) {
+        console.warn(`StrategySet Failed [${preset.name}]:`, error);
+        return { error, name: preset.name, description: preset.description };
+    }
 
     const targetInfo = masterDB.fish[config.target];
     // Bug fix from original logic: check if targetInfo exists
@@ -229,12 +254,13 @@ export function calculateStrategySet(masterDB, probabilityMap, config, setConfig
     const avgCastCount = (weightedHitRate > 0) ? (1 / weightedHitRate) : Infinity;
 
     // --- GP Calculation (Weighted) ---
-    // Average Cost is weighted by scenario occurrence? No, Cost is per cast usually fixed config, but wait, 
-    // IsChum/Slap are fixed per Strategy Set.
-    // So Cost is constant per cast for the strategy.
-    const gpCostObj = calculateGPCost({ slapFish: setConfig.slapFish, isChum: setConfig.isChum });
+    // Use the accumulated weighted cost, because Lure usage (cost) varies per scenario path.
+    // e.g. Path A (Lure x2) vs Path B (Lure x1) occur with different probs.
+    const weightedCostTotal = weightedGPCost;
+    const gpCostObj = { total: weightedCostTotal, details: [{ name: 'Weighted Avg', cost: weightedCostTotal }] };
+
     // Balance depends on AvgCycle
-    const gpBalanceObj = calculateGPBalance(weightedCycle, gpCostObj.total);
+    const gpBalanceObj = calculateGPBalance(weightedCycle, weightedCostTotal, config.useHiCordial);
 
     return { name: preset.name, description: preset.description, Slap: setConfig.slapFish, scenarios, totalProb, avgHitRate: weightedHitRate, avgCycle: weightedCycle, avgCastCount, expectedTime, gpStats: { cost: gpCostObj, balance: gpBalanceObj }, error: null };
 }

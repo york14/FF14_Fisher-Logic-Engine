@@ -63,6 +63,7 @@
                     <div class="tab-group">
                         <button class="tab-btn active" data-mode="manual">手動設定</button>
                         <button class="tab-btn" data-mode="strategy">戦略評価</button>
+                        <button class="tab-btn" data-mode="optimizer">最適化</button>
                     </div>
 
                     <div style="margin-top:10px; text-align:center;">
@@ -73,6 +74,7 @@
                     </div>
 
                     <div id="mode-manual" class="mode-container active">
+                        <!-- ... Manual Content ... -->
                         <div class="input-group">
                             <label>トレードリリース (Surface Slap)</label>
                             <select id="manualSurfaceSlap" disabled>
@@ -137,6 +139,7 @@
                     </div>
 
                     <div id="mode-strategy" class="mode-container">
+                        <!-- ... Strategy Content ... -->
                         <div class="strategy-set-group" style="border-left: 3px solid var(--accent-a);">
                             <div class="set-label" style="color:var(--accent-a)">セット A</div>
                             <div class="input-group">
@@ -210,6 +213,32 @@
                             </div>
                         </div>
                     </div>
+
+                    <div id="mode-optimizer" class="mode-container">
+                        <div class="input-group">
+                            <label>ウィンドウ時間 (秒)</label>
+                            <input type="number" id="opt-window-time" value="350" step="5">
+                        </div>
+                        <div class="input-group">
+                            <label>初期GP</label>
+                            <input type="number" id="opt-initial-gp" value="1000" step="50">
+                        </div>
+                        <hr class="divider">
+                        <div class="input-group checkbox-group">
+                            <input type="checkbox" id="opt-use-override-p">
+                            <label for="opt-use-override-p">重み上書き (Override Weight)</label>
+                        </div>
+                        <div class="input-group">
+                            <label>ターゲット基礎重み (Base Weight)</label>
+                            <input type="number" id="opt-override-p" value="200" step="10">
+                        </div>
+                        <div style="margin-top:20px;">
+                            <button id="opt-run-btn"
+                                style="width:100%; padding:10px; background:var(--primary); color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">
+                                最適化実行 (Run Optimizer)
+                            </button>
+                        </div>
+                    </div>
                 </aside>
 
                 <div class="resizer" id="resizer-left"></div>
@@ -222,6 +251,7 @@
                                 初期化中...
                             </div>
                         </div>
+                        <div id="opt-results-container" style="display:none; padding:10px;"></div>
                     </div>
                 </section>
 
