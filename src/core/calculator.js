@@ -6,7 +6,7 @@ import { parseScenarioId, getScenarioLabel } from './scenario.js';
 import { calculateGPCost, calculateGPBalance } from './optimizer.js';
 
 export const GDS = {
-    D_CAST: 0.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0,
+    D_CAST: 1.0, D_LURE: 2.5, D_BLK: 2.5, D_CHUM: 1.0, D_REST: 2.0,
     C_CHUM: 0.5, M_N1: 1.5, M_N2: 2.0, M_N3: 6.0
 };
 

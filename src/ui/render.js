@@ -22,10 +22,9 @@ export function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) 
         const tr = document.createElement('tr');
         if (s.name === targetName) tr.classList.add('row-target');
         const hitStr = (s.hitRate > 0) ? (s.hitRate * 100).toFixed(1) + '%' : '0.0%';
-        const cycleStr = s.cycleTime.toFixed(1) + 'sec';
         const waitTimeStr = (s.waitTimeAvg !== undefined) ?
-            `${s.waitTimeMin.toFixed(1)} ～ ${s.waitTimeMax.toFixed(1)}` : '-';
-        tr.innerHTML = `<td>${s.name}</td><td>${s.vibration}</td><td>${hitStr}</td><td>${waitTimeStr}s</td><td>${cycleStr}</td>`;
+            `${s.waitTimeMin.toFixed(1)}-${s.waitTimeMax.toFixed(1)}秒(平均 ${s.waitTimeAvg.toFixed(1)}秒)` : '-';
+        tr.innerHTML = `<td>${s.name}</td><td>${hitStr}</td><td>${waitTimeStr}</td>`;
         tbody.appendChild(tr);
     });
 }
@@ -49,31 +48,26 @@ export function renderManualModeResult(stats, config, isChum, slapFish) {
         return;
     }
 
-    const rangeStr = (stats.expectedTimeRange) ? stats.expectedTimeRange.toFixed(1) : '0.0';
-    const expTimeStr = (stats.expectedTime === Infinity) ? '-' :
-        `${stats.expectedTime.toFixed(1)}<span style="font-size:0.6em; color:#888; margin-left:5px;">±${rangeStr}</span> <span style="font-size:0.5em; color:#888;">sec</span>`;
-    const hitRateStr = (stats.targetHitRate * 100).toFixed(2) + '%';
+    const expTimeStr = (stats.expectedTime === Infinity) ? '-' : `${stats.expectedTime.toFixed(1)}秒`;
+    const hitRateStr = (stats.targetHitRate * 100).toFixed(1) + '%';
 
-    // GP Display
+    // GP消費(秒間)の計算
     const gp = stats.gpStats;
-    const gpBalanceStr = gp ? (gp.balance.balance >= 0 ? `+${gp.balance.balance.toFixed(2)}` : gp.balance.balance.toFixed(2)) : '-';
-    const gpColor = gp && gp.balance.sustainable ? 'var(--accent-green)' : 'var(--accent-red)';
-    const gpSusText = gp && gp.balance.sustainable ? 'Sustainable' : (gp.balance.castsUntilDeplete < Infinity ? `Deplete: ${gp.balance.castsUntilDeplete.toFixed(1)} casts` : 'Unsustainable');
+    const gpPerSec = (gp && stats.avgCycleTime > 0) ? (gp.cost.total / stats.avgCycleTime) : 0;
+    const gpPerSecStr = gpPerSec.toFixed(1) + ' GP / sec';
 
     if (resultContent) {
         resultContent.innerHTML = `
             <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
-                <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待</div>
+                <div style="font-size:0.8rem; color:var(--text-muted);">期待時間</div>
                 <div style="font-size:2rem; font-weight:bold; color:var(--primary);">${expTimeStr}</div>
-                <div style="font-size:0.9rem;">Hit: ${hitRateStr}</div>
-                <div style="margin-top:8px; border-top:1px dashed #444; padding-top:5px; font-size:0.85rem;">
-                    <span style="color:#aaa;">GP Balance:</span> <span style="font-weight:bold; color:${gpColor}">${gpBalanceStr}</span> <span style="font-size:0.75rem;">(${gpSusText})</span>
-                </div>
-                <div style="font-size:0.8rem; margin-top:5px; color:#666;">
+                <div style="font-size:0.9rem; margin-top:5px;">ヒット率: ${hitRateStr}</div>
+                <div style="font-size:0.9rem; margin-top:3px;">GP消費(秒間)：${gpPerSecStr}</div>
+                <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
                     Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
                 </div>
             </div>
-            <table><thead><tr><th>魚種</th><th>演出</th><th>ヒット率</th><th>待機時間</th><th>サイクル時間</th></tr></thead><tbody id="res-table-body"></tbody></table>
+            <table><thead><tr><th>魚種名</th><th>ヒット率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
             <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
                 <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
                          <div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>
@@ -96,16 +90,15 @@ export function renderStrategyComparison(resA, resB, config) {
     const right = document.getElementById('debug-content-wrapper');
     const buildCard = (res, label, color) => {
         const time = (res.error || res.expectedTime === Infinity) ? '∞' : res.expectedTime.toFixed(1);
-        const range = (res.error || !res.expectedTimeRange) ? '0.0' : res.expectedTimeRange.toFixed(1); // Usually undefined for strat
         const timeDisplay = (res.error || res.expectedTime === Infinity) ? '∞' :
-            `${time}<span style="font-size:0.6em; margin-left:4px;">sec</span>`;
+            `${time}<span style="font-size:0.6em; margin-left:4px;">秒</span>`;
 
-        const hit = (res.error) ? '-' : (res.avgHitRate * 100).toFixed(2) + '%';
-        const cycle = (res.error) ? '-' : res.avgCycle.toFixed(1) + ' sec';
+        const hit = (res.error) ? '-' : (res.avgHitRate * 100).toFixed(1) + '%';
+        const cycle = (res.error) ? '-' : res.avgCycle.toFixed(1) + '秒';
 
         const gp = res.gpStats;
-        const gpBalanceStr = gp ? (gp.balance.balance >= 0 ? `+${gp.balance.balance.toFixed(1)}` : gp.balance.balance.toFixed(1)) : '-';
-        const gpColor = gp && gp.balance.sustainable ? 'var(--accent-green)' : 'var(--accent-red)';
+        const gpPerSec = (gp && res.avgCycle > 0) ? (gp.cost.total / res.avgCycle) : 0;
+        const gpPerSecStr = gpPerSec.toFixed(1) + '/s';
 
         let top3Html = '';
         if (!res.error && res.scenarios) {
@@ -116,7 +109,7 @@ export function renderStrategyComparison(resA, resB, config) {
             `).join('')}</div>`;
         }
 
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${timeDisplay}</div><div class="val-label">期待時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\" style="color:${gpColor}">${gpBalanceStr}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${timeDisplay}</div><div class="val-label">期待時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div><div class=\"stat-item\">GP消費<br><span class=\"stat-val\">${gpPerSecStr}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
     };
 
     if (resultContent) {
@@ -154,7 +147,8 @@ export function renderStrategyDebugTable(res, label, color) {
     sorted.forEach(s => {
         const quitMark = s.isQuit ? '<span style="color:red; font-weight:bold;">!</span> ' : '';
         const gp = s.gpStats;
-        const gpStr = gp ? (gp.balance.balance >= 0 ? `+${gp.balance.balance.toFixed(0)}` : gp.balance.balance.toFixed(0)) : '-';
+        // GP列は「1サイクルあたりの消費GP」を表示
+        const gpStr = gp ? gp.cost.total.toString() : '-';
         html += `<tr>
             <td style="white-space:nowrap;">${quitMark}${s.label}</td>
             <td>${(s.prob * 100).toFixed(1)}%</td>
@@ -165,7 +159,13 @@ export function renderStrategyDebugTable(res, label, color) {
         </tr>`;
     });
 
-    const totalGp = res.gpStats ? (res.gpStats.balance.balance >= 0 ? `+${res.gpStats.balance.balance.toFixed(1)}` : res.gpStats.balance.balance.toFixed(1)) : '-';
+
+    // 平均消費GPの計算
+    let avgGpCost = 0;
+    if (res.gpStats && res.gpStats.cost) {
+        avgGpCost = res.gpStats.cost.total;
+    }
+    const totalGpStr = avgGpCost.toFixed(1);
 
     html += `</tbody>
             <tfoot style="position:sticky; bottom:0; background:#333; font-weight:bold;">
@@ -177,7 +177,7 @@ export function renderStrategyDebugTable(res, label, color) {
                     <td style="text-align:right;">
                         ${res.expectedTime === Infinity ? '-' : res.expectedTime.toFixed(1) + 's'}
                     </td>
-                    <td style="text-align:right;">${totalGp}</td>
+                    <td style="text-align:right;">${totalGpStr}</td>
                 </tr>
             </tfoot>
         </table></div></div>`;
@@ -368,32 +368,53 @@ export function renderDebugDetails(stats, config, isChum, scenarioId) {
         const b = gp.balance;
         const c = gp.cost;
 
-        let costHtml = c.details.map(d => `${d.name}: ${d.cost}`).join(', ');
+        // GP消費(秒間)の計算
+        const gpPerSec = (stats.avgCycleTime > 0) ? (c.total / stats.avgCycleTime) : 0;
+
+        // 回復情報の計算
+        const naturalRecoveryPerSec = 8.0 / 3.0; // 3秒ごとに8GP
+        const cordialRecoveryPerSec = 400.0 / 180.0; // 180秒ごとに400GP
+        const totalRecoveryPerSec = naturalRecoveryPerSec + cordialRecoveryPerSec;
+
         const recNatural = (b.recovered - (b.itemRecovery || 0)).toFixed(1);
         const recItem = (b.itemRecovery || 0).toFixed(1);
 
+        // 秒間収支
+        const balancePerSec = totalRecoveryPerSec - gpPerSec;
+
         const susColor = b.sustainable ? 'var(--accent-green)' : 'var(--accent-red)';
-        const susText = b.sustainable ? 'Sustainable (持続可能)' : `枯渇まで: 約${b.castsUntilDeplete.toFixed(1)}キャスト`;
+        const susText = b.sustainable ? '持続可能' : `枯渇まで: 約${b.castsUntilDeplete.toFixed(1)}キャスト`;
 
         const gpmHtml = `
             <div style="font-size:0.8rem;">
-                <div style="font-weight:bold; color:#ddd;">GP Analysis</div>
+                <div style="font-weight:bold; color:#ddd;">GP分析</div>
                 <hr style="margin:5px 0; border:0; border-top:1px dashed #666;">
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <div>
-                        <div style="color:#aaa;">消費 (Cost)</div>
-                        <div style="font-size:1.1rem;">${c.total} <span style="font-size:0.7rem;">(${costHtml})</span></div>
-                    </div>
-                    <div>
-                        <div style="color:#aaa;">収支 (Balance)</div>
-                        <div style="font-size:1.1rem; color:${b.balance >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">
-                            ${b.balance >= 0 ? '+' : ''}${b.balance.toFixed(2)}
-                        </div>
+                <div style="margin-bottom:10px;">
+                    <div style="color:#aaa; font-size:0.75rem;">GP消費(秒間)</div>
+                    <div style="font-size:1.1rem; font-weight:bold;">${gpPerSec.toFixed(1)} GP / sec</div>
+                    <div style="font-size:0.7rem; color:#888; margin-top:2px;">消費内訳: ${c.details.map(d => `${d.name} ${d.cost}GP`).join(', ')}</div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <div style="color:#aaa; font-size:0.75rem;">GP回復(秒間)</div>
+                    <div style="font-size:0.85rem;">
+                        <div>・自然回復: ${naturalRecoveryPerSec.toFixed(2)} GP/sec <span style="font-size:0.7rem; color:#888;">(3秒ごとに8GP)</span></div>
+                        <div>・ハイコーディアル: ${cordialRecoveryPerSec.toFixed(2)} GP/sec <span style="font-size:0.7rem; color:#888;">(180秒ごとに400GP)</span></div>
+                        <div style="margin-top:3px; font-weight:bold;">合計: ${totalRecoveryPerSec.toFixed(2)} GP/sec</div>
                     </div>
                 </div>
-                <div style="margin-top:5px; font-size:0.75rem;">
-                    <div>回復内訳: 自然 +${recNatural} / アイテム +${recItem}</div>
-                    <div style="margin-top:4px; font-weight:bold; color:${susColor};">${susText}</div>
+                <div style="margin-bottom:10px;">
+                    <div style="color:#aaa; font-size:0.75rem;">秒間収支</div>
+                    <div style="font-size:1.1rem; font-weight:bold; color:${balancePerSec >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'};">
+                        ${balancePerSec >= 0 ? '+' : ''}${balancePerSec.toFixed(2)} GP/sec
+                    </div>
+                </div>
+                <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #666;">
+                    <div style="font-size:0.75rem;">
+                        <div>サイクル時間: ${stats.avgCycleTime.toFixed(1)}秒</div>
+                        <div>サイクルあたり消費: ${c.total} GP</div>
+                        <div>サイクルあたり回復: ${b.recovered.toFixed(1)} GP <span style="color:#888;">(自然 ${recNatural} / アイテム ${recItem})</span></div>
+                        <div style="margin-top:4px; font-weight:bold; color:${susColor};">${susText}</div>
+                    </div>
                 </div>
             </div>
         `;

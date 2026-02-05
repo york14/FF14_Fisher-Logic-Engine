@@ -37,16 +37,12 @@ export function calculateGPCost(config) {
     const details = [];
 
     // 1. Surface Slap
-    // Note: In strict mode, Slap is paid once until catch. 
-    // For simple sim, if slapFish is set, we assume it's maintained (amortized cost or per-cast if 'catch all').
-    // Here we assume per-cast cost if "Always Use" or similar is implied, 
-    // but usually Slap is paid only once. 
-    // *Validation*: Spec says "If Outer Fish is ON, consume every cast".
-    // For now, we apply standard cost if set, but this might need logic adjustment for "Maintain" vs "One-time".
-    if (config.slapFish && config.slapFish !== 'なし') {
-        cost += SKILL_COSTS.SURFACE_SLAP;
-        details.push({ name: 'Surface Slap', cost: SKILL_COSTS.SURFACE_SLAP });
-    }
+    // ユーザー指示: トレードリリースの200GPは基本的に考慮しない
+    // Note: Surface Slapのコストは計算に含めない
+    // if (config.slapFish && config.slapFish !== 'なし') {
+    //     cost += SKILL_COSTS.SURFACE_SLAP;
+    //     details.push({ name: 'Surface Slap', cost: SKILL_COSTS.SURFACE_SLAP });
+    // }
 
     // 2. Chum
     if (config.isChum) {
@@ -82,7 +78,7 @@ export function calculateGPBalance(cycleTime, gpCost, useHiCordial = false) {
     // Plan B: Discrete Recovery
     // floor(Time / 3.0) * 8
     // Note: If using Hi-Cordial, cycleTime should ideally include item delay (1.0s) handled in calculator.
-    
+
     const ticks = Math.floor(cycleTime / GP_CONSTANTS.TICK_INTERVAL);
     let recovered = ticks * GP_CONSTANTS.RECOVERY_PER_TICK;
 
@@ -95,10 +91,10 @@ export function calculateGPBalance(cycleTime, gpCost, useHiCordial = false) {
         // Max theoretical recovery per cycle = (400 / 180) * cycleTime?
         // Or strictly: Can we maintain?
         // Let's use amortized for "Balance" stat, but keep note it's item dependent.
-        
+
         // Strategy: Add amortized amount to balance
         const cordialRate = ITEM_CONFIG.HI_CORDIAL.RECOVERY / ITEM_CONFIG.HI_CORDIAL.RECAST;
-        itemRecovery = cycleTime * cordialRate; 
+        itemRecovery = cycleTime * cordialRate;
         recovered += itemRecovery;
     }
 
@@ -106,7 +102,7 @@ export function calculateGPBalance(cycleTime, gpCost, useHiCordial = false) {
 
     // Sustainability
     // Sustainable if Gain >= Loss
-    const sustainable = (balance >= -0.1); 
+    const sustainable = (balance >= -0.1);
 
     let castsUntilDeplete = Infinity;
     if (!sustainable) {

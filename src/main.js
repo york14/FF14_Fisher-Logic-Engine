@@ -278,6 +278,8 @@ function setupEventListeners() {
             if (currentMode === 'optimizer') {
                 resManStrat.style.display = 'none';
                 resOpt.style.display = 'block';
+                // 最適化モードは現在開発停止中
+                resOpt.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:1.2rem;">（未定）</div>';
             } else {
                 resManStrat.style.display = 'block';
                 resOpt.style.display = 'none';
