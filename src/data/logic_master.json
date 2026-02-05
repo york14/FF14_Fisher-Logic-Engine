@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-01-27T07:45:01.772Z",
+  "updated_at": "2026-02-05T09:19:36.258Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -1474,6 +1474,74 @@
       "bait": "ゴーストニッパー",
       "target_hidden": null,
       "slap_target": "ブルーパース",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        6,
+        12,
+        17
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "満ちた玄関",
+      "weather": "それ以外",
+      "bait": "ゴーストニッパー",
+      "target_hidden": null,
+      "slap_target": "なし",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        6,
+        12,
+        17
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "満ちた玄関",
+      "weather": "曇り雨16-18",
+      "bait": "ゴーストニッパー",
+      "target_hidden": null,
+      "slap_target": "なし",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,

@@ -1,7 +1,7 @@
 ---
 STATUS: INDEX
-VERSION: 3.1.0
-LAST_UPDATED: 2026/02/03
+VERSION: 3.2.0
+LAST_UPDATED: 2026/02/05
 TARGET_LOGIC: FLE v3.0 (Modular Architecture)
 ---
 
@@ -9,49 +9,33 @@ TARGET_LOGIC: FLE v3.0 (Modular Architecture)
 
 ## 🚀 初めての方へ
 
-このプロジェクトを初めて扱う場合、以下の順序で読むことを推奨します：
+このプロジェクトを初めて扱う場合、以下の順序で読むことを推奨します:
 
-1. **[Foundation README](../foundation/README.md)** - プロジェクト概要（必読）
-2. **[核心計算式](../foundation/core_formulas.md)** - 計算ロジックの基礎（必読）
-3. **[不変ルール](../foundation/rules_and_mechanics.md)** - ゲームメカニクス（必読）
-4. **[データ生成フロー](../foundation/data_generation.md)** - CSV→JSON変換（必読）
+1. **[GEMINI.md](../GEMINI.md)** - プロジェクト固有のルール(必読)
+2. **[核心計算式](../foundation/core_formulas.md)** - 計算ロジックの基礎(必読)
+3. **[不変ルール](../foundation/rules_and_mechanics.md)** - ゲームメカニクス(必読)
+4. **[データ生成フロー](../foundation/data_generation.md)** - CSV→JSON変換(必読)
 5. 本ドキュメント - システム全体の構成
 
 ---
 
-**Version**: 3.1.0  
-**Last Updated**: 2026/02/03  
+**Version**: 3.2.0  
+**Last Updated**: 2026/02/05  
 **Target Logic**: FLE v3.0 (Modular Architecture)
 
 ---
 
-## 📚 仕様書インデックス
+## 📚 ドキュメント構造
 
-システムドキュメントはモジュール化されました。詳細な仕様については以下の各ドキュメントを参照してください。
+### ゲーム仕様(不変のルール)
+- **[foundation/core_formulas.md](../foundation/core_formulas.md)** - 計算式と定数
+- **[foundation/rules_and_mechanics.md](../foundation/rules_and_mechanics.md)** - 不変ルール
+- **[foundation/data_generation.md](../foundation/data_generation.md)** - データ生成ルール
 
-### 1. ロジックとアルゴリズム
-*   **[コア計算ロジック (Core Calculation)](specs/Logic_Core.md)**
-    *   計算式: 確率 ($P_{Scenario}$, $P_{Hit}$)
-    *   重み補正 (ルアー/トレードリリース効果)
-    *   時間モデル (待機時間の積分計算、期待値)
-*   **[GP管理ロジック (GP Management)](specs/Logic_GP.md)** (New v3.0)
-    *   スキルコスト表
-    *   回復計算と持続可能性(Sustainability)指標
-
-### 2. ドメインとメカニクス
-*   **[ドメインメカニクス (Domain Mechanics)](specs/Domain_Mechanics.md)**
-    *   釣りサイクルの定義
-    *   魚の属性 (Jaws, Hook Time)
-    *   ルアーメカニクス (発見/型確定)
-
-### 3. 実装仕様
-*   **[UI/UX 仕様書](specs/UI_UX_Spec.md)**
-    *   画面レイアウト構成
-    *   インタラクションフローと依存関係チェーン
-    *   エラーハンドリング
-*   **[データスキーマ (Data Schema)](specs/Data_Schema.md)**
-    *   `logic_master.json` 構造定義
-    *   キーフォーマットと検索ルール
+### アーカイブ(参照のみ)
+- **archive/2026-02-05_archived_docs/reference/** - 旧ゲーム仕様リファレンス
+- **archive/2026-02-05_archived_docs/specs/** - 旧詳細仕様書
+- **archive/2026-02-05_archived_docs/foundation_README.md** - 旧AI引き継ぎガイド
 
 ---
 
@@ -72,3 +56,10 @@ TARGET_LOGIC: FLE v3.0 (Modular Architecture)
 
 ### 処理フロー
 `[UI入力]` -> `[main.js]` -> `[calculator.js] (optimizer/scenarioを使用)` -> `[Stats返却]` -> `[render.js]` -> `[DOM更新]`
+
+---
+
+## 📝 更新履歴
+
+- **2026/02/05**: ドキュメント構造整理。旧ドキュメントをarchive/2026-02-05_archived_docs/に移動。
+- **2026/02/03**: v3.1.0リリース

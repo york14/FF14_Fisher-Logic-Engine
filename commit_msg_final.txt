@@ -1,0 +1,8 @@
+feat: Data update and Document reorganization
+
+- Update Master Data (CSV & JSON) for Ambitious Lure support
+- Update logic (Cast time 1.0s, Trade Release GP exclusion)
+- Update UI (Wait time average, GP details, Strategy table GP column)
+- Organize documents (archive old specs, create UI_Spec_Human.md)
+- Add verify_data_update script
+- Update GEMINI.md

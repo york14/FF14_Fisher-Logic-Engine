@@ -1,0 +1,8 @@
+feat: UI updates and calculation fixes
+
+- Update CAST time from 0s to 1.0s
+- Exclude Trade Release 200GP from calculation
+- Add average wait time to fish table
+- Add GP recovery details to debug panel
+- Fix strategy detail table GP column to show consumption instead of balance
+- Add "Undecided" message to optimizer mode
