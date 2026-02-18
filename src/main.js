@@ -13,7 +13,9 @@ import {
     updateSpotDependents, updateLureUI, updateStrategyPresetsFilter
 } from './ui/controls.js';
 import {
-    renderManualModeResult, renderStrategyComparison, renderDebugDetails, renderResultTable
+    renderManualModeResult, renderStrategyComparison, renderDebugDetails, renderResultTable,
+    renderVariableManualResult, renderVariableDebugDetails,
+    renderVariableStrategyComparison
 } from './ui/render.js';
 import { initOptimizerTab } from './ui/tab_optimizer.js';
 
@@ -46,7 +48,7 @@ function init() {
         document.querySelectorAll('select:disabled, input:disabled').forEach(el => el.disabled = false);
         const isCatchAll = document.getElementById('isCatchAll');
         if (isCatchAll && isCatchAll.checked) {
-            const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
+            const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap', 'optASlap', 'optBSlap'];
             slapOpts.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) { el.value = 'なし'; el.disabled = true; }
@@ -178,15 +180,83 @@ async function initShareMode() {
                 renderDebugDetails(stats, calcConfig, config.isChum, scenarioId);
             }
         } else {
+            // Strategy Mode UI Restore
+            ['A', 'B'].forEach(set => {
+                const sDat = config[`strat${set}`];
+                if (sDat) {
+                    addOpt(`strat${set}Lure`, sDat.lureType || 'none');
+                    setVal(`strat${set}Quit`, sDat.quit || 'no');
+                    addOpt(`strat${set}Slap`, sDat.slap || 'なし');
+                    setVal(`strat${set}Chum`, sDat.chum || 'no');
+                    // Preset: find name from masterDB
+                    const preset = masterDB.strategy_presets.find(p => p.id === sDat.preset);
+                    const presetName = preset ? preset.name : sDat.preset;
+                    addOpt(`strat${set}Preset`, presetName);
+                    // Set the actual value to the preset ID for display
+                    const presetEl = document.getElementById(`strat${set}Preset`);
+                    if (presetEl && preset) {
+                        presetEl.innerHTML = '';
+                        presetEl.appendChild(new Option(preset.name, preset.id));
+                        presetEl.value = preset.id;
+                    }
+                }
+            });
+
+            // Strategy Calculation
+            const calcConfig = {
+                spot: config.spot, weather: config.weather, bait: config.bait,
+                target: config.target, isCatchAll: config.isCatchAll,
+            };
+            const sets = ['A', 'B'];
+            const results = {};
+
             if (config.isVariableMode) {
-                await runStrategyModeVariable(config);
+                // Variable mode strategy — inline calculation to avoid DOM dependency
+                sets.forEach(set => {
+                    const sDat = config[`strat${set}`];
+                    const setConfig = {
+                        lureType: sDat.lureType, quitIfNoDisc: sDat.quit === 'yes',
+                        slapFish: sDat.slap, isChum: sDat.chum === 'yes', presetId: sDat.preset
+                    };
+                    const preset = masterDB.strategy_presets.find(p => p.id === setConfig.presetId);
+                    if (!preset) {
+                        results[set] = { error: 'プリセット未選択', name: '(未選択)', description: '' };
+                        return;
+                    }
+                    const stratResult = calculateStrategySet(masterDB, probabilityMap, calcConfig, setConfig, preset, 100);
+                    if (stratResult.error) { results[set] = stratResult; return; }
+
+                    let weightedA = 0, weightedB = 0;
+                    const enrichedScenarios = [];
+                    for (const scn of stratResult.scenarios) {
+                        const scenarioConfig = { ...calcConfig, lureType: setConfig.lureType, quitIfNoDisc: setConfig.quitIfNoDisc };
+                        const stats = calculateScenarioStats(masterDB, probabilityMap, scenarioConfig, scn.id, setConfig.isChum, setConfig.slapFish, 100);
+                        if (stats.error || !stats.allFishStats.find(s => s.isTarget)) {
+                            enrichedScenarios.push({ ...scn, A: 0, B: 0 }); continue;
+                        }
+                        const tStat = stats.allFishStats.find(s => s.isTarget);
+                        const A_i = tStat.cycleTime - tStat.hookTime;
+                        const K = stats.weightDetails.filter(d => d.name !== calcConfig.target && !d.isHidden).reduce((acc, d) => acc + d.base, 0);
+                        const targetWD = stats.weightDetails.find(d => d.name === calcConfig.target);
+                        const M = (targetWD && targetWD.m !== '-') ? targetWD.m : 1.0;
+                        let sum_wT = 0;
+                        stats.allFishStats.filter(s => !s.isTarget).forEach(o => {
+                            const wd = stats.weightDetails.find(d => d.name === o.name);
+                            if (wd && !wd.isHidden) sum_wT += (wd.final * o.cycleTime);
+                        });
+                        const B_i = (K > 0 && M > 0) ? sum_wT / (M * K) : 0;
+                        weightedA += scn.prob * A_i;
+                        weightedB += scn.prob * B_i;
+                        enrichedScenarios.push({ ...scn, A: A_i, B: B_i });
+                    }
+                    const tp = stratResult.totalProb;
+                    results[set] = {
+                        ...stratResult, scenarios: enrichedScenarios,
+                        variableInfo: { A: tp > 0 ? weightedA / tp : 0, B: tp > 0 ? weightedB / tp : 0 }
+                    };
+                });
+                renderVariableStrategyComparison(results.A, results.B, calcConfig);
             } else {
-                // Strategy Render
-                const sets = ['A', 'B'];
-                const results = {};
-                const calcConfig = {
-                    spot: config.spot, weather: config.weather, bait: config.bait, target: config.target, isCatchAll: config.isCatchAll,
-                };
                 sets.forEach(set => {
                     const sDat = config[`strat${set}`];
                     const setConfig = {
@@ -276,10 +346,10 @@ function setupEventListeners() {
             const resManStrat = document.getElementById('result-content');
             const resOpt = document.getElementById('opt-results-container');
             if (currentMode === 'optimizer') {
-                resManStrat.style.display = 'none';
-                resOpt.style.display = 'block';
-                // 最適化モードは現在開発停止中
-                resOpt.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:1.2rem;">（未定）</div>';
+                resManStrat.style.display = 'block';
+                resOpt.style.display = 'none';
+                // 初期プレースホルダー表示（最適化実行で上書きされる）
+                resManStrat.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:1.2rem;">「最適化実行」ボタンで計算を開始してください</div>';
             } else {
                 resManStrat.style.display = 'block';
                 resOpt.style.display = 'none';
@@ -303,9 +373,11 @@ function setupEventListeners() {
         if (el) el.addEventListener('change', updateSimulation);
     });
 
+    document.getElementById('isVariableMode').addEventListener('change', updateSimulation);
+
     document.getElementById('isCatchAll').addEventListener('change', (e) => {
         const disabled = e.target.checked;
-        const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
+        const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap', 'optASlap', 'optBSlap'];
         slapOpts.forEach(id => {
             const el = document.getElementById(id);
             if (el) { el.value = 'なし'; el.disabled = disabled; }
@@ -336,7 +408,18 @@ function updateSimulation() {
     if (!masterDB) return;
     const spotVal = document.getElementById('currentSpot').value;
     if (!spotVal || !masterDB.spots[spotVal]) return;
-    if (masterDB.spots[spotVal].fish_list.length === 0) return;
+    const spotData = masterDB.spots[spotVal];
+    if (spotData.fish_list.length === 0) return;
+
+    // 隠し魚チェック: いる場合は変数モードを無効化
+    const vmCheck = document.getElementById('isVariableMode');
+    const hasHidden = spotData.fish_list.some(f => masterDB.fish[f]?.is_hidden);
+    if (hasHidden) {
+        vmCheck.disabled = true;
+        vmCheck.checked = false;
+    } else {
+        vmCheck.disabled = false;
+    }
 
     const config = {
         spot: spotVal,
@@ -344,7 +427,7 @@ function updateSimulation() {
         bait: document.getElementById('currentBait').value,
         target: document.getElementById('targetFishName').value,
         isCatchAll: document.getElementById('isCatchAll').checked,
-        isVariableMode: document.getElementById('isVariableMode').checked,
+        isVariableMode: vmCheck.checked,
         lureType: document.getElementById('lureType').value,
         quitIfNoDisc: false
     };
@@ -410,16 +493,16 @@ async function runManualModeVariable(config) {
     const resultContent = document.getElementById('result-content');
 
     let scenarioId, isChum, slapFish;
+    let validationSteps = [];
 
     if (config.isChum !== undefined) {
         // Share Mode
         isChum = config.isChum;
         slapFish = config.slapFish;
-        const steps = [];
         if (config.lureType !== 'none') {
             const count = parseInt(config.lureCount);
-            for (let i = 1; i <= count; i++) steps.push(config[`lureStep${i}`]);
-            scenarioId = constructScenarioId(config.lureType, count, steps);
+            for (let i = 1; i <= count; i++) validationSteps.push(config[`lureStep${i}`]);
+            scenarioId = constructScenarioId(config.lureType, count, validationSteps);
         } else {
             scenarioId = 'none_0';
         }
@@ -427,84 +510,193 @@ async function runManualModeVariable(config) {
         // DOM Mode
         isChum = document.getElementById('manualChum').value === 'yes';
         slapFish = document.getElementById('manualSurfaceSlap').value;
-        const steps = [];
         if (config.lureType !== 'none') {
             const c = parseInt(document.getElementById('lureCount').value);
-            for (let i = 1; i <= c; i++) steps.push(document.getElementById(`lureStep${i}`).value);
+            for (let i = 1; i <= c; i++) validationSteps.push(document.getElementById(`lureStep${i}`).value);
         }
-        scenarioId = constructScenarioId(config.lureType, document.getElementById('lureCount').value, steps);
+        scenarioId = constructScenarioId(config.lureType, document.getElementById('lureCount').value, validationSteps);
     }
 
-    // Run with p=0.5
-    const stats = calculateScenarioStats(masterDB, probabilityMap, config, scenarioId, isChum, slapFish, 0.5);
+    // Validation
+    let discCount = validationSteps.filter(s => s === 'disc').length;
+    const errorMsgEl = document.getElementById('lure-error-msg');
+    if (discCount > 1) {
+        if (errorMsgEl) errorMsgEl.style.display = 'block';
+        return;
+    } else {
+        if (errorMsgEl) errorMsgEl.style.display = 'none';
+    }
+
+    // Run with overrideP=100 (dummy base weight) to extract structural info
+    const stats = calculateScenarioStats(masterDB, probabilityMap, config, scenarioId, isChum, slapFish, 100);
 
     if (stats.error) {
         resultContent.innerHTML = `<div style="color:red">Error: ${stats.error}</div>`;
         return;
     }
 
-    // A, B, C calc
     const tStat = stats.allFishStats.find(s => s.isTarget);
-    if (!tStat) { resultContent.innerHTML = `<div style="color:red">Error: Target stats missing</div>`; return; }
-
-    const A = tStat.cycleTime - tStat.hookTime;
-    const others = stats.allFishStats.filter(s => !s.isTarget && s.hitRate > 0);
-    let sum_w_prime_T_others = 0;
-    others.forEach(o => {
-        const wd = stats.weightDetails.find(d => d.name === o.name);
-        if (wd) sum_w_prime_T_others += (wd.final * o.cycleTime);
-    });
-
-    const K = stats.weightDetails.filter(d => d.name !== config.target).reduce((acc, d) => acc + d.base, 0);
-    const targetWD = stats.weightDetails.find(d => d.name === config.target);
-    const M_target = (targetWD && targetWD.m !== '-') ? targetWD.m : 1.0;
-
-    let B = 0;
-    let formulaStr = `${A.toFixed(1)}`;
-
-    if (K > 0 && M_target > 0) {
-        B = sum_w_prime_T_others / (M_target * K);
-        formulaStr += ` + ${B.toFixed(2)} * (1-p)/p`;
-    } else {
-        formulaStr += ` (Fixed)`;
+    if (!tStat) {
+        resultContent.innerHTML = `<div style="color:red">Error: Target stats missing</div>`;
+        return;
     }
 
-    // Render Variable Result (Simplified inline for now)
-    const hitFormula = `Wait...`; // Simplified
+    // --- Extract constants for p-expression ---
+    // W_others_total: sum of final weights for ALL non-target fish
+    const wOthersTotal = stats.weightDetails
+        .filter(d => d.name !== config.target && !d.isHidden)
+        .reduce((acc, d) => acc + d.final, 0);
 
-    const chumTxt = isChum ? '使用する' : '未使用';
-    const slapTxt = (slapFish === 'なし') ? 'なし' : slapFish;
+    const targetWD = stats.weightDetails.find(d => d.name === config.target);
+    const targetM = (targetWD && targetWD.m !== '-') ? targetWD.m : 1.0;
 
-    resultContent.innerHTML = `
-        <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
-            <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待 (変数モード)</div>
-            <div id="main-result-time" style="font-size:1.4rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
-        </div>
-        <table><thead><tr><th>魚種</th><th>演出</th><th>ヒット率</th><th>待機時間</th><th>サイクル時間</th></tr></thead><tbody id="res-table-body"></tbody></table>
-         <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
-            <div>トレードリリース：<strong>${slapTxt}</strong></div>
-            <div>撒き餌：<strong>${chumTxt}</strong></div>
-            <div>シナリオ: ${stats.scenarioStr} (Prob: ${(stats.scenarioProb * 100).toFixed(1)}%)</div>
-        </div>`;
+    // R_i = w_i_final / W_others_total for each non-target fish
+    const fishRatios = stats.weightDetails
+        .filter(d => !d.isHidden)
+        .map(d => ({
+            name: d.name,
+            ratio: (d.name === config.target) ? null : (wOthersTotal > 0 ? d.final / wOthersTotal : 0),
+            isTarget: d.name === config.target,
+            baseW: d.base,
+            m: d.m,
+            finalW: d.final
+        }));
 
-    renderResultTable(stats.allFishStats, config.target, stats.scenarioStr, stats.scenarioProb, 0);
+    // A = target cycle - hook
+    const A = tStat.cycleTime - tStat.hookTime;
 
-    // Debug
-    document.getElementById('debug-content-wrapper').innerHTML = `
-        <div class="strat-card">
-            <h4>定数解析 (Constants)</h4>
-            <div><strong>A (Target Cost):</strong> ${A.toFixed(2)}</div>
-            <div><strong>B (Penalty Coeff):</strong> ${B.toFixed(2)}</div>
-        </div>`;
+    // B = sum(w_i_final * cycle_i for non-target) / (M_target * K)
+    // where K = sum of base weights of non-target
+    const K = stats.weightDetails
+        .filter(d => d.name !== config.target && !d.isHidden)
+        .reduce((acc, d) => acc + d.base, 0);
+
+    let sum_w_prime_T_others = 0;
+    stats.allFishStats.filter(s => !s.isTarget).forEach(o => {
+        const wd = stats.weightDetails.find(d => d.name === o.name);
+        if (wd && !wd.isHidden) sum_w_prime_T_others += (wd.final * o.cycleTime);
+    });
+
+    let B = 0;
+    if (K > 0 && targetM > 0) {
+        B = sum_w_prime_T_others / (targetM * K);
+    }
+
+    // S = sum(R_i * cycleTime_i) for avg cycle formula: p*Ct + (1-p)*S
+    let S = 0;
+    stats.allFishStats.filter(s => !s.isTarget).forEach(o => {
+        const fr = fishRatios.find(r => r.name === o.name);
+        if (fr && fr.ratio !== null) S += fr.ratio * o.cycleTime;
+    });
+
+    // GP cost per cycle (fixed, independent of p)
+    const gpCostPerCycle = stats.gpStats.cost.total;
+    const gpCostDetails = stats.gpStats.cost.details;
+
+    // Attach variableInfo to stats
+    stats.variableInfo = {
+        A, B, S,
+        targetM,
+        wOthersTotal,
+        fishRatios,
+        gpCostPerCycle,
+        gpCostDetails,
+        targetCycleTime: tStat.cycleTime
+    };
+
+    // Render using the dedicated variable-mode renderers
+    renderVariableManualResult(stats, config, isChum, slapFish);
+    renderVariableDebugDetails(stats, config, isChum, scenarioId);
 }
 
 async function runStrategyModeVariable(config) {
-    const resultContent = document.getElementById('result-content');
-    resultContent.innerHTML = `<div style="text-align:center; padding:20px;">Finding Boundary... (Refactor: Logic preserved but simplified)</div>`;
-    // ... (Binary search logic suppressed for brevity in refactor, can be restored if vital)
-    // For now, let's just show a placeholder or call runStrategyMode(config) 
-    // to avoid breakage if user clicks it.
-    runStrategyMode(config);
+    const sets = ['A', 'B'];
+    const results = {};
+
+    sets.forEach(set => {
+        const setConfig = {
+            lureType: document.getElementById(`strat${set}Lure`).value,
+            quitIfNoDisc: document.getElementById(`strat${set}Quit`).value === 'yes',
+            slapFish: document.getElementById(`strat${set}Slap`).value,
+            isChum: document.getElementById(`strat${set}Chum`).value === 'yes',
+            presetId: document.getElementById(`strat${set}Preset`).value
+        };
+        const preset = masterDB.strategy_presets.find(p => p.id === setConfig.presetId);
+
+        if (!preset) {
+            results[set] = { error: 'プリセット未選択', name: '(未選択)', description: '' };
+            return;
+        }
+
+        // Run normal calculateStrategySet with overrideP=100 to get structure
+        const stratResult = calculateStrategySet(masterDB, probabilityMap, config, setConfig, preset, 100);
+
+        if (stratResult.error) {
+            results[set] = stratResult;
+            return;
+        }
+
+        // For each scenario, calculate A_i and B_i
+        const targetInfo = masterDB.fish[config.target];
+        const tHook = targetInfo ? targetInfo.hook_time : 0;
+
+        let weightedA = 0, weightedB = 0;
+        const enrichedScenarios = [];
+
+        for (const scn of stratResult.scenarios) {
+            // Re-run individual scenario to get full stats
+            const scenarioConfig = { ...config, lureType: setConfig.lureType, quitIfNoDisc: setConfig.quitIfNoDisc };
+            const stats = calculateScenarioStats(masterDB, probabilityMap, scenarioConfig, scn.id, setConfig.isChum, setConfig.slapFish, 100);
+
+            if (stats.error) {
+                enrichedScenarios.push({ ...scn, A: 0, B: 0 });
+                continue;
+            }
+
+            const tStat = stats.allFishStats.find(s => s.isTarget);
+            if (!tStat) {
+                enrichedScenarios.push({ ...scn, A: 0, B: 0 });
+                continue;
+            }
+
+            const A_i = tStat.cycleTime - tStat.hookTime;
+
+            const wOthers = stats.weightDetails
+                .filter(d => d.name !== config.target && !d.isHidden)
+                .reduce((acc, d) => acc + d.final, 0);
+            const K = stats.weightDetails
+                .filter(d => d.name !== config.target && !d.isHidden)
+                .reduce((acc, d) => acc + d.base, 0);
+            const targetWD = stats.weightDetails.find(d => d.name === config.target);
+            const M = (targetWD && targetWD.m !== '-') ? targetWD.m : 1.0;
+
+            let sum_wT = 0;
+            stats.allFishStats.filter(s => !s.isTarget).forEach(o => {
+                const wd = stats.weightDetails.find(d => d.name === o.name);
+                if (wd && !wd.isHidden) sum_wT += (wd.final * o.cycleTime);
+            });
+
+            const B_i = (K > 0 && M > 0) ? sum_wT / (M * K) : 0;
+
+            weightedA += scn.prob * A_i;
+            weightedB += scn.prob * B_i;
+
+            enrichedScenarios.push({ ...scn, A: A_i, B: B_i });
+        }
+
+        // Strategy-level A and B
+        const tp = stratResult.totalProb;
+        const A_avg = tp > 0 ? weightedA / tp : 0;
+        const B_avg = tp > 0 ? weightedB / tp : 0;
+
+        results[set] = {
+            ...stratResult,
+            scenarios: enrichedScenarios,
+            variableInfo: { A: A_avg, B: B_avg }
+        };
+    });
+
+    renderVariableStrategyComparison(results.A, results.B, config);
 }
 
 init();

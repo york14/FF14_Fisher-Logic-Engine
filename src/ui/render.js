@@ -421,3 +421,441 @@ export function renderDebugDetails(stats, config, isChum, scenarioId) {
         gpEl.innerHTML = gpmHtml;
     }
 }
+
+// ========================================================================
+// Variable Mode Renderers
+// ========================================================================
+
+/**
+ * Renders the result section for Manual Mode in Variable (Unknown Weight) mode.
+ * Displays formulas using variable 'p' instead of fixed numeric values.
+ */
+export function renderVariableManualResult(stats, config, isChum, slapFish) {
+    const resultContent = document.getElementById('result-content');
+    if (!resultContent || !stats.variableInfo) return;
+
+    const vi = stats.variableInfo;
+    const chumTxt = isChum ? '使用する' : '未使用';
+    const slapTxt = (slapFish === 'なし') ? 'なし' : slapFish;
+
+    // Expected time formula string
+    let formulaStr = `${vi.A.toFixed(1)}`;
+    if (vi.B > 0) {
+        formulaStr += ` + ${vi.B.toFixed(2)} × (1-p)/p`;
+    } else {
+        formulaStr += ` (Fixed)`;
+    }
+
+    // GP formula (simplified)
+    const gpCost = vi.gpCostPerCycle;
+    let gpStr;
+    if (gpCost === 0) {
+        gpStr = '0.0 GP / sec';
+    } else {
+        const Ct = vi.targetCycleTime;
+        const S = vi.S;
+        if (Math.abs(Ct - S) < 0.01) {
+            // When Ct ≈ S, cycle is constant
+            gpStr = `${(gpCost / Ct).toFixed(1)} GP / sec`;
+        } else {
+            gpStr = `${gpCost} / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p)) GP/sec`;
+        }
+    }
+
+    // Avg cycle formula
+    const Ct = vi.targetCycleTime;
+    const S = vi.S;
+    let avgCycleStr;
+    if (Math.abs(Ct - S) < 0.01) {
+        avgCycleStr = `${Ct.toFixed(1)}sec`;
+    } else {
+        avgCycleStr = `${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p) sec`;
+    }
+
+    let scnPrefix = '';
+    if (config.lureType !== 'none') {
+        const cnt = document.getElementById('lureCount') ? document.getElementById('lureCount').value : (config.lureCount || '');
+        scnPrefix = `(${config.lureType} ${cnt}回): `;
+    }
+
+    resultContent.innerHTML = `
+        <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
+            <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待 (変数モード)</div>
+            <div style="font-size:1.4rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
+            <div style="font-size:0.9rem; margin-top:5px;">ヒット率: <strong>p</strong></div>
+            <div style="font-size:0.9rem; margin-top:3px;">GP消費(秒間)：${gpStr}</div>
+            <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
+                Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+            </div>
+        </div>
+        <table><thead><tr><th>魚種名</th><th>ヒット率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
+        <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+            <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
+                <div>トレードリリース：<strong>${slapTxt}</strong></div>
+                <div>撒き餌：<strong>${chumTxt}</strong></div>
+            </div>
+            <div id="scenario-str" style="margin-bottom: 4px;"></div>
+            <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;"></div>
+            <div id="avg-cycle-time"></div>
+        </div>`;
+
+    // Fill table body with p-expressions
+    const tbody = document.getElementById('res-table-body');
+    if (tbody) {
+        stats.allFishStats.forEach(s => {
+            const tr = document.createElement('tr');
+            if (s.isTarget) tr.classList.add('row-target');
+
+            // Hit rate as p-expression
+            let hitStr;
+            if (s.isTarget) {
+                hitStr = '<strong>p</strong>';
+            } else {
+                const fr = vi.fishRatios.find(r => r.name === s.name);
+                if (fr && fr.ratio !== null && fr.ratio > 0) {
+                    hitStr = `${(fr.ratio * 100).toFixed(1)}%×(1-p)`;
+                } else {
+                    hitStr = '0.0%';
+                }
+            }
+
+            // Wait time (same format as normal mode)
+            const waitTimeStr = (s.waitTimeAvg !== undefined && s.waitTimeMax > 0) ?
+                `${s.waitTimeMin.toFixed(1)}-${s.waitTimeMax.toFixed(1)}秒(平均 ${s.waitTimeAvg.toFixed(1)}秒)` : '-';
+
+            tr.innerHTML = `<td>${s.name}</td><td>${hitStr}</td><td>${waitTimeStr}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // Fill scenario / prob / avg cycle
+    const scStrEl = document.getElementById('scenario-str');
+    const scProbEl = document.getElementById('scenario-prob');
+    const avgEl = document.getElementById('avg-cycle-time');
+
+    if (scStrEl) scStrEl.textContent = `シナリオ: ${scnPrefix}${stats.scenarioStr}`;
+    if (scProbEl) scProbEl.textContent = `発生確率: ${(stats.scenarioProb * 100).toFixed(2)}%`;
+    if (avgEl) avgEl.textContent = `平均サイクル: ${avgCycleStr}`;
+}
+
+
+/**
+ * Renders the debug/details panel for Variable Mode.
+ * Same structure as renderDebugDetails but with p-based expressions.
+ */
+export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
+    const wrapper = document.getElementById('debug-content-wrapper');
+    if (!wrapper || !stats.variableInfo) return;
+
+    const vi = stats.variableInfo;
+    const c = GDS;
+
+    // Build skeleton
+    wrapper.innerHTML = `
+        <div class="debug-section">
+            <label>【定数】</label>
+            <div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div>
+        </div>
+        <div id="debug-scenario" class="formula-box" style="margin-top:10px;"></div>
+        <div id="debug-weights" style="font-size:0.75rem; margin-top:10px;"></div>
+        <div id="debug-calc-target" class="formula-box" style="margin-top:10px;"></div>
+        <div id="debug-calc-expect" class="formula-box" style="margin-top:10px;"></div>
+        <div id="debug-calc-gp" class="formula-box" style="margin-top:10px;"></div>
+    `;
+
+    // Constants
+    const dbgConst = document.getElementById('debug-constants');
+    if (dbgConst) dbgConst.innerHTML = `Cast:${c.D_CAST}s / Lure:${c.D_LURE}s / Block:${c.D_BLK}s / Rest:${c.D_REST}s / Chum:${c.D_CHUM}s`;
+
+    // Scenario info
+    const slapVal = config.slapFish || 'なし';
+    const label = getScenarioLabel(scenarioId);
+
+    let analysisHtml = `
+        <div style="font-size:0.7rem; color:#ccc; margin-bottom:6px; padding-bottom:6px; border-bottom:1px dashed #666; line-height:1.4;">
+            <div>Spot: ${config.spot}</div>
+            <div>Cond: ${config.weather} / Bait: ${config.bait}</div>
+            <div>Target: ${config.target}</div>
+            <div>Slap: ${slapVal} / Lure: ${config.lureType}</div>
+            <div>Mode: <strong style="color:var(--primary);">変数モード (Unknown Weight)</strong></div>
+        </div>
+        <div>特定キー: ${label} (${scenarioId})</div>`;
+
+    if (stats.debugData && stats.debugData.rates) {
+        const fmt = (arr) => arr ? arr.map(v => (v === null ? 'null' : v + '%')).join(', ') : '';
+        analysisHtml += `<div style="margin-top:5px; font-size:0.7rem; color:#bbb;">
+            <div>発見率: [${fmt(stats.debugData.rates.disc)}]</div>
+            <div>未発見型確定率: [${fmt(stats.debugData.rates.guar)}]</div>
+        </div>`;
+    }
+
+    analysisHtml += `<div>隠し魚ヒット率 (P_Hidden): 0.00% (変数モード: 隠し魚なし前提)</div>`;
+
+    const dbgScenario = document.getElementById('debug-scenario');
+    if (dbgScenario) dbgScenario.innerHTML = analysisHtml;
+
+    // Weight table with p-expressions
+    let wHtml = `<table style="width:100%; border-collapse:collapse; font-size:0.7rem;">
+        <tr style="border-bottom:1px solid #666; text-align:right;">
+            <th style="text-align:left">魚種</th><th>基礎W</th><th>M</th><th>最終W</th><th>確率</th>
+        </tr>`;
+
+    vi.fishRatios.forEach(d => {
+        if (d.isTarget) {
+            wHtml += `<tr style="text-align:right; color:var(--primary);">
+                <td style="text-align:left"><strong>★ ${d.name}</strong></td>
+                <td>?</td>
+                <td>x${d.m}</td>
+                <td>? × ${d.m}</td>
+                <td><strong>p</strong></td>
+            </tr>`;
+        } else {
+            const prob = d.ratio !== null ? `${(d.ratio * 100).toFixed(2)}%×(1-p)` : '0.00%';
+            wHtml += `<tr style="text-align:right;">
+                <td style="text-align:left">${d.name}</td>
+                <td>${d.baseW}</td>
+                <td>x${d.m}</td>
+                <td>${d.finalW.toFixed(1)}</td>
+                <td>${prob}</td>
+            </tr>`;
+        }
+    });
+
+    wHtml += `<tr style="border-top:1px solid #666; font-weight:bold; text-align:right;">
+        <td colspan="3">他魚合計(ΣW)</td><td>${vi.wOthersTotal.toFixed(1)}</td><td>1-p</td>
+    </tr>`;
+    wHtml += `</table>`;
+
+    const dbgWeights = document.getElementById('debug-weights');
+    if (dbgWeights) dbgWeights.innerHTML = wHtml;
+
+    // Fish cycle breakdown (same as normal - doesn't depend on p)
+    let targetTraceHtml = '';
+    const activeStats = stats.allFishStats.filter(s => {
+        // In variable mode, show all fish that could have hitRate > 0
+        const fr = vi.fishRatios.find(r => r.name === s.name);
+        return s.isTarget || (fr && fr.ratio !== null && fr.ratio > 0);
+    });
+
+    const pre = isChum ? c.D_CHUM : 0;
+
+    activeStats.forEach(s => {
+        const isTgt = s.isTarget;
+        const style = isTgt ? 'color:var(--accent-a); font-weight:bold;' : 'color:#ddd;';
+        const mark = isTgt ? '★' : '';
+        const isIntegral = s.cType && s.cType.includes('Integral');
+        const cTypeColor = isIntegral ? '#ffaa00' : '#888';
+
+        const fr = vi.fishRatios.find(r => r.name === s.name);
+        const hitStr = isTgt ? 'p' : (fr && fr.ratio ? `${(fr.ratio * 100).toFixed(1)}%×(1-p)` : '0%');
+
+        const parts = [];
+        if (pre > 0) parts.push(`撒き餌(${pre})`);
+        if (c.D_CAST > 0) parts.push(`キャス(${c.D_CAST})`);
+        parts.push(`待機(Avg)`);
+
+        const isCatch = (s.isTarget || config.isCatchAll);
+        const actionName = isCatch ? '釣り上げ' : '竿上げ';
+        parts.push(`${actionName}(${s.hookTime})`);
+
+        const breakdownStr = parts.join(' + ');
+        const chumTxt = isChum ? '(撒き餌有)' : '';
+
+        targetTraceHtml += `
+        <div style="margin-bottom:10px; border-bottom:1px dashed #444; padding-bottom:5px;">
+            <div style="font-size:0.85rem; ${style}">
+                ${mark} ${s.name} (Hit: ${hitStr})
+            </div>
+            <div style="font-size:0.75rem; margin-top:2px;">
+                <div>・補正待機: ${s.biteTimeMin.toFixed(1)}～${s.biteTimeMax.toFixed(1)}s ${chumTxt}</div>
+                <div>・ルアー拘束: ${s.lureTime.toFixed(1)}s</div>
+                <div>
+                    <strong>待機(Avg):</strong> ${s.waitTimeAvg.toFixed(2)}s (Min ${s.waitTimeMin.toFixed(1)} ～ Max ${s.waitTimeMax.toFixed(1)})
+                    <span style="color:${cTypeColor}; font-size:0.8em;">[${s.cType}]</span>
+                </div>
+                <div style="color:#aaa;">
+                    <strong>サイクル (${s.cycleTime.toFixed(1)}s):</strong> ${breakdownStr}
+                </div>
+            </div>
+        </div>`;
+    });
+
+    const dbgCalcT = document.getElementById('debug-calc-target');
+    if (dbgCalcT) dbgCalcT.innerHTML = targetTraceHtml;
+
+    // Expected time formula
+    let formulaStr = `${vi.A.toFixed(1)}`;
+    if (vi.B > 0) {
+        formulaStr += ` + ${vi.B.toFixed(2)} × (1-p)/p`;
+    }
+
+    const expectHtml = `
+        <div style="font-size:0.8rem;">
+            <div><strong>定数 A (ターゲットコスト):</strong> ${vi.A.toFixed(2)}s</div>
+            <div style="font-size:0.7rem; color:#888; margin-left:12px;">= サイクル(${vi.targetCycleTime.toFixed(1)}) - フッキング(${(vi.targetCycleTime - vi.A).toFixed(1)})</div>
+            <div style="margin-top:4px;"><strong>定数 B (ペナルティ係数):</strong> ${vi.B.toFixed(2)}</div>
+            <div style="font-size:0.7rem; color:#888; margin-left:12px;">= Σ(W_i × Cycle_i) / (M_target × K)</div>
+            <div style="margin-top:4px;"><strong>定数 S (他魚加重サイクル):</strong> ${vi.S.toFixed(2)}s</div>
+            <hr style="margin:8px 0; border:0; border-top:1px dashed #666;">
+            <div><strong>式:</strong> E[Time] = A + B × (1-p)/p</div>
+            <div style="margin:5px 0; color:#bbb; font-size:0.75rem; line-height:1.4;">
+                ※ p = ターゲットのヒット率（0-1）
+            </div>
+            <div style="margin-top:4px; color:var(--primary); font-size:1.1rem; font-weight:bold;">${formulaStr}</div>
+        </div>
+    `;
+    const dbgCalcE = document.getElementById('debug-calc-expect');
+    if (dbgCalcE) dbgCalcE.innerHTML = expectHtml;
+
+    // GP Analysis (simplified for variable mode)
+    const gpEl = document.getElementById('debug-calc-gp');
+    if (gpEl && stats.gpStats) {
+        const gpCost = vi.gpCostPerCycle;
+        const naturalRecoveryPerSec = 8.0 / 3.0;
+        const cordialRecoveryPerSec = 400.0 / 180.0;
+        const totalRecoveryPerSec = naturalRecoveryPerSec + cordialRecoveryPerSec;
+
+        const gpHtml = `
+            <div style="font-size:0.8rem;">
+                <div style="font-weight:bold; color:#ddd;">GP分析 (変数モード)</div>
+                <hr style="margin:5px 0; border:0; border-top:1px dashed #666;">
+                <div style="margin-bottom:10px;">
+                    <div style="color:#aaa; font-size:0.75rem;">GP消費 / サイクル</div>
+                    <div style="font-size:1.1rem; font-weight:bold;">${gpCost} GP</div>
+                    <div style="font-size:0.7rem; color:#888; margin-top:2px;">消費内訳: ${vi.gpCostDetails.map(d => `${d.name} ${d.cost}GP`).join(', ') || 'なし'}</div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <div style="color:#aaa; font-size:0.75rem;">GP回復(秒間)</div>
+                    <div style="font-size:0.85rem;">
+                        <div>・自然回復: ${naturalRecoveryPerSec.toFixed(2)} GP/sec</div>
+                        <div>・ハイコーディアル: ${cordialRecoveryPerSec.toFixed(2)} GP/sec</div>
+                        <div style="margin-top:3px; font-weight:bold;">合計: ${totalRecoveryPerSec.toFixed(2)} GP/sec</div>
+                    </div>
+                </div>
+                <div style="margin-bottom:10px;">
+                    <div style="color:#aaa; font-size:0.75rem;">GP消費(秒間) - pに依存</div>
+                    <div style="font-size:0.85rem; color:#bbb;">
+                        ${gpCost} / (${vi.targetCycleTime.toFixed(1)}p + ${vi.S.toFixed(1)}(1-p)) GP/sec
+                    </div>
+                </div>
+            </div>
+        `;
+        gpEl.innerHTML = gpHtml;
+    }
+}
+
+/**
+ * Renders strategy comparison in Variable Mode.
+ * Shows A + B × (1-p)/p formula for expected time in each strategy card.
+ */
+export function renderVariableStrategyComparison(resA, resB, config) {
+    const resultContent = document.getElementById('result-content');
+    const right = document.getElementById('debug-content-wrapper');
+
+    const buildCard = (res, label, color) => {
+        if (res.error) {
+            return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name || label}</h4><div style="color:red">⚠️ ${res.error}</div></div>`;
+        }
+
+        const vi = res.variableInfo;
+        let formulaStr = `${vi.A.toFixed(1)}`;
+        if (vi.B > 0) {
+            formulaStr += `<span style="font-size:0.6em; margin-left:2px;"> + ${vi.B.toFixed(2)}×(1-p)/p</span>`;
+        }
+
+        const hit = 'p';
+        const cycle = `${res.avgCycle.toFixed(1)}s`;
+
+        // GP per sec is complex in variable mode, show simplified
+        const gp = res.gpStats;
+        const gpStr = gp ? `${gp.cost.total.toFixed(0)}GP/cyc` : '-';
+
+        let top3Html = '';
+        if (res.scenarios) {
+            const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob).slice(0, 3);
+            top3Html = `<div class="top3-container"><div class="top3-title">高確率シナリオ Top3</div>${sorted.map(s => {
+                const expStr = (s.A !== undefined && s.B !== undefined) ?
+                    `${s.A.toFixed(1)}+${s.B.toFixed(1)}(1-p)/p` : '-';
+                return `
+                <div class="top3-item"><div style="color:${color};font-weight:bold;">${s.label} ${(s.isQuit ? '<span style="color:red">!</span>' : '')}</div>
+                <div class="top3-stats"><span>Hit:p</span><span>発生:${(s.prob * 100).toFixed(1)}%</span></div>
+                <div style="font-size:0.7rem; color:#aaa;">E[T]: ${expStr}</div>
+                </div>`;
+            }).join('')}</div>`;
+        }
+
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${formulaStr}</div><div class="val-label">期待時間 (変数モード)</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div></div>${top3Html}</div>`;
+    };
+
+    if (resultContent) {
+        resultContent.innerHTML = `<div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
+    }
+
+    // Debug tables
+    let debugHtml = `<div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>`;
+    debugHtml += buildVariableStrategyDebugTable(resA, "Set A", "var(--accent-a)");
+    debugHtml += buildVariableStrategyDebugTable(resB, "Set B", "var(--accent-b)");
+
+    if (right) {
+        right.innerHTML = debugHtml;
+    }
+
+    const tCast = GDS.D_CAST, tLure = GDS.D_LURE, tRest = GDS.D_REST, tBlk = GDS.D_BLK;
+    const dbgConst = document.getElementById('debug-constants');
+    if (dbgConst) dbgConst.innerHTML = `Cast:${tCast}s / Lure:${tLure}s / Block:${tBlk}s / Rest:${tRest}s`;
+}
+
+function buildVariableStrategyDebugTable(res, label, color) {
+    if (res.error) return `<div class="debug-section" style="border-left:3px solid ${color}; padding-left:10px;"><label style="color:${color}">${label}</label><div style="color:red">${res.error}</div></div>`;
+
+    const vi = res.variableInfo;
+    let formulaStr = `${vi.A.toFixed(2)} + ${vi.B.toFixed(2)} × (1-p)/p`;
+
+    let html = `<div class="debug-section" style="border-left:3px solid ${color}; padding-left:10px;">
+        <label style="color:${color}">${label} (${res.name})</label>
+        <div style="font-size:0.7rem; color:#ccc; margin-bottom:5px;">Slap: ${res.Slap} / TotalProb: ${(res.totalProb * 100).toFixed(1)}%</div>
+        <div style="font-size:0.75rem; color:var(--primary); margin-bottom:8px; font-weight:bold;">
+            E[Time] = ${formulaStr}
+        </div>
+        <div style="overflow-x:auto; max-height:200px; overflow-y:auto; border:1px solid #444;">
+        <table style="width:100%; font-size:0.7rem; border-collapse:collapse;">
+            <thead style="position:sticky; top:0; background:#333;">
+                <tr><th>シナリオ</th><th>確率</th><th>Hit</th><th>A</th><th>B</th><th>E[Time]</th><th>GP</th></tr>
+            </thead>
+            <tbody>`;
+
+    const sorted = [...res.scenarios].sort((a, b) => b.prob - a.prob);
+
+    sorted.forEach(s => {
+        const quitMark = s.isQuit ? '<span style="color:red; font-weight:bold;">!</span> ' : '';
+        const gp = s.gpStats;
+        const gpStr = gp ? gp.cost.total.toString() : '-';
+        const expStr = `${s.A.toFixed(1)}+${s.B.toFixed(1)}(1-p)/p`;
+
+        html += `<tr>
+            <td style="white-space:nowrap;">${quitMark}${s.label}</td>
+            <td>${(s.prob * 100).toFixed(1)}%</td>
+            <td>p</td>
+            <td>${s.A.toFixed(1)}</td>
+            <td>${s.B.toFixed(1)}</td>
+            <td style="white-space:nowrap;">${expStr}</td>
+            <td>${gpStr}</td>
+        </tr>`;
+    });
+
+    // Footer
+    html += `</tbody>
+            <tfoot style="position:sticky; bottom:0; background:#333; font-weight:bold;">
+                <tr>
+                    <td>加重平均</td>
+                    <td>${(res.totalProb * 100).toFixed(0)}%</td>
+                    <td>p</td>
+                    <td>${vi.A.toFixed(1)}</td>
+                    <td>${vi.B.toFixed(1)}</td>
+                    <td style="white-space:nowrap;">${vi.A.toFixed(1)}+${vi.B.toFixed(1)}(1-p)/p</td>
+                    <td>${res.gpStats ? res.gpStats.cost.total.toFixed(0) : '-'}</td>
+                </tr>
+            </tfoot>
+        </table></div></div>`;
+    return html;
+}

@@ -215,27 +215,84 @@
                     </div>
 
                     <div id="mode-optimizer" class="mode-container">
+                        <div class="section-label">制限条件</div>
                         <div class="input-group">
-                            <label>ウィンドウ時間 (秒)</label>
-                            <input type="number" id="opt-window-time" value="350" step="5">
+                            <label>制限時間 (秒)</label>
+                            <input type="number" id="opt-window-time" value="350" step="5" min="10">
                         </div>
                         <div class="input-group">
                             <label>初期GP</label>
-                            <input type="number" id="opt-initial-gp" value="1000" step="50">
-                        </div>
-                        <hr class="divider">
-                        <div class="input-group checkbox-group">
-                            <input type="checkbox" id="opt-use-override-p">
-                            <label for="opt-use-override-p">重み上書き (Override Weight)</label>
+                            <input type="number" id="opt-initial-gp" value="1000" step="50" min="0" max="1000">
                         </div>
                         <div class="input-group">
-                            <label>ターゲット基礎重み (Base Weight)</label>
-                            <input type="number" id="opt-override-p" value="200" step="10">
+                            <label>サリャクの恩寵 回数</label>
+                            <input type="number" id="opt-saljak-count" value="0" step="1" min="0" max="10">
                         </div>
+
+                        <hr class="divider">
+                        <div class="strategy-set-group" style="border-left: 3px solid var(--accent-red);">
+                            <div class="set-label" style="color:var(--accent-red)">戦略セットA（GP赤字）</div>
+                            <div class="input-group">
+                                <label>ルアータイプ</label>
+                                <select id="optALure">
+                                    <option value="none">なし</option>
+                                    <option value="モデストルアー">モデストルアー</option>
+                                    <option value="アンビシャスルアー">アンビシャスルアー</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>ルアー戦略</label>
+                                <select id="optAPreset" disabled></select>
+                            </div>
+                            <div class="input-group">
+                                <label>トレードリリース</label>
+                                <select id="optASlap" disabled>
+                                    <option value="なし">なし</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>撒き餌</label>
+                                <select id="optAChum">
+                                    <option value="no">未使用</option>
+                                    <option value="yes">使用する</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="strategy-set-group"
+                            style="border-left: 3px solid var(--accent-green); margin-top: 15px;">
+                            <div class="set-label" style="color:var(--accent-green)">戦略セットB（GP黒字）</div>
+                            <div class="input-group">
+                                <label>ルアータイプ</label>
+                                <select id="optBLure">
+                                    <option value="none">なし</option>
+                                    <option value="モデストルアー">モデストルアー</option>
+                                    <option value="アンビシャスルアー">アンビシャスルアー</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>ルアー戦略</label>
+                                <select id="optBPreset" disabled></select>
+                            </div>
+                            <div class="input-group">
+                                <label>トレードリリース</label>
+                                <select id="optBSlap" disabled>
+                                    <option value="なし">なし</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>撒き餌</label>
+                                <select id="optBChum">
+                                    <option value="no">未使用</option>
+                                    <option value="yes">使用する</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div style="margin-top:20px;">
                             <button id="opt-run-btn"
                                 style="width:100%; padding:10px; background:var(--primary); color:#fff; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">
-                                最適化実行 (Run Optimizer)
+                                最適化実行
                             </button>
                         </div>
                     </div>

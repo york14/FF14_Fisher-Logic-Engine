@@ -65,7 +65,7 @@ body { margin: 0; background-color: #0b1120; color: var(--text-main); font-famil
 /* 入力フォーム */
 .input-group { margin-bottom: 15px; }
 label { display: block; font-size: 0.85rem; margin-bottom: 5px; color: var(--text-muted); }
-select, input[type="text"] { width: 100%; padding: 8px; background: #0f172a; color: white; border: 1px solid var(--border); border-radius: 4px; }
+select, input[type="text"], input[type="number"] { width: 100%; padding: 8px; background: #0f172a; color: white; border: 1px solid var(--border); border-radius: 4px; }
 select:disabled { opacity: 0.5; cursor: not-allowed; }
 .checkbox-group { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
 .divider { border: 0; border-top: 1px solid var(--border); margin: 15px 0; }

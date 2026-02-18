@@ -61,7 +61,7 @@ export function populateSelectors(masterDB) {
     }
 
     const presets = masterDB.strategy_presets || [];
-    ['stratAPreset', 'stratBPreset'].forEach(id => {
+    ['stratAPreset', 'stratBPreset', 'optAPreset', 'optBPreset'].forEach(id => {
         const sel = document.getElementById(id);
         if (sel) {
             sel.innerHTML = '';
@@ -132,7 +132,7 @@ export function updateSpotDependents(masterDB, updateSimulationCallback) {
     updateSelect('currentBait', spotData.baits);
     updateSelect('targetFishName', spotData.fish_list);
 
-    const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap'];
+    const slapOpts = ['manualSurfaceSlap', 'stratASlap', 'stratBSlap', 'optASlap', 'optBSlap'];
     slapOpts.forEach(id => {
         const sel = document.getElementById(id);
         if (sel) {
