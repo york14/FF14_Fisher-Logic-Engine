@@ -39,7 +39,8 @@
 
                 <div class="tab-group">
                     <button class="tab-btn active" data-mode="manual" disabled>手動設定</button>
-                    <button class="tab-btn" data-mode="strategy" disabled>戦略評価</button>
+                    <button class="tab-btn" data-mode="strategy" disabled>L戦略評価</button>
+                    <button class="tab-btn" data-mode="optimizer" disabled>総合戦略評価</button>
                 </div>
 
                 <!-- ID for mode-manual is required for logic -->
@@ -120,6 +121,46 @@
                         <div class="input-group"><label>撒き餌</label><select id="stratBChum" disabled>
                                 <option value="no">未使用</option>
                                 <option value="yes">使用する</option>
+                            </select></div>
+                    </div>
+                </div>
+
+                <div id="mode-optimizer" class="mode-container">
+                    <div class="section-label">制約パラメータ</div>
+                    <div class="input-group"><label>制限時間(秒)</label><input type="number" id="opt-window-time" disabled>
+                    </div>
+                    <div class="input-group"><label>初期GP</label><input type="number" id="opt-initial-gp" disabled></div>
+                    <div class="input-group"><label>サリャク回数</label><input type="number" id="opt-saljak-count" disabled>
+                    </div>
+                    <hr class="divider">
+                    <div class="strategy-set-group" style="border-left: 3px solid var(--accent-red);">
+                        <div class="set-label" style="color:var(--accent-red)">セット A</div>
+                        <div class="input-group"><label>ルアー</label><select id="optALure" disabled>
+                                <option>-</option>
+                            </select></div>
+                        <div class="input-group"><label>プリセット</label><select id="optAPreset" disabled>
+                                <option>-</option>
+                            </select></div>
+                        <div class="input-group"><label>トレード</label><select id="optASlap" disabled>
+                                <option>-</option>
+                            </select></div>
+                        <div class="input-group"><label>撒き餌</label><select id="optAChum" disabled>
+                                <option>-</option>
+                            </select></div>
+                    </div>
+                    <div class="strategy-set-group" style="border-left: 3px solid var(--accent-green);">
+                        <div class="set-label" style="color:var(--accent-green)">セット B</div>
+                        <div class="input-group"><label>ルアー</label><select id="optBLure" disabled>
+                                <option>-</option>
+                            </select></div>
+                        <div class="input-group"><label>プリセット</label><select id="optBPreset" disabled>
+                                <option>-</option>
+                            </select></div>
+                        <div class="input-group"><label>トレード</label><select id="optBSlap" disabled>
+                                <option>-</option>
+                            </select></div>
+                        <div class="input-group"><label>撒き餌</label><select id="optBChum" disabled>
+                                <option>-</option>
                             </select></div>
                     </div>
                 </div>

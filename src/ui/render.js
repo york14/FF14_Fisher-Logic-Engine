@@ -58,6 +58,7 @@ export function renderManualModeResult(stats, config, isChum, slapFish) {
 
     if (resultContent) {
         resultContent.innerHTML = `
+            <div style="font-size:1.3rem; font-weight:bold; margin-bottom:10px; color:var(--primary)">手動設定</div>
             <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
                 <div style="font-size:0.8rem; color:var(--text-muted);">期待時間</div>
                 <div style="font-size:2rem; font-weight:bold; color:var(--primary);">${expTimeStr}</div>
@@ -113,7 +114,12 @@ export function renderStrategyComparison(resA, resB, config) {
     };
 
     if (resultContent) {
-        resultContent.innerHTML = `<div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
+        resultContent.innerHTML = `
+            <div style="font-size:1.3rem; font-weight:bold; margin-bottom:5px; color:var(--primary)">L戦略評価</div>
+            <div style="font-size:0.75rem; margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed #444; color:#888;">
+                Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+            </div>
+            <div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
     }
 
     let debugHtml = `<div class="debug-section"><label>【定数】</label><div id="debug-constants" class="formula-box" style="font-size:0.75rem;"></div></div>`;
@@ -479,6 +485,7 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
     }
 
     resultContent.innerHTML = `
+        <div style="font-size:1.3rem; font-weight:bold; margin-bottom:10px; color:var(--primary)">手動設定（変数モード）</div>
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
             <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待 (変数モード)</div>
             <div style="font-size:1.4rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
@@ -788,7 +795,12 @@ export function renderVariableStrategyComparison(resA, resB, config) {
     };
 
     if (resultContent) {
-        resultContent.innerHTML = `<div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
+        resultContent.innerHTML = `
+            <div style="font-size:1.3rem; font-weight:bold; margin-bottom:5px; color:var(--primary)">L戦略評価（変数モード）</div>
+            <div style="font-size:0.75rem; margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed #444; color:#888;">
+                Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+            </div>
+            <div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
     }
 
     // Debug tables

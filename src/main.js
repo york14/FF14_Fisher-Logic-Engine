@@ -17,7 +17,7 @@ import {
     renderVariableManualResult, renderVariableDebugDetails,
     renderVariableStrategyComparison
 } from './ui/render.js';
-import { initOptimizerTab } from './ui/tab_optimizer.js';
+import { initOptimizerTab, runOptimizationV2 } from './ui/tab_optimizer.js';
 
 let masterDB = null;
 let probabilityMap = null;
@@ -59,8 +59,30 @@ function init() {
         initResizers();
         updateLureUI();
         populateSelectors(masterDB);
+
+        // デフォルト設定: 満ちた玄関 / 曇り雨16-18 / ゴーストニッパー / リッチパース
+        const defaults = {
+            expansion: '黄金の遺産_7.x',
+            area: 'トライヨラ',
+            spot: '満ちた玄関',
+            weather: '曇り雨16-18',
+            bait: 'ゴーストニッパー',
+            target: 'リッチパース'
+        };
+        const setIfExists = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && Array.from(el.options).some(o => o.value === val)) el.value = val;
+        };
+        setIfExists('currentExpansion', defaults.expansion);
         updateAreaOptions(masterDB);
-        updateSpotDependents(masterDB, updateSimulation);
+        setIfExists('currentArea', defaults.area);
+        updateSpotOptions(masterDB);
+        setIfExists('currentSpot', defaults.spot);
+        updateSpotDependents(masterDB, () => { }); // populate weather/bait/target without triggering simulation yet
+        setIfExists('currentWeather', defaults.weather);
+        setIfExists('currentBait', defaults.bait);
+        setIfExists('targetFishName', defaults.target);
+        updateSimulation();
         initOptimizerTab(masterDB, probabilityMap);
 
         // Share Button Listener
@@ -153,6 +175,15 @@ async function initShareMode() {
             c.classList.toggle('active', c.id === `mode-${config.mode}`);
         });
 
+        // 手動設定の UI 復元（share.htmlのmode-manual内要素）
+        addOpt('manualSurfaceSlap', config.slapFish || 'なし');
+        setVal('manualChum', config.isChum ? 'yes' : 'no');
+        addOpt('lureType', config.lureType || 'none');
+        setVal('lureCount', config.lureCount || '1');
+        setVal('lureStep1', config.lureStep1 || 'disc');
+        setVal('lureStep2', config.lureStep2 || 'disc');
+        setVal('lureStep3', config.lureStep3 || 'disc');
+
         if (config.mode === 'manual') {
             if (config.isVariableMode) {
                 await runManualModeVariable(config);
@@ -179,6 +210,35 @@ async function initShareMode() {
                 // Debug details
                 renderDebugDetails(stats, calcConfig, config.isChum, scenarioId);
             }
+        } else if (config.mode === 'optimizer') {
+            // Optimizer Mode UI Restore
+            const opt = config.opt || {};
+
+            // 制約パラメータ
+            setVal('opt-window-time', opt.time || '350');
+            setVal('opt-initial-gp', opt.gp || '1000');
+            setVal('opt-saljak-count', opt.saljak || '0');
+
+            // SetA / SetB
+            ['A', 'B'].forEach(side => {
+                const s = opt[`set${side}`] || {};
+                addOpt(`opt${side}Lure`, s.lure || 'none');
+                addOpt(`opt${side}Slap`, s.slap || 'なし');
+                addOpt(`opt${side}Chum`, s.chum || 'no');
+                // Preset: find name from masterDB
+                const presetId = s.preset || '';
+                const preset = masterDB.strategy_presets.find(p => p.id === presetId);
+                const presetEl = document.getElementById(`opt${side}Preset`);
+                if (presetEl && preset) {
+                    presetEl.innerHTML = '';
+                    presetEl.appendChild(new Option(preset.name, preset.id));
+                    presetEl.value = preset.id;
+                }
+            });
+
+            // Run optimizer calculation
+            runOptimizationV2(masterDB, probabilityMap, config.isVariableMode);
+
         } else {
             // Strategy Mode UI Restore
             ['A', 'B'].forEach(set => {
@@ -313,6 +373,27 @@ function serializeStateToURL() {
         }
     };
 
+    // Optimizer-specific fields
+    if (currentMode === 'optimizer') {
+        state.opt = {
+            time: document.getElementById('opt-window-time').value,
+            gp: document.getElementById('opt-initial-gp').value,
+            saljak: document.getElementById('opt-saljak-count').value,
+            setA: {
+                lure: document.getElementById('optALure').value,
+                preset: document.getElementById('optAPreset').value,
+                slap: document.getElementById('optASlap').value,
+                chum: document.getElementById('optAChum').value
+            },
+            setB: {
+                lure: document.getElementById('optBLure').value,
+                preset: document.getElementById('optBPreset').value,
+                slap: document.getElementById('optBSlap').value,
+                chum: document.getElementById('optBChum').value
+            }
+        };
+    }
+
     try {
         const jsonStr = JSON.stringify(state);
         const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
@@ -345,16 +426,14 @@ function setupEventListeners() {
             // Toggle Result Containers
             const resManStrat = document.getElementById('result-content');
             const resOpt = document.getElementById('opt-results-container');
-            if (currentMode === 'optimizer') {
-                resManStrat.style.display = 'block';
-                resOpt.style.display = 'none';
-                // 初期プレースホルダー表示（最適化実行で上書きされる）
-                resManStrat.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:1.2rem;">「最適化実行」ボタンで計算を開始してください</div>';
-            } else {
-                resManStrat.style.display = 'block';
-                resOpt.style.display = 'none';
-                updateSimulation();
-            }
+            resManStrat.style.display = 'block';
+            resOpt.style.display = 'none';
+
+            // 詳細パネルの全デバッグ要素をクリア（前モードの表示残留を防止）
+            const debugIds = ['debug-content-wrapper', 'debug-constants', 'debug-scenario', 'debug-weights', 'debug-calc-target', 'debug-calc-expect'];
+            debugIds.forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = ''; });
+
+            updateSimulation();
         });
     });
 
@@ -401,6 +480,17 @@ function setupEventListeners() {
                 updateSimulation();
             });
         });
+
+    // Optimizer tab UI elements → reactive recalculation
+    ['opt-window-time', 'opt-initial-gp', 'opt-saljak-count',
+        'optALure', 'optAPreset', 'optASlap', 'optAChum',
+        'optBLure', 'optBPreset', 'optBSlap', 'optBChum'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const evType = el.tagName === 'INPUT' ? 'input' : 'change';
+                el.addEventListener(evType, updateSimulation);
+            }
+        });
 }
 
 
@@ -435,6 +525,9 @@ function updateSimulation() {
     if (currentMode === 'manual') {
         if (config.isVariableMode) runManualModeVariable(config);
         else runManualMode(config);
+    }
+    else if (currentMode === 'optimizer') {
+        runOptimizationV2(masterDB, probabilityMap, config.isVariableMode);
     }
     else {
         if (config.isVariableMode) runStrategyModeVariable(config);

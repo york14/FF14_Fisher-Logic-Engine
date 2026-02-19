@@ -5,14 +5,15 @@
  * 2つの戦略セット（GP赤字 A / GP黒字 B）を組み合わせ、
  * 制限時間内でGPをちょうど使い切る最適配分を連立方程式で求める。
  */
-import { calculateStrategySet } from '../core/calculator.js';
+import { calculateStrategySet, calculateScenarioStats } from '../core/calculator.js';
 import { calculateGPBalance, GP_CONSTANTS } from '../core/optimizer.js';
 
 export function initOptimizerTab(masterDB, probabilityMap) {
     const runBtn = document.getElementById('opt-run-btn');
     if (runBtn) {
         runBtn.addEventListener('click', () => {
-            runOptimizationV2(masterDB, probabilityMap);
+            const isVar = document.getElementById('isVariableMode')?.checked || false;
+            runOptimizationV2(masterDB, probabilityMap, isVar);
         });
     }
 
@@ -54,9 +55,10 @@ function filterOptimizerPresets(prefix, lureType, masterDB) {
 /**
  * Main optimization entry point.
  * Reads UI inputs, calculates strategy stats, solves the linear system, and renders results.
+ * @param {boolean} isVariableMode - If true, calculates as p-expression instead of fixed probability.
  */
-function runOptimizationV2(masterDB, probabilityMap) {
-    console.log("Starting Optimization V2 (総合戦略評価)...");
+export function runOptimizationV2(masterDB, probabilityMap, isVariableMode = false) {
+    console.log(`Starting Optimization V2 (総合戦略評価)... variableMode=${isVariableMode}`);
 
     // --- 1. Gather Common Inputs ---
     const spot = document.getElementById('currentSpot').value;
@@ -96,8 +98,10 @@ function runOptimizationV2(masterDB, probabilityMap) {
     }
 
     // --- 4. Calculate strategy stats ---
-    const resultA = calculateStrategySet(masterDB, probabilityMap, calcConfig, setConfigA, presetA);
-    const resultB = calculateStrategySet(masterDB, probabilityMap, calcConfig, setConfigB, presetB);
+    // In variable mode, use overrideP=100 to extract structural constants
+    const overrideP = isVariableMode ? 100 : null;
+    const resultA = calculateStrategySet(masterDB, probabilityMap, calcConfig, setConfigA, presetA, overrideP);
+    const resultB = calculateStrategySet(masterDB, probabilityMap, calcConfig, setConfigB, presetB, overrideP);
 
     if (resultA.error) { renderOptimizerError(`戦略セットA エラー: ${resultA.error}`); return; }
     if (resultB.error) { renderOptimizerError(`戦略セットB エラー: ${resultB.error}`); return; }
@@ -119,6 +123,14 @@ function runOptimizationV2(masterDB, probabilityMap) {
     console.log(`Set A: cycle=${cycleA.toFixed(1)}s, hit=${hitRateA.toFixed(4)}, gpCost=${gpCostA}, gpNet=${gpNetA.toFixed(1)}`);
     console.log(`Set B: cycle=${cycleB.toFixed(1)}s, hit=${hitRateB.toFixed(4)}, gpCost=${gpCostB}, gpNet=${gpNetB.toFixed(1)}`);
 
+    // --- Variable Mode Branch ---
+    if (isVariableMode) {
+        runOptimizerVariableMode(masterDB, probabilityMap, calcConfig, setConfigA, setConfigB,
+            presetA, presetB, resultA, resultB, T, totalGP, saljakCount, GP0,
+            cycleA, cycleB, gpCostA, gpCostB, gpNetA, gpNetB, gpBalanceA, gpBalanceB);
+        return;
+    }
+
     // --- 6. Validate GP赤字/黒字 ---
     let warnings = [];
     if (gpNetA >= 0) {
@@ -129,12 +141,6 @@ function runOptimizationV2(masterDB, probabilityMap) {
     }
 
     // --- 7. Solve linear system ---
-    // n_A * cycle_A + n_B * cycle_B = T            ... (1) Time
-    // n_A * gpNet_A + n_B * gpNet_B = -totalGP      ... (2) GP exhaustion
-    //
-    // Matrix form: [cycle_A, cycle_B] [n_A]   [T       ]
-    //              [gpNet_A, gpNet_B] [n_B] = [-totalGP ]
-
     const det = cycleA * gpNetB - cycleB * gpNetA;
 
     if (Math.abs(det) < 1e-9) {
@@ -144,10 +150,6 @@ function runOptimizationV2(masterDB, probabilityMap) {
 
     const nA = (T * gpNetB - (-totalGP) * cycleB) / det;
     const nB = ((-totalGP) * cycleA - T * gpNetA) / det;
-
-    // Correct formula: Using Cramer's rule
-    // nA = (T * gpNetB - (-totalGP) * cycleB) / det = (T * gpNetB + totalGP * cycleB) / det
-    // nB = ((-totalGP) * cycleA - T * gpNetA) / det = (-totalGP * cycleA - T * gpNetA) / det
 
     console.log(`Solution: nA=${nA.toFixed(2)}, nB=${nB.toFixed(2)}`);
 
@@ -241,6 +243,10 @@ function renderOptimizerResult(result) {
         : '<span style="color:var(--accent-red); font-weight:bold;">❌ 不成立</span>';
 
     let html = warningHtml + `
+        <div style="font-size:1.3rem; font-weight:bold; margin-bottom:5px; color:var(--primary)">総合戦略評価</div>
+        <div style="font-size:0.75rem; margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed #444; color:#888;">
+            Spot: ${document.getElementById('currentSpot')?.value || '-'} / ${document.getElementById('currentWeather')?.value || '-'} / ${document.getElementById('currentBait')?.value || '-'} / ${document.getElementById('targetFishName')?.value || '-'}
+        </div>
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:20px; border-radius:8px; margin-bottom:20px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">総合戦略評価結果</div>
@@ -398,3 +404,207 @@ function renderOptimizerError(message) {
         </div>
     `;
 }
+
+
+/**
+ * Variable mode optimization.
+ * Extracts A/B constants per set (cycle = p*A + (1-p)*B structure)
+ * and solves the linear system as a function of p.
+ */
+function runOptimizerVariableMode(masterDB, probabilityMap, calcConfig, setConfigA, setConfigB,
+    presetA, presetB, resultA, resultB, T, totalGP, saljakCount, GP0,
+    cycleA, cycleB, gpCostA, gpCostB, gpNetA, gpNetB, gpBalanceA, gpBalanceB) {
+
+    console.log("Running optimizer variable mode...");
+
+    // Extract A_avg, B_avg for each set (weighted across scenarios)
+    const extractVariableConstants = (stratResult, setConfig, preset) => {
+        let weightedConstA = 0, weightedConstB = 0;
+        const enrichedScenarios = [];
+
+        for (const scn of stratResult.scenarios) {
+            const scenarioConfig = { ...calcConfig, lureType: setConfig.lureType, quitIfNoDisc: false };
+            const stats = calculateScenarioStats(masterDB, probabilityMap, scenarioConfig, scn.id, setConfig.isChum, setConfig.slapFish, 100);
+
+            if (stats.error || !stats.allFishStats.find(s => s.isTarget)) {
+                enrichedScenarios.push({ ...scn, A: 0, B: 0 });
+                continue;
+            }
+
+            const tStat = stats.allFishStats.find(s => s.isTarget);
+            const A_i = tStat.cycleTime - tStat.hookTime;
+
+            const K = stats.weightDetails
+                .filter(d => d.name !== calcConfig.target && !d.isHidden)
+                .reduce((acc, d) => acc + d.base, 0);
+            const targetWD = stats.weightDetails.find(d => d.name === calcConfig.target);
+            const M = (targetWD && targetWD.m !== '-') ? targetWD.m : 1.0;
+
+            let sum_wT = 0;
+            stats.allFishStats.filter(s => !s.isTarget).forEach(o => {
+                const wd = stats.weightDetails.find(d => d.name === o.name);
+                if (wd && !wd.isHidden) sum_wT += (wd.final * o.cycleTime);
+            });
+
+            const B_i = (K > 0 && M > 0) ? sum_wT / (M * K) : 0;
+
+            weightedConstA += scn.prob * A_i;
+            weightedConstB += scn.prob * B_i;
+            enrichedScenarios.push({ ...scn, A: A_i, B: B_i });
+        }
+
+        const tp = stratResult.totalProb;
+        return {
+            A: tp > 0 ? weightedConstA / tp : 0,
+            B: tp > 0 ? weightedConstB / tp : 0,
+            scenarios: enrichedScenarios
+        };
+    };
+
+    const varA = extractVariableConstants(resultA, setConfigA, presetA);
+    const varB = extractVariableConstants(resultB, setConfigB, presetB);
+
+    // cycleX(p) = p * A_X + (1-p) * B_X
+    // hitRate(p) = p  (probability = target base weight p / total weights)
+    // gpNet is independent of p (GP cost is fixed per strategy)
+    //
+    // Solve for nA(p), nB(p):
+    //   nA(p) * cycle_A(p) + nB(p) * cycle_B(p) = T
+    //   nA(p) * gpNetA + nB(p) * gpNetB = -totalGP
+    //
+    // Since gpNet is p-independent, nA/nB depend on p only through cycle times.
+    // Expected catch E(p) = nA(p) * p + nB(p) * p = p * (nA(p) + nB(p))
+
+    // Evaluate at sample points for display
+    const samplePoints = [0.001, 0.005, 0.01, 0.03, 0.05, 0.1, 0.25, 0.5, 0.75, 0.95];
+    const samples = [];
+
+    for (const p of samplePoints) {
+        const cA = p * varA.A + (1 - p) * varA.B;
+        const cB = p * varB.A + (1 - p) * varB.B;
+
+        const det = cA * gpNetB - cB * gpNetA;
+        if (Math.abs(det) < 1e-9) {
+            samples.push({ p, nA: NaN, nB: NaN, expected: NaN, timePerCatch: NaN });
+            continue;
+        }
+
+        const nA = (T * gpNetB + totalGP * cB) / det;
+        const nB = (-totalGP * cA - T * gpNetA) / det;
+
+        const expected = (nA >= 0 && nB >= 0) ? p * (nA + nB) : NaN;
+        const timePerCatch = expected > 0 ? T / expected : Infinity;
+
+        samples.push({ p, nA, nB, expected, timePerCatch, cycleA: cA, cycleB: cB });
+    }
+
+    const result = {
+        T, GP0, saljakCount, totalGP,
+        setA: { name: presetA.name, gpNet: gpNetA, gpCost: gpCostA, gpRecovery: gpBalanceA.recovered, varConst: varA },
+        setB: { name: presetB.name, gpNet: gpNetB, gpCost: gpCostB, gpRecovery: gpBalanceB.recovered, varConst: varB },
+        samples,
+        gpNetA, gpNetB
+    };
+
+    renderOptimizerVariableResult(result);
+}
+
+
+/**
+ * Renders variable mode optimizer result.
+ * Shows a table of expected catch for various p values.
+ */
+function renderOptimizerVariableResult(result) {
+    const container = document.getElementById('result-content');
+    if (!container) return;
+
+    const { setA, setB, T, totalGP, samples } = result;
+
+    // Build sample table rows
+    const tableRows = samples.map(s => {
+        if (isNaN(s.expected)) {
+            return `<tr style="color:var(--text-muted)">
+                <td>${(s.p * 100).toFixed(0)}%</td>
+                <td colspan="4">解なし（行列式≈0）</td>
+            </tr>`;
+        }
+        if (s.nA < 0 || s.nB < 0) {
+            return `<tr style="color:var(--text-muted)">
+                <td>${(s.p * 100) < 1 ? (s.p * 100).toFixed(1) : (s.p * 100).toFixed(0)}%</td>
+                <td>${s.nA.toFixed(1)}</td>
+                <td>${s.nB.toFixed(1)}</td>
+                <td colspan="2" style="color:var(--accent-red)">不成立 (n<0)</td>
+            </tr>`;
+        }
+        return `<tr>
+            <td>${(s.p * 100) < 1 ? (s.p * 100).toFixed(1) : (s.p * 100).toFixed(0)}%</td>
+            <td>${s.nA.toFixed(1)}</td>
+            <td>${s.nB.toFixed(1)}</td>
+            <td style="font-weight:bold; color:var(--primary)">${s.expected.toFixed(2)}</td>
+            <td>${s.timePerCatch === Infinity ? '∞' : s.timePerCatch.toFixed(1) + 's'}</td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+        <div style="padding:15px;">
+            <div style="font-size:1.3rem; font-weight:bold; margin-bottom:5px; color:var(--primary)">
+                📐 総合戦略評価（変数モード）
+            </div>
+            <div style="font-size:0.75rem; margin-bottom:15px; padding-bottom:8px; border-bottom:1px dashed #444; color:#888;">
+                Spot: ${document.getElementById('currentSpot')?.value || '-'} / ${document.getElementById('currentWeather')?.value || '-'} / ${document.getElementById('currentBait')?.value || '-'} / ${document.getElementById('targetFishName')?.value || '-'}
+            </div>
+
+            <div style="display:flex; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px; padding:12px; border-radius:8px; border-left:3px solid var(--accent-red); background:rgba(239,68,68,0.05);">
+                    <div style="font-weight:bold; color:var(--accent-red); margin-bottom:5px;">セットA: ${setA.name}</div>
+                    <div style="font-size:0.9rem;">GP収支: <strong>${setA.gpNet >= 0 ? '+' : ''}${setA.gpNet.toFixed(1)}</strong>/cyc</div>
+                    <div style="font-size:0.85rem; color:var(--text-muted);">Cycle(p) = ${setA.varConst.A.toFixed(1)}p + ${setA.varConst.B.toFixed(1)}(1-p)</div>
+                </div>
+                <div style="flex:1; min-width:200px; padding:12px; border-radius:8px; border-left:3px solid var(--accent-green); background:rgba(34,197,94,0.05);">
+                    <div style="font-weight:bold; color:var(--accent-green); margin-bottom:5px;">セットB: ${setB.name}</div>
+                    <div style="font-size:0.9rem;">GP収支: <strong>${setB.gpNet >= 0 ? '+' : ''}${setB.gpNet.toFixed(1)}</strong>/cyc</div>
+                    <div style="font-size:0.85rem; color:var(--text-muted);">Cycle(p) = ${setB.varConst.A.toFixed(1)}p + ${setB.varConst.B.toFixed(1)}(1-p)</div>
+                </div>
+            </div>
+
+            <div style="font-size:0.9rem; margin-bottom:10px; color:var(--text-muted);">
+                制限時間: ${T}秒 / 総GP: ${totalGP} (初期${result.GP0} + サリャク${result.saljakCount}×150)
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                <thead>
+                    <tr style="border-bottom:2px solid var(--border); text-align:left;">
+                        <th style="padding:8px 4px;">確率 p</th>
+                        <th style="padding:8px 4px;">n_A</th>
+                        <th style="padding:8px 4px;">n_B</th>
+                        <th style="padding:8px 4px;">期待獲得数</th>
+                        <th style="padding:8px 4px;">1匹あたり</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+
+            <div style="margin-top:12px; font-size:0.8rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px;">
+                <div>E(p) = p × (n_A(p) + n_B(p))</div>
+                <div>n_A(p), n_B(p) は Cycle(p) を通じて p に依存します</div>
+            </div>
+        </div>
+    `;
+
+    // Debug panel
+    const debugPanel = document.getElementById('debug-content');
+    if (debugPanel) {
+        debugPanel.innerHTML = `
+            <div style="padding:10px; font-size:0.85rem;">
+                <h4 style="margin:0 0 8px;">変数モード定数</h4>
+                <div><strong>セットA:</strong> A=${setA.varConst.A.toFixed(3)}, B=${setA.varConst.B.toFixed(3)}, gpNet=${setA.gpNet.toFixed(1)}</div>
+                <div><strong>セットB:</strong> A=${setB.varConst.A.toFixed(3)}, B=${setB.varConst.B.toFixed(3)}, gpNet=${setB.gpNet.toFixed(1)}</div>
+                <div style="margin-top:8px;"><strong>GP Cost A:</strong> ${setA.gpCost} / <strong>Recovery:</strong> ${setA.gpRecovery.toFixed(1)}</div>
+                <div><strong>GP Cost B:</strong> ${setB.gpCost} / <strong>Recovery:</strong> ${setB.gpRecovery.toFixed(1)}</div>
+            </div>
+        `;
+    }
+}
+
