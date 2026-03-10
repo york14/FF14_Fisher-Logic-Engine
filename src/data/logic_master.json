@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-02-05T09:19:36.258Z",
+  "updated_at": "2026-03-10T06:37:43.142Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -371,9 +371,9 @@
       },
       {
         "fish": "リッチパース",
-        "weight": 2,
-        "bite_time_min": 35,
-        "bite_time_max": 35
+        "weight": 3,
+        "bite_time_min": 25,
+        "bite_time_max": 30
       }
     ]
   },
@@ -1581,6 +1581,16 @@
       ]
     },
     {
+      "id": "fixed_l1",
+      "name": "L1固定",
+      "description": "状況に関わらず必ず1回使用して待機",
+      "eligible_scenarios": [
+        "n1_d0_g0",
+        "n1_d0_g1",
+        "n1_d1_g0"
+      ]
+    },
+    {
       "id": "fixed_l2",
       "name": "L2固定",
       "description": "状況に関わらず必ず2回使用して待機",
@@ -1656,7 +1666,7 @@
     {
       "id": "b3_guar_stop",
       "name": "型確定停止(基本3回)",
-      "description": "何もなければ3回で待機、型確定したらそこで待機",
+      "description": "何もなければ3回で待機、途中で型確定したらそこで待機",
       "eligible_scenarios": [
         "n1_d0_g1",
         "n2_d0_g2",
@@ -1673,7 +1683,7 @@
     {
       "id": "b2_guar_stop",
       "name": "型確定停止(基本2回)",
-      "description": "何もなければ2回で待機、型確定したらそこで待機",
+      "description": "何もなければ2回で待機、途中で型確定したらそこで待機",
       "eligible_scenarios": [
         "n1_d0_g1",
         "n2_d0_g0",

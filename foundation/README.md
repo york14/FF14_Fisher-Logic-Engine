@@ -1,19 +1,29 @@
 # FLE Documentation Foundation
 
-Fisher Logic Engine (FLE) のドキュメント正本（Single Source of Truth）。
+Fisher Logic Engine (FLE) の仕様を定義するドキュメント正本（Single Source of Truth）です。
+ドキュメント構造の複雑化を避けるため、実装と密接に結びつく最低限の仕様定義に留めています。
 
-## ディレクトリ構成
+## 仕様カテゴリ
 
-### [game_spec/](game_spec/) - ゲーム仕様 (Game Domain)
-FF14の釣り仕様、計算式、スキル効果など、実装に依存しない絶対的なルール。
-- `mechanics.md`: ゲームメカニクス、スキル効果
-- `formulas.md`: 獲得率、ヒット率などの基本計算式
+### 1. [system_spec/](system_spec/) - システム動作仕様
+FLEアプリ自体のシステム的、技術的な実装仕様。
+- [architecture.md](system_spec/architecture.md): Vite + Vanilla JSのアーキテクチャ構成
+- [features.md](system_spec/features.md): アプリケーションの各モードとその機能
+- [simulation_logic.md](system_spec/simulation_logic.md): シミュレータ内部の計算フロー（サイクル計算、重み・変数モード）
+- [optimizer_alg.md](system_spec/optimizer_alg.md): 総合戦略評価（オプティマイザ）のアルゴリズム
 
-### [data_spec/](data_spec/) - データ仕様 (Data Domain)
-アプリが扱うデータの構造定義。
-- `schema_definition.md`: `logic_master.json` 等のJSONスキーマ定義
-- `etl_pipeline.md`: CSVからJSONへのデータ変換フロー
+### 2. [game_spec/](game_spec/) - ゲームドメイン仕様
+FF14実機に基づいた釣りの基本ルールや、アプリ内でモデル化している計算概念。
+※推測が含まれる部分やシステム上での独自解釈は明確に区別して記載します。
+- [mechanics.md](game_spec/mechanics.md): キャストから釣り上げまでの基本サイクルと重みづけ
+- [formulas.md](game_spec/formulas.md): ヒット率やステータスに基づく計算式（実装済みのもの）
+- [skills.md](game_spec/skills.md): アプリでサポートしている各種スキル効果とシステム上の扱い
 
-## 関連ドキュメント
-- **[../docs/system_spec/](../docs/system_spec/)**: FLEアプリとしての実装仕様（アーキテクチャ、UI、ロジック）
-- **[../archive/v3.0_snapshot/](../archive/v3.0_snapshot/)**: 旧ドキュメント (v3.0時点)
+### 3. [data_spec/](data_spec/) - データ設計仕様
+アプリが読み込むマスターデータの構造。
+- [schema.md](data_spec/schema.md): `logic_master.json` 等のJSONデータ構造
+- [semantics.md](data_spec/semantics.md): プロジェクト内で使用する用語定義
+- [etl_process.md](data_spec/etl_process.md): 外部データ（CSV）からJSONの生成プロセス
+
+---
+旧バージョンのドキュメントは `../archive/v3.0_snapshot/` に保管しています。
