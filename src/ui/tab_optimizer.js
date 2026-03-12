@@ -377,12 +377,12 @@ ${nA.toFixed(2)} × ${setA.cycle.toFixed(1)} + ${nB.toFixed(2)} × ${setB.cycle.
         </div>
 
         <div class="debug-section">
-            <div class="section-label">検証: GP消費</div>
+            <div class="section-label">検証: GP収支 (バランス)</div>
             <div class="formula-box">
 総GP: ${totalGP}<br>
 ${nA.toFixed(2)} × (${setA.gpNet.toFixed(1)}) + ${nB.toFixed(2)} × (${setB.gpNet.toFixed(1)})<br>
 = ${(nA * setA.gpNet).toFixed(1)} + ${(nB * setB.gpNet).toFixed(1)}<br>
-= <strong>${(nA * setA.gpNet + nB * setB.gpNet).toFixed(1)}</strong> (目標: ${(-totalGP).toFixed(0)})
+= <strong>${(nA * setA.gpNet + nB * setB.gpNet).toFixed(1)}</strong> (目標: 消費猶予 ${(-totalGP).toFixed(0)})
             </div>
         </div>
     `;
@@ -483,27 +483,33 @@ function runOptimizerVariableMode(masterDB, probabilityMap, calcConfig, setConfi
         const cA = p * varA.A + (1 - p) * varA.B;
         const cB = p * varB.A + (1 - p) * varB.B;
 
-        const det = cA * gpNetB - cB * gpNetA;
+        // --- Dynamic GP Calculation ---
+        const gpBalA = calculateGPBalance(cA, gpCostA);
+        const gpBalB = calculateGPBalance(cB, gpCostB);
+        const trueGpNetA = gpBalA.balance;
+        const trueGpNetB = gpBalB.balance;
+
+        const det = cA * trueGpNetB - cB * trueGpNetA;
         if (Math.abs(det) < 1e-9) {
             samples.push({ p, nA: NaN, nB: NaN, expected: NaN, timePerCatch: NaN });
             continue;
         }
 
-        const nA = (T * gpNetB + totalGP * cB) / det;
-        const nB = (-totalGP * cA - T * gpNetA) / det;
+        const nA = (T * trueGpNetB + totalGP * cB) / det;
+        const nB = (-totalGP * cA - T * trueGpNetA) / det;
 
         const expected = (nA >= 0 && nB >= 0) ? p * (nA + nB) : NaN;
         const timePerCatch = expected > 0 ? T / expected : Infinity;
 
-        samples.push({ p, nA, nB, expected, timePerCatch, cycleA: cA, cycleB: cB });
+        samples.push({ p, nA, nB, expected, timePerCatch, cycleA: cA, cycleB: cB, gpNetA: trueGpNetA, gpNetB: trueGpNetB });
     }
 
     const result = {
         T, GP0, saljakCount, totalGP,
-        setA: { name: presetA.name, gpNet: gpNetA, gpCost: gpCostA, gpRecovery: gpBalanceA.recovered, varConst: varA },
-        setB: { name: presetB.name, gpNet: gpNetB, gpCost: gpCostB, gpRecovery: gpBalanceB.recovered, varConst: varB },
+        setA: { name: presetA.name, gpCost: gpCostA, gpRecovery: gpBalanceA.recovered, varConst: varA },
+        setB: { name: presetB.name, gpCost: gpCostB, gpRecovery: gpBalanceB.recovered, varConst: varB },
         samples,
-        gpNetA, gpNetB
+        vpNetA: gpNetA, vpNetB: gpNetB  // keep original for debug reference
     };
 
     renderOptimizerVariableResult(result);
@@ -557,13 +563,10 @@ function renderOptimizerVariableResult(result) {
             <div style="display:flex; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
                 <div style="flex:1; min-width:200px; padding:12px; border-radius:8px; border-left:3px solid var(--accent-red); background:rgba(239,68,68,0.05);">
                     <div style="font-weight:bold; color:var(--accent-red); margin-bottom:5px;">セットA: ${setA.name}</div>
-                    <div style="font-size:0.9rem;">GP収支: <strong>${setA.gpNet >= 0 ? '+' : ''}${setA.gpNet.toFixed(1)}</strong>/cyc</div>
-                    <div style="font-size:0.85rem; color:var(--text-muted);">Cycle(p) = ${setA.varConst.A.toFixed(1)}p + ${setA.varConst.B.toFixed(1)}(1-p)</div>
+                    <div style="font-size:0.9rem; color:var(--text-muted);">※ GP収支は確率pに応じて動的計算</div>
                 </div>
                 <div style="flex:1; min-width:200px; padding:12px; border-radius:8px; border-left:3px solid var(--accent-green); background:rgba(34,197,94,0.05);">
                     <div style="font-weight:bold; color:var(--accent-green); margin-bottom:5px;">セットB: ${setB.name}</div>
-                    <div style="font-size:0.9rem;">GP収支: <strong>${setB.gpNet >= 0 ? '+' : ''}${setB.gpNet.toFixed(1)}</strong>/cyc</div>
-                    <div style="font-size:0.85rem; color:var(--text-muted);">Cycle(p) = ${setB.varConst.A.toFixed(1)}p + ${setB.varConst.B.toFixed(1)}(1-p)</div>
                 </div>
             </div>
 
@@ -585,26 +588,85 @@ function renderOptimizerVariableResult(result) {
                     ${tableRows}
                 </tbody>
             </table>
-
-            <div style="margin-top:12px; font-size:0.8rem; color:var(--text-muted); border-top:1px solid var(--border); padding-top:8px;">
-                <div>E(p) = p × (n_A(p) + n_B(p))</div>
-                <div>n_A(p), n_B(p) は Cycle(p) を通じて p に依存します</div>
-            </div>
         </div>
     `;
 
     // Debug panel
-    const debugPanel = document.getElementById('debug-content');
+    const debugPanel = document.getElementById('debug-content-wrapper') || document.getElementById('debug-content');
     if (debugPanel) {
-        debugPanel.innerHTML = `
+        let debugHtml = `
             <div style="padding:10px; font-size:0.85rem;">
                 <h4 style="margin:0 0 8px;">変数モード定数</h4>
-                <div><strong>セットA:</strong> A=${setA.varConst.A.toFixed(3)}, B=${setA.varConst.B.toFixed(3)}, gpNet=${setA.gpNet.toFixed(1)}</div>
-                <div><strong>セットB:</strong> A=${setB.varConst.A.toFixed(3)}, B=${setB.varConst.B.toFixed(3)}, gpNet=${setB.gpNet.toFixed(1)}</div>
-                <div style="margin-top:8px;"><strong>GP Cost A:</strong> ${setA.gpCost} / <strong>Recovery:</strong> ${setA.gpRecovery.toFixed(1)}</div>
-                <div><strong>GP Cost B:</strong> ${setB.gpCost} / <strong>Recovery:</strong> ${setB.gpRecovery.toFixed(1)}</div>
+                <div><strong>セットA:</strong> A=${setA.varConst.A.toFixed(3)}, B=${setA.varConst.B.toFixed(3)}</div>
+                <div><strong>セットB:</strong> A=${setB.varConst.A.toFixed(3)}, B=${setB.varConst.B.toFixed(3)}</div>
+                <div style="margin-top:8px;"><strong>GP Cost A:</strong> ${setA.gpCost}</div>
+                <div><strong>GP Cost B:</strong> ${setB.gpCost}</div>
             </div>
         `;
+
+        const s3 = samples.find(s => Math.abs(s.p - 0.03) < 0.001);
+        if (s3 && !isNaN(s3.nA)) {
+            debugHtml += `
+            <hr style="border-color:#444; margin:15px 0;">
+            <div style="padding:10px; font-size:0.85rem; color:#eee;">
+                <h4 style="margin:0 0 8px; color:var(--primary);">🔍 検証: p=3% 時の詳細内訳</h4>
+                <div class="debug-section">
+                    <div class="section-label">連立方程式パラメータ</div>
+                    <div class="formula-box">
+n_A × ${s3.cycleA.toFixed(2)} + n_B × ${s3.cycleB.toFixed(2)} = ${T}  ... (時間)<br>
+n_A × (${s3.gpNetA.toFixed(2)}) + n_B × (${s3.gpNetB.toFixed(2)}) = ${(-totalGP).toFixed(0)}  ... (GP)<br>
+<br>
+<strong>n_A = ${s3.nA.toFixed(4)}</strong><br>
+<strong>n_B = ${s3.nB.toFixed(4)}</strong>
+                    </div>
+                </div>
+
+                <div class="debug-section">
+                    <div class="section-label">期待値計算 (p=3%)</div>
+                    <div class="formula-box">
+期待獲得数 = (n_A + n_B) × 0.03<br>
+= (${s3.nA.toFixed(2)} + ${s3.nB.toFixed(2)}) × 0.03<br>
+= <strong>${s3.expected.toFixed(4)}</strong> 匹<br>
+<br>
+1匹あたり期待時間 = ${T} / ${s3.expected.toFixed(4)} = <strong>${s3.timePerCatch === Infinity ? '∞' : s3.timePerCatch.toFixed(1)}s</strong>
+                    </div>
+                </div>
+
+                <div class="debug-section">
+                    <div class="section-label">GP収支 内訳 (p=3%)</div>
+                    <table>
+                        <thead>
+                            <tr><th></th><th>セットA</th><th>セットB</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>サイクル</td><td>${s3.cycleA.toFixed(2)}s</td><td>${s3.cycleB.toFixed(2)}s</td></tr>
+                            <tr><td>GP消費</td><td>${setA.gpCost.toFixed(0)}</td><td>${setB.gpCost.toFixed(0)}</td></tr>
+                            <tr><td>GP回復(自然+サリャク等)</td><td>${(s3.gpNetA - setA.gpCost).toFixed(2)}</td><td>${(s3.gpNetB - setB.gpCost).toFixed(2)}</td></tr>
+                            <tr><td>GP収支</td>
+                                <td style="color:${s3.gpNetA >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'};">${s3.gpNetA >= 0 ? '+' : ''}${s3.gpNetA.toFixed(2)}</td>
+                                <td style="color:${s3.gpNetB >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'};">${s3.gpNetB >= 0 ? '+' : ''}${s3.gpNetB.toFixed(2)}</td>
+                            </tr>
+                            <tr><td>使用回数</td>
+                                <td><strong>${s3.nA.toFixed(2)}</strong></td>
+                                <td><strong>${s3.nB.toFixed(2)}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="debug-section">
+                    <div class="section-label">検証: GP収支 (バランス)</div>
+                    <div class="formula-box">
+総GP: ${totalGP}<br>
+${s3.nA.toFixed(2)} × (${s3.gpNetA.toFixed(2)}) + ${s3.nB.toFixed(2)} × (${s3.gpNetB.toFixed(2)})<br>
+= ${(s3.nA * s3.gpNetA).toFixed(1)} + ${(s3.nB * s3.gpNetB).toFixed(1)}<br>
+= <strong>${(s3.nA * s3.gpNetA + s3.nB * s3.gpNetB).toFixed(1)}</strong> (目標: 消費猶予 ${(-totalGP).toFixed(0)})
+                    </div>
+                </div>
+            </div>`;
+        }
+        
+        debugPanel.innerHTML = debugHtml;
     }
 }
 

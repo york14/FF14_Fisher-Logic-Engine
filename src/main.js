@@ -502,9 +502,10 @@ function updateSimulation() {
     if (spotData.fish_list.length === 0) return;
 
     // 隠し魚チェック: いる場合は変数モードを無効化
+    // 【一時凍結】総合戦略評価モードの場合は不具合のため強制無効化
     const vmCheck = document.getElementById('isVariableMode');
     const hasHidden = spotData.fish_list.some(f => masterDB.fish[f]?.is_hidden);
-    if (hasHidden) {
+    if (hasHidden || currentMode === 'optimizer') {
         vmCheck.disabled = true;
         vmCheck.checked = false;
     } else {
