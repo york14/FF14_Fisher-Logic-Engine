@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-03-10T06:37:43.142Z",
+  "updated_at": "2026-05-12T10:30:21.139Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -26,7 +26,7 @@
     "ヘリテージグルーパー": {
       "type": "large_jaws",
       "vibration": "!!!",
-      "hook_time": 15,
+      "hook_time": 12,
       "is_hidden": false,
       "can_slap": false
     },
@@ -96,12 +96,56 @@
     "リッチパース": {
       "type": "large_jaws",
       "vibration": "!!!",
-      "hook_time": 15,
+      "hook_time": 12,
+      "is_hidden": false,
+      "can_slap": false
+    },
+    "カナル北小型": {
+      "type": "small_jaws",
+      "vibration": "!",
+      "hook_time": 5,
+      "is_hidden": false,
+      "can_slap": false
+    },
+    "忘れられた魚": {
+      "type": "large_jaws",
+      "vibration": "!!",
+      "hook_time": 10,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "カッパーシャーク": {
+      "type": "large_jaws",
+      "vibration": "!!",
+      "hook_time": 10,
+      "is_hidden": true,
+      "can_slap": true
+    },
+    "ブライトカッパーシャーク": {
+      "type": "large_jaws",
+      "vibration": "!!!",
+      "hook_time": 12,
       "is_hidden": false,
       "can_slap": false
     }
   },
   "spots": {
+    "カナルタウン北": {
+      "expansion": "黄金の遺産_7.x",
+      "area": "リビング・メモリー",
+      "weathers": [
+        "曇り→霧8-13"
+      ],
+      "baits": [
+        "ゴーストニッパー"
+      ],
+      "fish_list": [
+        "カナル北小型",
+        "忘れられた魚",
+        "カッパーシャーク",
+        "ブライトカッパーシャーク"
+      ]
+    },
     "アレクサンドリア旧市街": {
       "expansion": "黄金の遺産_7.x",
       "area": "ヘリテージファウンド",
@@ -164,6 +208,32 @@
     }
   },
   "weights": {
+    "カナルタウン北|曇り→霧8-13|ゴーストニッパー": [
+      {
+        "fish": "カナル北小型",
+        "weight": 200,
+        "bite_time_min": 8,
+        "bite_time_max": 14
+      },
+      {
+        "fish": "忘れられた魚",
+        "weight": 100,
+        "bite_time_min": 12,
+        "bite_time_max": 14
+      },
+      {
+        "fish": "カッパーシャーク",
+        "weight": 0,
+        "bite_time_min": 20,
+        "bite_time_max": 30
+      },
+      {
+        "fish": "ブライトカッパーシャーク",
+        "weight": 10,
+        "bite_time_min": 20,
+        "bite_time_max": 30
+      }
+    ],
     "アレクサンドリア旧市街|霧晴れ12-16|紅サシ": [
       {
         "fish": "エレクトロベタ",
@@ -378,6 +448,108 @@
     ]
   },
   "probabilities": [
+    {
+      "spot": "カナルタウン北",
+      "weather": "曇り→霧8-13",
+      "bait": "ゴーストニッパー",
+      "target_hidden": "カッパーシャーク",
+      "slap_target": "なし",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        20,
+        25
+      ],
+      "guar_rates_nodisc": [
+        3,
+        7.5,
+        16.2
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 17.7
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 20,
+        "n3_d2_g3": 19.5,
+        "n3_d2_g0": 5,
+        "n3_d3_g0": 37.2
+      }
+    },
+    {
+      "spot": "カナルタウン北",
+      "weather": "曇り→霧8-13",
+      "bait": "ゴーストニッパー",
+      "target_hidden": "カッパーシャーク",
+      "slap_target": "忘れられた魚",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        27,
+        38
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 6.9
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 30,
+        "n3_d2_g3": 100,
+        "n3_d2_g0": 25,
+        "n3_d3_g0": 63
+      }
+    },
+    {
+      "spot": "カナルタウン北",
+      "weather": "曇り→霧8-13",
+      "bait": "ゴーストニッパー",
+      "target_hidden": "カッパーシャーク",
+      "slap_target": "カッパーシャーク",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        2.1,
+        8.2,
+        12.9
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
     {
       "spot": "アレクサンドリア旧市街",
       "weather": "霧晴れ12-16",
@@ -1634,7 +1806,7 @@
     },
     {
       "id": "b2_disc_push",
-      "name": "発見：延長優先(基本2回)",
+      "name": "嫌発見：延長優先(基本2回)",
       "description": "何もなければ2回で待機、未発見で型確定したらそのまま待機、発見済なら型確定しても3回まで使用",
       "eligible_scenarios": [
         "n1_d0_g1",
@@ -1650,7 +1822,7 @@
     },
     {
       "id": "b2_disc_gurastop",
-      "name": "発見：型確定停止優先(基本2回)",
+      "name": "嫌発見：型確定停止優先(基本2回)",
       "description": "何もなければ2回で待機、発見済なら3回まで使用するが、型確定したらそこで待機",
       "eligible_scenarios": [
         "n1_d0_g1",
