@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-05-14T09:49:00.784Z",
+  "updated_at": "2026-05-14T09:53:49.307Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -211,7 +211,7 @@
     "カナルタウン北|曇り→霧8-13|ゴーストニッパー": [
       {
         "fish": "カナル北小型",
-        "weight": 200,
+        "weight": 300,
         "bite_time_min": 8,
         "bite_time_max": 14
       },
@@ -229,9 +229,9 @@
       },
       {
         "fish": "ブライトカッパーシャーク",
-        "weight": 10,
+        "weight": 5,
         "bite_time_min": 20,
-        "bite_time_max": 30
+        "bite_time_max": 20
       }
     ],
     "アレクサンドリア旧市街|霧晴れ12-16|紅サシ": [
