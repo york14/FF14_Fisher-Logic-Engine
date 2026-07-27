@@ -250,6 +250,9 @@ export function calculateStrategySet(masterDB, probabilityMap, config, setConfig
 
     for (const sid of preset.eligible_scenarios) {
         const scenarioConfig = { ...config, lureType: setConfig.lureType, quitIfNoDisc: setConfig.quitIfNoDisc };
+        if (setConfig.macroLimitTime !== undefined) {
+            scenarioConfig.macroLimitTime = setConfig.macroLimitTime;
+        }
         const stats = calculateScenarioStats(masterDB, probabilityMap, scenarioConfig, sid, setConfig.isChum, setConfig.slapFish, overrideP);
         if (stats.error) {
             console.error(`Calc Error [${preset.name}][${sid}]:`, stats.error, stats.debugData);

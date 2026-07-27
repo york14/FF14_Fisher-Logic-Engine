@@ -248,6 +248,7 @@ async function initShareMode() {
                 if (sDat) {
                     addOpt(`strat${set}Lure`, sDat.lureType || 'none');
                     setVal(`strat${set}Quit`, sDat.quit || 'no');
+                    setVal(`strat${set}MacroLimit`, sDat.macroLimit || '');
                     addOpt(`strat${set}Slap`, sDat.slap || 'なし');
                     setVal(`strat${set}Chum`, sDat.chum || 'no');
                     // Preset: find name from masterDB
@@ -279,7 +280,8 @@ async function initShareMode() {
                     const sDat = config[`strat${set}`];
                     const setConfig = {
                         lureType: sDat.lureType, quitIfNoDisc: sDat.quit === 'yes',
-                        slapFish: sDat.slap, isChum: sDat.chum === 'yes', presetId: sDat.preset
+                        slapFish: sDat.slap, isChum: sDat.chum === 'yes', presetId: sDat.preset,
+                        macroLimitTime: sDat.macroLimit !== undefined && sDat.macroLimit !== '' ? parseFloat(sDat.macroLimit) : undefined
                     };
                     const preset = masterDB.strategy_presets.find(p => p.id === setConfig.presetId);
                     if (!preset) {
@@ -324,7 +326,8 @@ async function initShareMode() {
                     const sDat = config[`strat${set}`];
                     const setConfig = {
                         lureType: sDat.lureType, quitIfNoDisc: sDat.quit === 'yes', slapFish: sDat.slap,
-                        isChum: sDat.chum === 'yes', presetId: sDat.preset
+                        isChum: sDat.chum === 'yes', presetId: sDat.preset,
+                        macroLimitTime: sDat.macroLimit !== undefined && sDat.macroLimit !== '' ? parseFloat(sDat.macroLimit) : undefined
                     };
                     const preset = masterDB.strategy_presets.find(p => p.id === setConfig.presetId);
                     results[set] = calculateStrategySet(masterDB, probabilityMap, calcConfig, setConfig, preset);
@@ -364,6 +367,7 @@ function serializeStateToURL() {
         stratA: {
             lureType: document.getElementById('stratALure').value,
             quit: document.getElementById('stratAQuit').value,
+            macroLimit: document.getElementById('stratAMacroLimit').value,
             preset: document.getElementById('stratAPreset').value,
             slap: document.getElementById('stratASlap').value,
             chum: document.getElementById('stratAChum').value
@@ -371,6 +375,7 @@ function serializeStateToURL() {
         stratB: {
             lureType: document.getElementById('stratBLure').value,
             quit: document.getElementById('stratBQuit').value,
+            macroLimit: document.getElementById('stratBMacroLimit').value,
             preset: document.getElementById('stratBPreset').value,
             slap: document.getElementById('stratBSlap').value,
             chum: document.getElementById('stratBChum').value
@@ -476,8 +481,8 @@ function setupEventListeners() {
         });
     });
 
-    ['stratALure', 'stratAQuit', 'stratAPreset', 'stratASlap', 'stratAChum',
-        'stratBLure', 'stratBQuit', 'stratBPreset', 'stratBSlap', 'stratBChum'].forEach(id => {
+    ['stratALure', 'stratAQuit', 'stratAMacroLimit', 'stratAPreset', 'stratASlap', 'stratAChum',
+        'stratBLure', 'stratBQuit', 'stratBMacroLimit', 'stratBPreset', 'stratBSlap', 'stratBChum'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', () => {
                 if (id.includes('Lure')) updateStrategyPresetsFilter(masterDB);
@@ -576,6 +581,7 @@ function runStrategyMode(config) {
         const setConfig = {
             lureType: document.getElementById(`strat${set}Lure`).value,
             quitIfNoDisc: document.getElementById(`strat${set}Quit`).value === 'yes',
+            macroLimitTime: document.getElementById(`strat${set}MacroLimit`).value !== '' ? parseFloat(document.getElementById(`strat${set}MacroLimit`).value) : undefined,
             slapFish: document.getElementById(`strat${set}Slap`).value,
             isChum: document.getElementById(`strat${set}Chum`).value === 'yes',
             presetId: document.getElementById(`strat${set}Preset`).value
@@ -716,6 +722,7 @@ async function runStrategyModeVariable(config) {
         const setConfig = {
             lureType: document.getElementById(`strat${set}Lure`).value,
             quitIfNoDisc: document.getElementById(`strat${set}Quit`).value === 'yes',
+            macroLimitTime: document.getElementById(`strat${set}MacroLimit`).value !== '' ? parseFloat(document.getElementById(`strat${set}MacroLimit`).value) : undefined,
             slapFish: document.getElementById(`strat${set}Slap`).value,
             isChum: document.getElementById(`strat${set}Chum`).value === 'yes',
             presetId: document.getElementById(`strat${set}Preset`).value

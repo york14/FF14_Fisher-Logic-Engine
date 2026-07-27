@@ -25,6 +25,12 @@
 
 $$ \text{Expected Time} = \frac{ \text{Average Cycle} - (TargetHitRate \times TargetHookTime) }{TargetHitRate} $$
 
+**マクロ見切り時間 (Macro Limit Time) の考慮:**
+UIからマクロ見切り時間 $M$ が設定された場合、各魚の待機時間分布 $[t_{min}, t_{max}]$ と $M$ を比較します。
+- $M \le t_{min}$ : ヒットせず見切りキャンセルとなる。
+- $t_{min} < M < t_{max}$ : $M$ までの時間帯でのみヒットし、残りの割合は見切りキャンセルとなる（確率の減衰）。
+キャンセルが発生した場合、フッキング時間を加算せず空フッキング（$D_{REST}$）による短いサイクル時間を見切り確率に乗じて全体の加重サイクルに合算します。
+
 ## 4. 変数モードの計算構造
 ターゲット魚の基本重みを $p$（変数）と置いた場合の挙動です。
 システム内では、通常の `calculateScenarioStats` に `overrideP = 100` （ダミーの基本重み）を注入し、全体の構造（外道魚の総重み $K$ やサイクル時間）を抽出します。

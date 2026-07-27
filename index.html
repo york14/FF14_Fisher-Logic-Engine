@@ -60,7 +60,7 @@
                         <label for="isVariableMode">基礎重み不明として計算 (Unknown Weight)</label>
                     </div>
                     <div class="input-group" style="margin-bottom: 15px;">
-                        <label>マクロ見切り時間 (秒) <span style="font-size:0.75rem; color:var(--text-muted);">(空欄で無効)</span></label>
+                        <label>見切り時間 (秒) <span style="font-size:0.75rem; color:var(--text-muted);">(空欄で無効)</span></label>
                         <input type="number" id="macroLimitTime" value="" placeholder="未設定" min="0" step="1" disabled>
                     </div>
 
@@ -162,6 +162,10 @@
                                 </select>
                             </div>
                             <div class="input-group">
+                                <label>見切り時間 (秒)</label>
+                                <input type="number" id="stratAMacroLimit" value="" placeholder="共通設定" min="0" step="1" disabled style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body); color: var(--text-main);">
+                            </div>
+                            <div class="input-group">
                                 <label>戦略プリセット</label>
                                 <select id="stratAPreset" disabled></select>
                             </div>
@@ -197,6 +201,10 @@
                                     <option value="no">しない</option>
                                     <option value="yes">する</option>
                                 </select>
+                            </div>
+                            <div class="input-group">
+                                <label>見切り時間 (秒)</label>
+                                <input type="number" id="stratBMacroLimit" value="" placeholder="共通設定" min="0" step="1" disabled style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body); color: var(--text-main);">
                             </div>
                             <div class="input-group">
                                 <label>戦略プリセット</label>
