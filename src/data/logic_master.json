@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-05-14T09:53:49.307Z",
+  "updated_at": "2026-07-27T02:51:23.702Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -424,13 +424,13 @@
       {
         "fish": "縦笛魚",
         "weight": 25,
-        "bite_time_min": 11,
+        "bite_time_min": 9,
         "bite_time_max": 18
       },
       {
         "fish": "ブルーパース",
         "weight": 25,
-        "bite_time_min": 15,
+        "bite_time_min": 14,
         "bite_time_max": 27
       },
       {
@@ -442,8 +442,8 @@
       {
         "fish": "リッチパース",
         "weight": 3,
-        "bite_time_min": 25,
-        "bite_time_max": 30
+        "bite_time_min": 21,
+        "bite_time_max": 26
       }
     ]
   },

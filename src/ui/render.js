@@ -113,7 +113,19 @@ export function renderStrategyComparison(resA, resB, config) {
             `).join('')}</div>`;
         }
 
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${timeDisplay}</div><div class="val-label">期待時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div><div class=\"stat-item\">GP消費<br><span class=\"stat-val\">${gpPerSecStr}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
+        let extraInfo = '';
+        if (res.setConfig) {
+            const quitStr = res.setConfig.quitIfNoDisc ? 'する' : 'しない';
+            const chumStr = res.setConfig.isChum ? 'あり' : 'なし';
+            const slapStr = res.setConfig.slapFish && res.setConfig.slapFish !== 'なし' ? res.setConfig.slapFish : 'なし';
+            const limitStr = res.setConfig.macroLimitTime ? res.setConfig.macroLimitTime + 's' : 'なし';
+            extraInfo = `<div style="font-size:0.8rem; color:#888; margin: 8px 0 12px; padding-top: 8px; border-top: 1px dashed #444; text-align: center; width: 100%; line-height: 1.5;">
+                <div>即竿上げ: <span style="color:#bbb">${quitStr}</span> &nbsp;|&nbsp; 見切り: <span style="color:#bbb">${limitStr}</span></div>
+                <div>トレード: <span style="color:#bbb">${slapStr}</span> &nbsp;|&nbsp; 撒き餌: <span style="color:#bbb">${chumStr}</span></div>
+            </div>`;
+        }
+
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div class="main-val">${timeDisplay}</div><div class="val-label">期待時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div><div class=\"stat-item\">GP消費<br><span class=\"stat-val\">${gpPerSecStr}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
     };
 
     if (resultContent) {
@@ -794,7 +806,19 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             }).join('')}</div>`;
         }
 
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div><div class="main-val">${formulaStr}</div><div class="val-label">期待時間 (変数モード)</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div></div>${top3Html}</div>`;
+        let extraInfo = '';
+        if (res.setConfig) {
+            const quitStr = res.setConfig.quitIfNoDisc ? 'する' : 'しない';
+            const chumStr = res.setConfig.isChum ? 'あり' : 'なし';
+            const slapStr = res.setConfig.slapFish && res.setConfig.slapFish !== 'なし' ? res.setConfig.slapFish : 'なし';
+            const limitStr = res.setConfig.macroLimitTime ? res.setConfig.macroLimitTime + 's' : 'なし';
+            extraInfo = `<div style="font-size:0.8rem; color:#888; margin: 8px 0 12px; padding-top: 8px; border-top: 1px dashed #444; text-align: center; width: 100%; line-height: 1.5;">
+                <div>即竿上げ: <span style="color:#bbb">${quitStr}</span> &nbsp;|&nbsp; 見切り: <span style="color:#bbb">${limitStr}</span></div>
+                <div>トレード: <span style="color:#bbb">${slapStr}</span> &nbsp;|&nbsp; 撒き餌: <span style="color:#bbb">${chumStr}</span></div>
+            </div>`;
+        }
+
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div class="main-val">${formulaStr}</div><div class="val-label">期待時間 (変数モード)</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div></div>${top3Html}</div>`;
     };
 
     if (resultContent) {

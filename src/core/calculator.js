@@ -108,7 +108,7 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
         let m = 1.0;
         if (w.fish === hiddenFishName) { weightDetails.push({ name: w.fish, base: w.weight, m: '-', final: '-', isHidden: true }); return; }
         if (w.fish === slapFish) { m = 0; }
-        else if (config.lureType !== 'none') {
+        else if (config.lureType !== 'none' && !p.isNone) {
             const match = (info.type === currentLureJaws);
             if (match) m = modN; else m = lastGuar ? 0 : 1.0;
         }
@@ -292,5 +292,5 @@ export function calculateStrategySet(masterDB, probabilityMap, config, setConfig
     // Balance depends on AvgCycle
     const gpBalanceObj = calculateGPBalance(weightedCycle, weightedCostTotal, config.useHiCordial);
 
-    return { name: preset.name, description: preset.description, Slap: setConfig.slapFish, scenarios, totalProb, avgHitRate: weightedHitRate, avgCycle: weightedCycle, avgCastCount, expectedTime, gpStats: { cost: gpCostObj, balance: gpBalanceObj }, error: null };
+    return { name: preset.name, description: preset.description, Slap: setConfig.slapFish, setConfig: setConfig, scenarios, totalProb, avgHitRate: weightedHitRate, avgCycle: weightedCycle, avgCastCount, expectedTime, gpStats: { cost: gpCostObj, balance: gpBalanceObj }, error: null };
 }
