@@ -167,6 +167,7 @@ async function initShareMode() {
         addOpt('targetFishName', config.target);
         setCheck('isCatchAll', config.isCatchAll);
         setCheck('isVariableMode', config.isVariableMode);
+        setVal('macroLimitTime', config.macroLimitTime || '');
 
         document.querySelectorAll('.tab-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.mode === config.mode);
@@ -193,7 +194,8 @@ async function initShareMode() {
                 const calcConfig = {
                     spot: config.spot, weather: config.weather, bait: config.bait, target: config.target,
                     isCatchAll: config.isCatchAll, lureType: config.lureType, slapFish: config.slapFish,
-                    quitIfNoDisc: false
+                    quitIfNoDisc: false,
+                    macroLimitTime: parseFloat(config.macroLimitTime) || 0
                 };
 
                 // Reconstruct Scenario ID
@@ -266,6 +268,7 @@ async function initShareMode() {
             const calcConfig = {
                 spot: config.spot, weather: config.weather, bait: config.bait,
                 target: config.target, isCatchAll: config.isCatchAll,
+                macroLimitTime: parseFloat(config.macroLimitTime) || 0
             };
             const sets = ['A', 'B'];
             const results = {};
@@ -348,6 +351,7 @@ function serializeStateToURL() {
         target: document.getElementById('targetFishName').value,
         isCatchAll: document.getElementById('isCatchAll').checked,
         isVariableMode: document.getElementById('isVariableMode').checked,
+        macroLimitTime: document.getElementById('macroLimitTime').value,
 
         slapFish: document.getElementById('manualSurfaceSlap').value,
         isChum: document.getElementById('manualChum').value === 'yes',
@@ -447,7 +451,7 @@ function setupEventListeners() {
     });
     document.getElementById('currentSpot').addEventListener('change', () => updateSpotDependents(masterDB, updateSimulation));
 
-    ['currentWeather', 'currentBait', 'targetFishName', 'manualSurfaceSlap'].forEach(id => {
+    ['currentWeather', 'currentBait', 'targetFishName', 'manualSurfaceSlap', 'macroLimitTime'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', updateSimulation);
     });
@@ -520,7 +524,8 @@ function updateSimulation() {
         isCatchAll: document.getElementById('isCatchAll').checked,
         isVariableMode: vmCheck.checked,
         lureType: document.getElementById('lureType').value,
-        quitIfNoDisc: false
+        quitIfNoDisc: false,
+        macroLimitTime: parseFloat(document.getElementById('macroLimitTime').value) || 0
     };
 
     if (currentMode === 'manual') {

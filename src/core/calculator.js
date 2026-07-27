@@ -138,53 +138,80 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
         const baseBiteMin = wData.bite_time_min;
         const baseBiteMax = wData.bite_time_max;
 
-        const biteTimeMin = isChum ? (baseBiteMin * GDS.C_CHUM) : baseBiteMin;
-        const biteTimeMax = isChum ? (baseBiteMax * GDS.C_CHUM) : baseBiteMax;
+        const t_min = isChum ? (baseBiteMin * GDS.C_CHUM) : baseBiteMin;
+        const t_max = isChum ? (baseBiteMax * GDS.C_CHUM) : baseBiteMax;
+        const L = lureTime;
+        const M = (config.macroLimitTime && config.macroLimitTime > 0) ? config.macroLimitTime : Infinity;
 
-        // Wait Time Logic (Integral)
-        let waitTimeAvg, cType = '';
-        if (lureTime <= biteTimeMin) {
-            waitTimeAvg = (biteTimeMin + biteTimeMax) / 2;
-            cType = 'Case1 (Standard)';
-        } else if (lureTime >= biteTimeMax) {
-            waitTimeAvg = lureTime;
-            cType = 'Case2 (Fixed)';
+        // Wait Time & Macro Limit Logic
+        let waitTimeAvg = 0;
+        let cType = '';
+        let catchRatio = 1.0;
+        let waitTimeMinDisplay = Math.max(t_min, L);
+        let waitTimeMaxDisplay = Math.max(t_max, L);
+
+        if (M <= L || M <= t_min) {
+            catchRatio = 0.0;
+            waitTimeAvg = M; // 釣れないがキャンセル発生時刻として記録
+            cType = 'Macro Quit';
         } else {
-            const range = biteTimeMax - biteTimeMin;
+            const limit = Math.min(t_max, M);
+            const range = t_max - t_min;
             if (range <= 0) {
-                waitTimeAvg = lureTime;
-                cType = 'Case3 (ZeroRange)';
+                // fixed bite time
+                catchRatio = (t_min <= M) ? 1.0 : 0.0;
+                waitTimeAvg = Math.max(t_min, L);
+                cType = 'Fixed (ZeroRange)';
             } else {
-                const term1 = lureTime * (lureTime - biteTimeMin);
-                const term2 = (Math.pow(biteTimeMax, 2) - Math.pow(lureTime, 2)) / 2;
-                waitTimeAvg = (term1 + term2) / range;
-                cType = 'Case3 (Integral)';
+                catchRatio = (limit - t_min) / range;
+                if (L <= t_min) {
+                    waitTimeAvg = (t_min + limit) / 2;
+                    cType = 'Standard';
+                } else if (limit <= L) {
+                    waitTimeAvg = L;
+                    cType = 'Lure Fixed';
+                } else {
+                    const term1 = L * (L - t_min);
+                    const term2 = (Math.pow(limit, 2) - Math.pow(L, 2)) / 2;
+                    waitTimeAvg = (term1 + term2) / (limit - t_min);
+                    cType = 'Integral';
+                }
             }
+            waitTimeMaxDisplay = Math.max(limit, L);
         }
-        const waitTimeMinDisplay = Math.max(biteTimeMin, lureTime);
-        const waitTimeMaxDisplay = Math.max(biteTimeMax, lureTime);
-        const waitTimeRange = (waitTimeMaxDisplay - waitTimeMinDisplay) / 2;
+        if (M !== Infinity && catchRatio < 1.0) {
+            cType += ' (w/MacroLimit)';
+        }
+
+        const waitTimeRange = catchRatio > 0 ? (waitTimeMaxDisplay - waitTimeMinDisplay) / 2 : 0;
+        
+        let actualHitProb = hitProb * catchRatio;
+        let cancelProb = hitProb * (1.0 - catchRatio);
 
         const isTarget = (fName === config.target);
         const actualHookTime = (isTarget || config.isCatchAll) ? fInfo.hook_time : tRest;
+        const pre = (isChum ? tChum : 0);
 
         let cycleTime = 0;
-        const pre = (isChum ? tChum : 0);
+        let cancelCycleTime = tCast + (M !== Infinity ? M : t_max) + tRest + pre;
 
         if (isQuit) {
             cycleTime = tCast + (p.n * tLureAction) + tRest + pre;
+            actualHitProb = 0;
+            cancelProb = 0;
         } else {
             cycleTime = tCast + waitTimeAvg + actualHookTime + pre;
         }
 
-        sumProbTotalCycle += (hitProb * cycleTime);
-        sumProbWaitRange += (hitProb * waitTimeRange);
+        sumProbTotalCycle += (actualHitProb * cycleTime) + (cancelProb * cancelCycleTime);
+        sumProbWaitRange += (actualHitProb * waitTimeRange);
 
         allFishStats.push({
-            name: fName, vibration: fInfo.vibration, hitRate: hitProb,
-            baseBiteMin, baseBiteMax, biteTimeMin, biteTimeMax, lureTime,
+            name: fName, vibration: fInfo.vibration, hitRate: actualHitProb,
+            baseBiteMin, baseBiteMax, biteTimeMin: t_min, biteTimeMax: t_max, lureTime: L,
             waitTimeMin: waitTimeMinDisplay, waitTimeMax: waitTimeMaxDisplay, waitTimeAvg, waitTimeRange,
-            hookTime: actualHookTime, cycleTime, isTarget, cType
+            hookTime: actualHookTime, cycleTime, isTarget, cType,
+            originalHitProb: hitProb, cancelProb, cancelCycleTime
         });
     });
 

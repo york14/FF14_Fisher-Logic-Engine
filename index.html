@@ -59,6 +59,10 @@
                         <input type="checkbox" id="isVariableMode" disabled>
                         <label for="isVariableMode">基礎重み不明として計算 (Unknown Weight)</label>
                     </div>
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label>マクロ見切り時間 (秒) <span style="font-size:0.75rem; color:var(--text-muted);">(空欄で無効)</span></label>
+                        <input type="number" id="macroLimitTime" value="" placeholder="未設定" min="0" step="1" disabled>
+                    </div>
 
                     <div class="tab-group">
                         <button class="tab-btn active" data-mode="manual">手動設定</button>

@@ -21,7 +21,10 @@ export function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) 
     stats.forEach(s => {
         const tr = document.createElement('tr');
         if (s.name === targetName) tr.classList.add('row-target');
-        const hitStr = (s.hitRate > 0) ? (s.hitRate * 100).toFixed(1) + '%' : '0.0%';
+        let hitStr = (s.hitRate > 0) ? (s.hitRate * 100).toFixed(1) + '%' : '0.0%';
+        if (s.cancelProb > 0) {
+            hitStr += `<br><span style="font-size:0.75rem; color:#f87171;">見切り: ${(s.cancelProb * 100).toFixed(1)}%</span>`;
+        }
         const waitTimeStr = (s.waitTimeAvg !== undefined) ?
             `${s.waitTimeMin.toFixed(1)}-${s.waitTimeMax.toFixed(1)}秒(平均 ${s.waitTimeAvg.toFixed(1)}秒)` : '-';
         tr.innerHTML = `<td>${s.name}</td><td>${hitStr}</td><td>${waitTimeStr}</td>`;
@@ -218,7 +221,7 @@ export function renderDebugDetails(stats, config, isChum, scenarioId) {
             <div>Cond: ${config.weather} / Bait: ${config.bait}</div>
             <div>Target: ${config.target}</div>
             <div>Slap: ${slapVal} / Lure: ${config.lureType}</div>
-            <div>Rest if no disc: ${config.quitIfNoDisc ? 'ON' : 'OFF'}</div>
+            <div>Rest if no disc: ${config.quitIfNoDisc ? 'ON' : 'OFF'} / Macro Limit: ${config.macroLimitTime > 0 ? config.macroLimitTime + 's' : 'OFF'}</div>
         </div>
     `;
 
