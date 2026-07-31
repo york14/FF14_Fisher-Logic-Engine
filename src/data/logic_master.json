@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-07-31T10:29:47.387Z",
+  "updated_at": "2026-07-31T23:12:56.855Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -36,6 +36,13 @@
       "hook_time": 10,
       "is_hidden": true,
       "can_slap": true
+    },
+    "ライトニングボール": {
+      "type": "large_jaws",
+      "vibration": "!!!",
+      "hook_time": 12,
+      "is_hidden": false,
+      "can_slap": false
     },
     "テスト小型1": {
       "type": "small_jaws",
@@ -197,7 +204,8 @@
         "サンダーレッド",
         "ヤースラニボウフィン",
         "ヘリテージグルーパー",
-        "ゴールデングルーパー"
+        "ゴールデングルーパー",
+        "ライトニングボール"
       ]
     },
     "帯雷危険水域": {
@@ -303,8 +311,8 @@
       {
         "fish": "ヤースラニボウフィン",
         "weight": 160,
-        "bite_time_min": 8,
-        "bite_time_max": 19
+        "bite_time_min": 6,
+        "bite_time_max": 20
       },
       {
         "fish": "ヘリテージグルーパー",
@@ -315,7 +323,7 @@
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time_min": 19,
+        "bite_time_min": 16,
         "bite_time_max": 31
       }
     ],
@@ -335,23 +343,23 @@
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
-        "bite_time_min": 7,
-        "bite_time_max": 23
+        "bite_time_min": 5,
+        "bite_time_max": 24
       },
       {
         "fish": "ヘリテージグルーパー",
         "weight": 2,
         "bite_time_min": 22,
-        "bite_time_max": 30
+        "bite_time_max": 31
       },
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time_min": 20,
+        "bite_time_min": 19,
         "bite_time_max": 33
       }
     ],
-    "アレクサンドリア旧市街|それ以外|紅サシ": [
+    "アレクサンドリア旧市街|雷雨放電02-04|紅サシ": [
       {
         "fish": "エレクトロベタ",
         "weight": 200,
@@ -367,8 +375,40 @@
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
+        "bite_time_min": 6,
+        "bite_time_max": 20
+      },
+      {
+        "fish": "ライトニングボール",
+        "weight": 10,
+        "bite_time_min": 25,
+        "bite_time_max": 25
+      },
+      {
+        "fish": "ゴールデングルーパー",
+        "weight": 0,
+        "bite_time_min": 16,
+        "bite_time_max": 31
+      }
+    ],
+    "アレクサンドリア旧市街|ヌシ以外|紅サシ": [
+      {
+        "fish": "エレクトロベタ",
+        "weight": 200,
+        "bite_time_min": 7,
+        "bite_time_max": 13
+      },
+      {
+        "fish": "サンダーレッド",
+        "weight": 200,
         "bite_time_min": 8,
-        "bite_time_max": 19
+        "bite_time_max": 16
+      },
+      {
+        "fish": "ヤースラニボウフィン",
+        "weight": 150,
+        "bite_time_min": 6,
+        "bite_time_max": 20
       },
       {
         "fish": "ヘリテージグルーパー",
@@ -379,11 +419,11 @@
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time_min": 19,
+        "bite_time_min": 16,
         "bite_time_max": 31
       }
     ],
-    "アレクサンドリア旧市街|それ以外|ポッパールアー": [
+    "アレクサンドリア旧市街|ヌシ以外|ポッパールアー": [
       {
         "fish": "エレクトロベタ",
         "weight": 150,
@@ -399,8 +439,8 @@
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
-        "bite_time_min": 7,
-        "bite_time_max": 23
+        "bite_time_min": 5,
+        "bite_time_max": 24
       },
       {
         "fish": "ヘリテージグルーパー",
@@ -411,7 +451,7 @@
       {
         "fish": "ゴールデングルーパー",
         "weight": 0,
-        "bite_time_min": 20,
+        "bite_time_min": 19,
         "bite_time_max": 33
       }
     ],
@@ -646,8 +686,8 @@
         0
       ],
       "guar_rates_nodisc": [
-        2.1,
-        8.2,
+        3,
+        7.5,
         12.9
       ],
       "guar_rates_after_disc": {
@@ -990,6 +1030,134 @@
         "n3_d2_g0": 0,
         "n3_d3_g0": 0
       }
+    },
+    {
+      "spot": "アレクサンドリア旧市街",
+      "weather": "雷雨放電02-04",
+      "bait": "紅サシ",
+      "target_hidden": "ゴールデングルーパー",
+      "slap_target": "なし",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        23.11,
+        24.72,
+        27.42
+      ],
+      "guar_rates_nodisc": [
+        3.28,
+        8.79,
+        12.38
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 10.21,
+        "d1_g3": 21.53,
+        "d2_g3": 21.64
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 16.28,
+        "n2_d1_g2": 7.14,
+        "n2_d1_g0": 7.14,
+        "n3_d1_g3": 19.35,
+        "n3_d1_g0": 4.42,
+        "n2_d2_g0": 20.95,
+        "n3_d2_g3": 3.45,
+        "n3_d2_g0": 5.71,
+        "n3_d3_g0": 30.17
+      }
+    },
+    {
+      "spot": "アレクサンドリア旧市街",
+      "weather": "雷雨放電02-04",
+      "bait": "紅サシ",
+      "target_hidden": "ゴールデングルーパー",
+      "slap_target": "エレクトロベタ",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        null,
+        null,
+        null
+      ],
+      "guar_rates_nodisc": [
+        null,
+        null,
+        null
+      ],
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
+    },
+    {
+      "spot": "アレクサンドリア旧市街",
+      "weather": "雷雨放電02-04",
+      "bait": "紅サシ",
+      "target_hidden": "ゴールデングルーパー",
+      "slap_target": "サンダーレッド",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        null,
+        null,
+        null
+      ],
+      "guar_rates_nodisc": [
+        null,
+        null,
+        null
+      ],
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
+    },
+    {
+      "spot": "アレクサンドリア旧市街",
+      "weather": "雷雨放電02-04",
+      "bait": "紅サシ",
+      "target_hidden": "ゴールデングルーパー",
+      "slap_target": "ヤースラニボウフィン",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        25.25,
+        30.2,
+        43.29
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 2.61,
+        "d1_g3": 5,
+        "d2_g3": 3.67
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 35.66,
+        "n2_d1_g2": 100,
+        "n2_d1_g0": 14.81,
+        "n3_d1_g3": 100,
+        "n3_d1_g0": 22.81,
+        "n2_d2_g0": 38,
+        "n3_d2_g3": 100,
+        "n3_d2_g0": 28.57,
+        "n3_d3_g0": 63
+      }
+    },
+    {
+      "spot": "アレクサンドリア旧市街",
+      "weather": "雷雨放電02-04",
+      "bait": "紅サシ",
+      "target_hidden": "ゴールデングルーパー",
+      "slap_target": "ヘリテージグルーパー",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        null,
+        null,
+        null
+      ],
+      "guar_rates_nodisc": [
+        null,
+        null,
+        null
+      ],
+      "guar_rates_after_disc": {},
+      "hidden_hit_rates": {}
     },
     {
       "spot": "アレクサンドリア旧市街",
