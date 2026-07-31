@@ -510,11 +510,13 @@ function updateSimulation() {
     const spotData = masterDB.spots[spotVal];
     if (spotData.fish_list.length === 0) return;
 
-    // 隠し魚チェック: いる場合は変数モードを無効化
-    // 【一時凍結】総合戦略評価モードの場合は不具合のため強制無効化
+    // 変数モードの有効/無効制御:
+    // - ターゲット自体が隠し魚の場合 → 重みに依存しないため変数モード不可
+    // - 総合戦略評価モード → 未対応のため無効化
     const vmCheck = document.getElementById('isVariableMode');
-    const hasHidden = spotData.fish_list.some(f => masterDB.fish[f]?.is_hidden);
-    if (hasHidden || currentMode === 'optimizer') {
+    const targetFishName = document.getElementById('targetFishName').value;
+    const targetIsHidden = masterDB.fish[targetFishName]?.is_hidden;
+    if (targetIsHidden || currentMode === 'optimizer') {
         vmCheck.disabled = true;
         vmCheck.checked = false;
     } else {
@@ -706,7 +708,9 @@ async function runManualModeVariable(config) {
         fishRatios,
         gpCostPerCycle,
         gpCostDetails,
-        targetCycleTime: tStat.cycleTime
+        targetCycleTime: tStat.cycleTime,
+        pHidden: stats.pHidden,
+        hiddenFishName: stats.hiddenFishName
     };
 
     // Render using the dedicated variable-mode renderers
@@ -747,6 +751,8 @@ async function runStrategyModeVariable(config) {
         const tHook = targetInfo ? targetInfo.hook_time : 0;
 
         let weightedA = 0, weightedB = 0;
+        let weightedPHidden = 0;
+        let hiddenFishName = null;
         const enrichedScenarios = [];
 
         for (const scn of stratResult.scenarios) {
@@ -786,6 +792,8 @@ async function runStrategyModeVariable(config) {
 
             weightedA += scn.prob * A_i;
             weightedB += scn.prob * B_i;
+            weightedPHidden += scn.prob * (stats.pHidden || 0);
+            if (stats.hiddenFishName) hiddenFishName = stats.hiddenFishName;
 
             enrichedScenarios.push({ ...scn, A: A_i, B: B_i });
         }
@@ -798,7 +806,11 @@ async function runStrategyModeVariable(config) {
         results[set] = {
             ...stratResult,
             scenarios: enrichedScenarios,
-            variableInfo: { A: A_avg, B: B_avg }
+            variableInfo: {
+                A: A_avg, B: B_avg,
+                pHidden: tp > 0 ? weightedPHidden / tp : 0,
+                hiddenFishName
+            }
         };
     });
 

@@ -499,8 +499,17 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         scnPrefix = `(${config.lureType} ${cnt}回): `;
     }
 
+    // Hidden fish note
+    let hiddenNote = '';
+    if (vi.pHidden && vi.pHidden > 0) {
+        hiddenNote = `<div style="background:rgba(255,165,0,0.1); border:1px solid rgba(255,165,0,0.4); padding:8px; border-radius:4px; margin-bottom:10px; font-size:0.8rem; color:#f0a040;">
+            ⚠️ 隠し魚「<strong>${vi.hiddenFishName || '不明'}</strong>」の確率 <strong>${(vi.pHidden * 100).toFixed(2)}%</strong> は定数として計算に組み込み済みです
+        </div>`;
+    }
+
     resultContent.innerHTML = `
         <div style="font-size:1.3rem; font-weight:bold; margin-bottom:10px; color:var(--primary)">手動設定（変数モード）</div>
+        ${hiddenNote}
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
             <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待 (変数モード)</div>
             <div style="font-size:1.4rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
@@ -822,8 +831,21 @@ export function renderVariableStrategyComparison(resA, resB, config) {
     };
 
     if (resultContent) {
+        // Hidden fish note for strategy mode
+        let hiddenNote = '';
+        const pHiddenA = resA.variableInfo?.pHidden || 0;
+        const pHiddenB = resB.variableInfo?.pHidden || 0;
+        const hiddenName = resA.variableInfo?.hiddenFishName || resB.variableInfo?.hiddenFishName;
+        const pHiddenMax = Math.max(pHiddenA, pHiddenB);
+        if (pHiddenMax > 0 && hiddenName) {
+            hiddenNote = `<div style="background:rgba(255,165,0,0.1); border:1px solid rgba(255,165,0,0.4); padding:8px; border-radius:4px; margin-bottom:10px; font-size:0.8rem; color:#f0a040;">
+                ⚠️ 隠し魚「<strong>${hiddenName}</strong>」の確率は定数として計算に組み込み済みです
+            </div>`;
+        }
+
         resultContent.innerHTML = `
             <div style="font-size:1.3rem; font-weight:bold; margin-bottom:5px; color:var(--primary)">L戦略評価（変数モード）</div>
+            ${hiddenNote}
             <div style="font-size:0.75rem; margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed #444; color:#888;">
                 Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
             </div>
