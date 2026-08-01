@@ -595,12 +595,19 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
             <div style="font-size:0.8rem; color:var(--text-muted);">${mainLabelStr}</div>
             <div id="manual-formula-display" style="font-size:1.2rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
             <div style="font-size:0.75rem; color:#888; margin-top:2px; font-family:monospace;">( ${rawFormulaStr} )</div>
-            <div style="font-size:0.9rem; margin-top:5px;">基礎確率 (p): <strong id="manual-p-display">p</strong></div>
-            <div style="margin-top:5px;">
-                <input type="range" id="manual-p-slider" min="0" max="100" value="50" style="width: 80%;">
+            
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">平均サイクル</div>
+            <div style="font-size:1.0rem; font-weight:bold; color:#fff;"><span id="manual-cycle-display">-</span> <span style="font-size:0.7em;">s</span></div>
+            
+            <div style="margin-top:10px; border-top:1px dashed #444; padding-top:10px;">
+                <div style="font-size:0.9rem; color:var(--primary);">補正確率: <strong id="manual-corrected-p-display">p</strong></div>
+                <div style="font-size:0.85rem; color:#aaa; margin-top:3px;">基礎確率 (p): <strong id="manual-p-display">p</strong></div>
+                <div style="margin-top:5px;">
+                    <input type="range" id="manual-p-slider" min="0" max="100" value="50" style="width: 80%;">
+                </div>
             </div>
-            <div style="font-size:0.9rem; margin-top:3px; color:var(--primary);">Hit: <strong id="manual-corrected-p-display">p</strong></div>
-            <div style="font-size:0.9rem; margin-top:3px;">GP消費：${gpStr}</div>
+            
+            <div style="font-size:0.9rem; margin-top:8px;">GP消費：${gpStr}</div>
             <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
                 Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
             </div>
@@ -705,17 +712,30 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
             const val = parseInt(e.target.value, 10);
             const p = val / 100;
             pDisplay.textContent = `${val}%`;
+            
+            let resVal = graphFunc(p);
+            
             if (correctedPDisplay) {
                 let p_prime = 0;
                 if (p === 1) p_prime = vi.D;
                 else if (p > 0) p_prime = (p / (p + vi.C * (1 - p))) * vi.D;
                 
                 correctedPDisplay.textContent = `${(p_prime * 100).toFixed(1)}%`;
+                
+                const cycleDisplay = document.getElementById('manual-cycle-display');
+                if (cycleDisplay) {
+                    if (p === 0) {
+                        cycleDisplay.textContent = (vi.A + vi.B).toFixed(1); // C_avg = B/C is theoretically true but using expected limit A+B
+                    } else if (resVal !== Infinity && !isTimeMode) {
+                        cycleDisplay.textContent = (resVal * p_prime).toFixed(1);
+                    } else if (isTimeMode) {
+                        cycleDisplay.textContent = (Ct * p_prime + S * (1 - p_prime)).toFixed(1); // fallback for time mode
+                    }
+                }
             }
             if (p === 0) {
                 fDisplay.innerHTML = isTimeMode ? `0.00 <span style="font-size:0.7em;">匹</span>` : `∞ <span style="font-size:0.7em;">秒</span>`;
             } else {
-                const resVal = graphFunc(p);
                 fDisplay.innerHTML = `${resVal.toFixed(2)} <span style="font-size:0.7em;">${isTimeMode ? '匹' : '秒'}</span>`;
             }
             draw();
@@ -988,9 +1008,18 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             top3Html = `<div class="top3-container"><div class="top3-title">高確率シナリオ Top3</div>${sorted.map(s => {
                 const expStr = (s.A !== undefined && s.B !== undefined) ?
                     `${s.A.toFixed(1)}+${s.B.toFixed(1)}(1-p)/p` : '-';
+                
+                let hStr = 'p';
+                if (s.C !== undefined && s.D !== undefined) {
+                    if (Math.abs(s.C - 1) < 0.01 && Math.abs(s.D - 1) < 0.01) hStr = 'p';
+                    else if (Math.abs(s.D - 1) < 0.01) hStr = `p / (p + ${s.C.toFixed(2)}(1-p))`;
+                    else if (Math.abs(s.C - 1) < 0.01) hStr = `${s.D.toFixed(2)}p`;
+                    else hStr = `${s.D.toFixed(2)}p / (p + ${s.C.toFixed(2)}(1-p))`;
+                }
+
                 return `
                 <div class="top3-item"><div style="color:${color};font-weight:bold;">${s.label} ${(s.isQuit ? '<span style="color:red">!</span>' : '')}</div>
-                <div class="top3-stats"><span>Hit: p×H</span><span>発生:${(s.prob * 100).toFixed(1)}%</span></div>
+                <div class="top3-stats"><span>Hit: ${hStr}</span><span>発生:${(s.prob * 100).toFixed(1)}%</span></div>
                 <div style="font-size:0.7rem; color:#aaa;">E[T]: ${expStr}</div>
                 </div>`;
             }).join('')}</div>`;
@@ -1008,7 +1037,28 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             </div>`;
         }
 
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div id="strat-val-${idSuffix}" class="main-val">${formulaStr}</div><div style="font-size:0.75rem; color:#888; font-family:monospace; margin-bottom:5px;">${rawFormulaStr}</div><div class="val-label">${mainLabelStr}</div><div class="stat-row"><div class=\"stat-item\">補正確率<br><span id="strat-hit-${idSuffix}" class=\"stat-val\" style=\"color:var(--primary)\">${hitStr}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div></div>${top3Html}</div>`;
+        return `<div class="strat-card" style="border-top:4px solid ${color}">
+            <h4>${res.name}</h4>
+            <div class="strat-desc">${res.description || ''}</div>
+            ${extraInfo}
+            <div class="val-label">${mainLabelStr}</div>
+            <div id="strat-val-${idSuffix}" class="main-val">${formulaStr}</div>
+            <div style="font-size:0.75rem; color:#888; font-family:monospace; margin-bottom:5px; text-align:center;">${rawFormulaStr}</div>
+            
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:8px; text-align:center;">平均サイクル</div>
+            <div style="font-size:1.0rem; font-weight:bold; color:#fff; text-align:center;"><span id="strat-cycle-${idSuffix}">-</span> <span style="font-size:0.7em;">s</span></div>
+            
+            <div style="margin-top:10px; border-top:1px dashed #444; padding-top:10px; text-align:center;">
+                <div style="margin-bottom:3px; font-size:0.9rem;">補正確率: <span id="strat-hit-${idSuffix}" style="color:var(--primary); font-weight:bold;">${hitStr}</span></div>
+                <div style="font-size:0.85rem; color:#aaa;">基礎確率 (p): <span id="strat-base-p-${idSuffix}" style="font-weight:bold;">${hitStr}</span></div>
+            </div>
+            
+            <div class="stat-row" style="justify-content:center; margin-top:8px; padding-bottom:8px;">
+                <div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div>
+            </div>
+            
+            ${top3Html}
+        </div>`;
     };
 
     if (resultContent) {
@@ -1113,6 +1163,11 @@ export function renderVariableStrategyComparison(resA, resB, config) {
                     const idSuffix = idx === 0 ? 'A' : 'B';
                     const valEl = document.getElementById(`strat-val-${idSuffix}`);
                     const hitEl = document.getElementById(`strat-hit-${idSuffix}`);
+                    const basePEl = document.getElementById(`strat-base-p-${idSuffix}`);
+                    const cycleEl = document.getElementById(`strat-cycle-${idSuffix}`);
+                    
+                    if (basePEl) basePEl.textContent = `${val}%`;
+
                     if (valEl && hitEl) {
                         let p_prime = 0;
                         if (res.scenarios && res.totalProb > 0) {
@@ -1126,12 +1181,28 @@ export function renderVariableStrategyComparison(resA, resB, config) {
                             p_prime = weightedHit / res.totalProb;
                         }
                         hitEl.textContent = `${(p_prime * 100).toFixed(1)}%`;
+                        
                         const func = funcs[idx];
+                        let resVal = Infinity;
+                        if (func && p > 0) {
+                            resVal = func(p);
+                        }
+
                         if (p === 0) {
                             valEl.innerHTML = isTimeLimit ? `0.00 <span style="font-size:0.6em;">匹</span>` : `∞ <span style="font-size:0.6em;">秒</span>`;
+                            if (cycleEl) cycleEl.textContent = (res.variableInfo.A + res.variableInfo.B).toFixed(1);
                         } else if (func) {
-                            const resVal = func(p);
                             valEl.innerHTML = `${resVal.toFixed(2)} <span style="font-size:0.6em;">${isTimeLimit ? '匹' : '秒'}</span>`;
+                            if (cycleEl) {
+                                if (isTimeLimit) {
+                                    // In time limit mode, resVal is expected catches. Cycle isn't explicitly simple, we can compute it manually or use E[T]*p' where E[T] is time/resVal. 
+                                    // Actually we can just use the base E[T] formula:
+                                    const expectedTime = res.variableInfo.A + res.variableInfo.B * (1 - p) / p;
+                                    cycleEl.textContent = (expectedTime * p_prime).toFixed(1);
+                                } else {
+                                    cycleEl.textContent = (resVal * p_prime).toFixed(1);
+                                }
+                            }
                         }
                     }
                 });
