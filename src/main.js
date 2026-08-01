@@ -737,10 +737,13 @@ async function runManualModeVariable(config) {
     const gpCostDetails = stats.gpStats.cost.details;
     
     const H = (tStat.originalHitProb > 0) ? (tStat.hitRate / tStat.originalHitProb) : 0;
+    const C_val = (K > 0 && targetM > 0) ? wOthersTotal / (targetM * K) : 0;
+    const F_100 = (targetM > 0) ? (100 * targetM) / ((100 * targetM) + wOthersTotal) : 0;
+    const D_val = (F_100 > 0) ? (tStat.hitRate / F_100) : 0;
 
     // Attach variableInfo to stats
     stats.variableInfo = {
-        A, B, S, H,
+        A, B, S, H, C: C_val, D: D_val,
         targetM,
         wOthersTotal,
         fishRatios,
@@ -827,6 +830,9 @@ async function runStrategyModeVariable(config) {
             });
 
             const B_i = (K > 0 && M > 0) ? sum_wT / (M * K) : 0;
+            const C_i = (K > 0 && M > 0) ? wOthers / (M * K) : 0;
+            const F_100 = (M > 0) ? (100 * M) / ((100 * M) + wOthers) : 0;
+            const D_i = (F_100 > 0) ? (tStat.hitRate / F_100) : 0;
             const H_i = (tStat.originalHitProb > 0) ? (tStat.hitRate / tStat.originalHitProb) : 0;
 
             weightedA += scn.prob * A_i;
@@ -835,7 +841,7 @@ async function runStrategyModeVariable(config) {
             weightedPHidden += scn.prob * (stats.pHidden || 0);
             if (stats.hiddenFishName) hiddenFishName = stats.hiddenFishName;
 
-            enrichedScenarios.push({ ...scn, A: A_i, B: B_i, H: H_i });
+            enrichedScenarios.push({ ...scn, A: A_i, B: B_i, H: H_i, C: C_i, D: D_i });
         }
 
         // Strategy-level A and B

@@ -706,7 +706,11 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
             const p = val / 100;
             pDisplay.textContent = `${val}%`;
             if (correctedPDisplay) {
-                correctedPDisplay.textContent = `${(p * vi.H * 100).toFixed(1)}%`;
+                let p_prime = 0;
+                if (p === 1) p_prime = vi.D;
+                else if (p > 0) p_prime = (p / (p + vi.C * (1 - p))) * vi.D;
+                
+                correctedPDisplay.textContent = `${(p_prime * 100).toFixed(1)}%`;
             }
             if (p === 0) {
                 fDisplay.innerHTML = isTimeMode ? `0.00 <span style="font-size:0.7em;">匹</span>` : `∞ <span style="font-size:0.7em;">秒</span>`;
@@ -1110,7 +1114,18 @@ export function renderVariableStrategyComparison(resA, resB, config) {
                     const valEl = document.getElementById(`strat-val-${idSuffix}`);
                     const hitEl = document.getElementById(`strat-hit-${idSuffix}`);
                     if (valEl && hitEl) {
-                        hitEl.textContent = `${val}%`;
+                        let p_prime = 0;
+                        if (res.scenarios && res.totalProb > 0) {
+                            let weightedHit = 0;
+                            res.scenarios.forEach(scn => {
+                                let hit_i = 0;
+                                if (p === 1) hit_i = scn.D;
+                                else if (p > 0) hit_i = (p / (p + scn.C * (1 - p))) * scn.D;
+                                weightedHit += scn.prob * hit_i;
+                            });
+                            p_prime = weightedHit / res.totalProb;
+                        }
+                        hitEl.textContent = `${(p_prime * 100).toFixed(1)}%`;
                         const func = funcs[idx];
                         if (p === 0) {
                             valEl.innerHTML = isTimeLimit ? `0.00 <span style="font-size:0.6em;">匹</span>` : `∞ <span style="font-size:0.6em;">秒</span>`;
