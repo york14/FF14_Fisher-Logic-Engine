@@ -4,6 +4,7 @@
 
 import { GDS } from '../core/calculator.js';
 import { getScenarioLabel } from '../core/scenario.js';
+import { renderGraphToCanvas } from './graph.js';
 
 export function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
     const tbody = document.getElementById('res-table-body');
@@ -559,9 +560,9 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         
         // Count formula: timeLimit * p / (Ct*p + S*(1-p))
         if (Math.abs(Ct - S) < 0.01) {
-             formulaStr = `${timeLimit} × p / ${Ct.toFixed(1)}`;
+             formulaStr = `${timeLimit} × p / ${Ct.toFixed(1)} <span style="font-size:0.7em;">匹</span>`;
         } else {
-             formulaStr = `${timeLimit} × p / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p))`;
+             formulaStr = `${timeLimit} × p / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p)) <span style="font-size:0.7em;">匹</span>`;
         }
         mainLabelStr = `制限時間 ${timeLimit}秒 内の期待獲得数 (変数モード)`;
         
@@ -570,6 +571,8 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         } else {
              gpStr = `${gpCost * timeLimit} / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p)) GP`;
         }
+    } else {
+        formulaStr += ` <span style="font-size:0.7em;">秒</span>`;
     }
 
     resultContent.innerHTML = `
@@ -577,11 +580,14 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         ${hiddenNote}
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
             <div style="font-size:0.8rem; color:var(--text-muted);">${mainLabelStr}</div>
-            <div style="font-size:1.4rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
+            <div style="font-size:1.2rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
             <div style="font-size:0.9rem; margin-top:5px;">ヒット率: <strong>p</strong></div>
             <div style="font-size:0.9rem; margin-top:3px;">GP消費：${gpStr}</div>
             <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
                 Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+            </div>
+            <div style="margin-top:15px;">
+                <canvas id="manual-variable-graph" style="width:100%; height:150px; background:#1a1a1a; border:1px solid #444; border-radius:4px;"></canvas>
             </div>
         </div>
         <table><thead><tr><th>魚種名</th><th>ヒット率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
@@ -632,6 +638,30 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
     if (scStrEl) scStrEl.textContent = `シナリオ: ${scnPrefix}${stats.scenarioStr}`;
     if (scProbEl) scProbEl.textContent = `発生確率: ${(stats.scenarioProb * 100).toFixed(2)}%`;
     if (avgEl) avgEl.textContent = `平均サイクル: ${avgCycleStr}`;
+
+    // Draw graph
+    let graphFunc = null;
+    let yLabel = '';
+    if (config.manualTimeLimitEnabled && config.manualTimeLimit > 0) {
+        yLabel = '期待獲得数 (匹)';
+        graphFunc = (p) => {
+            if (p === 0) return 0;
+            const cycle = Ct * p + S * (1 - p);
+            return (config.manualTimeLimit * p) / cycle;
+        };
+    } else {
+        yLabel = '期待時間 (秒)';
+        graphFunc = (p) => {
+            if (p === 0) return Infinity;
+            return vi.A + vi.B * (1 - p) / p;
+        };
+    }
+    
+    // We need to wait slightly for the DOM to update before drawing, or do it immediately if possible.
+    // DOM is updated synchronously with innerHTML above, so it should be available.
+    requestAnimationFrame(() => {
+        renderGraphToCanvas('manual-variable-graph', [graphFunc], ['#3b82f6'], ['手動設定'], 'ターゲットヒット率 (p)', yLabel);
+    });
 }
 
 
@@ -865,13 +895,14 @@ export function renderVariableStrategyComparison(resA, resB, config) {
 
         if (isTimeLimit && timeLimit > 0) {
             mainLabelStr = `期待獲得数 (${timeLimit}秒)`;
-            formulaStr = `${timeLimit} × p / (${vi.A.toFixed(1)}p + ${vi.B.toFixed(1)}(1-p))`;
+            formulaStr = `<span style="font-size:0.85em;">${timeLimit} × p / (${vi.A.toFixed(1)}p + ${vi.B.toFixed(1)}(1-p))</span> <span style="font-size:0.5em;">匹</span>`;
             gpStr = gp ? `${gp.cost.total.toFixed(0)}GP/cyc` : '-'; // 変数モードでの総GP計算は困難なためサイクル表記を維持
         } else {
             formulaStr = `${vi.A.toFixed(1)}`;
             if (vi.B > 0) {
                 formulaStr += `<span style="font-size:0.6em; margin-left:2px;"> + ${vi.B.toFixed(2)}×(1-p)/p</span>`;
             }
+            formulaStr += ` <span style="font-size:0.5em;">秒</span>`;
         }
 
         const cycle = `${res.avgCycle.toFixed(1)}s`;
@@ -919,12 +950,55 @@ export function renderVariableStrategyComparison(resA, resB, config) {
         }
 
         resultContent.innerHTML = `
-            <div style="font-size:1.3rem; font-weight:bold; margin-bottom:5px; color:var(--primary)">L戦略評価（変数モード）</div>
+            <div style="font-size:1.3rem; font-weight:bold; margin-bottom:5px; color:var(--primary)">L戦略評価（変数モード${config.stratTimeLimitEnabled ? ' - 制限時間' : ''}）</div>
             ${hiddenNote}
             <div style="font-size:0.75rem; margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed #444; color:#888;">
                 Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
             </div>
-            <div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
+            <div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>
+            <div style="margin-top:15px;">
+                <canvas id="strat-variable-graph" style="width:100%; height:200px; background:#1a1a1a; border:1px solid #444; border-radius:4px;"></canvas>
+            </div>
+        `;
+        
+        // Draw graph for both strategies
+        requestAnimationFrame(() => {
+            const funcs = [];
+            const colors = [];
+            const labels = [];
+            
+            let yLabel = '期待時間 (秒)';
+            const isTimeLimit = config.stratTimeLimitEnabled;
+            if (isTimeLimit) yLabel = '期待獲得数 (匹)';
+            
+            [resA, resB].forEach((res, idx) => {
+                if (res.error || !res.variableInfo) return;
+                const vi = res.variableInfo;
+                const timeLimit = idx === 0 ? config.stratATimeLimit : config.stratBTimeLimit;
+                
+                let func = null;
+                if (isTimeLimit && timeLimit > 0) {
+                    func = (p) => {
+                        if (p === 0) return 0;
+                        const cycle = vi.A * p + vi.B * (1 - p); // This might not be exact cycle time, but E[Time] = A + B(1-p)/p.
+                        // Actually, total expected time E[T] = A + B(1-p)/p. So count = timeLimit / E[T] = timeLimit * p / (A*p + B(1-p))
+                        return (timeLimit * p) / (vi.A * p + vi.B * (1 - p));
+                    };
+                } else {
+                    func = (p) => {
+                        if (p === 0) return Infinity;
+                        return vi.A + vi.B * (1 - p) / p;
+                    };
+                }
+                funcs.push(func);
+                colors.push(idx === 0 ? '#ec4899' : '#8b5cf6');
+                labels.push(idx === 0 ? 'Set A' : 'Set B');
+            });
+            
+            if (funcs.length > 0) {
+                renderGraphToCanvas('strat-variable-graph', funcs, colors, labels, 'ターゲットヒット率 (p)', yLabel);
+            }
+        });
     }
 
     // Debug tables
