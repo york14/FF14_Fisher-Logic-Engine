@@ -490,6 +490,36 @@ function setupEventListeners() {
             });
         });
 
+    // --- Time Limit Mode ---
+    // Manual mode: checkbox toggle
+    const manualTLCheck = document.getElementById('manualTimeLimitEnabled');
+    if (manualTLCheck) {
+        manualTLCheck.addEventListener('change', () => {
+            document.getElementById('manualTimeLimitContainer').style.display = manualTLCheck.checked ? 'block' : 'none';
+            updateSimulation();
+        });
+    }
+    const manualTLInput = document.getElementById('manualTimeLimit');
+    if (manualTLInput) manualTLInput.addEventListener('input', updateSimulation);
+
+    // Strategy mode: A/B sync + toggle
+    ['stratATimeLimitEnabled', 'stratBTimeLimitEnabled'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => {
+            // Sync: checking one checks both
+            const otherCheckId = id === 'stratATimeLimitEnabled' ? 'stratBTimeLimitEnabled' : 'stratATimeLimitEnabled';
+            const otherCheck = document.getElementById(otherCheckId);
+            if (otherCheck) otherCheck.checked = el.checked;
+            document.getElementById('stratATimeLimitContainer').style.display = el.checked ? 'block' : 'none';
+            document.getElementById('stratBTimeLimitContainer').style.display = el.checked ? 'block' : 'none';
+            updateSimulation();
+        });
+    });
+    ['stratATimeLimit', 'stratBTimeLimit'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateSimulation);
+    });
+
     // Optimizer tab UI elements → reactive recalculation
     ['opt-window-time', 'opt-initial-gp', 'opt-saljak-count',
         'optALure', 'optAPreset', 'optASlap', 'optAChum',
@@ -532,7 +562,13 @@ function updateSimulation() {
         isVariableMode: vmCheck.checked,
         lureType: document.getElementById('lureType').value,
         quitIfNoDisc: false,
-        macroLimitTime: parseFloat(document.getElementById('macroLimitTime').value) || 0
+        macroLimitTime: parseFloat(document.getElementById('macroLimitTime').value) || 0,
+        // Time Limit Mode
+        manualTimeLimitEnabled: document.getElementById('manualTimeLimitEnabled')?.checked || false,
+        manualTimeLimit: parseFloat(document.getElementById('manualTimeLimit')?.value) || 0,
+        stratTimeLimitEnabled: document.getElementById('stratATimeLimitEnabled')?.checked || false,
+        stratATimeLimit: parseFloat(document.getElementById('stratATimeLimit')?.value) || 0,
+        stratBTimeLimit: parseFloat(document.getElementById('stratBTimeLimit')?.value) || 0
     };
 
     if (currentMode === 'manual') {

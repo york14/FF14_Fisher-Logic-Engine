@@ -60,26 +60,53 @@ export function renderManualModeResult(stats, config, isChum, slapFish) {
     const gpPerSecStr = gpPerSec.toFixed(1) + ' GP / sec';
 
     if (resultContent) {
-        resultContent.innerHTML = `
-            <div style="font-size:1.3rem; font-weight:bold; margin-bottom:10px; color:var(--primary)">手動設定</div>
-            <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
-                <div style="font-size:0.8rem; color:var(--text-muted);">期待時間</div>
-                <div style="font-size:2rem; font-weight:bold; color:var(--primary);">${expTimeStr}</div>
-                <div style="font-size:0.9rem; margin-top:5px;">ヒット率: ${hitRateStr}</div>
-                <div style="font-size:0.9rem; margin-top:3px;">GP消費(秒間)：${gpPerSecStr}</div>
-                <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
-                    Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+        if (config.manualTimeLimitEnabled && config.manualTimeLimit > 0) {
+            const timeLimit = config.manualTimeLimit;
+            const expectedCount = (timeLimit / stats.avgCycleTime) * stats.targetHitRate;
+            const gpTotal = (gpPerSec * timeLimit).toFixed(0);
+            
+            resultContent.innerHTML = `
+                <div style="font-size:1.3rem; font-weight:bold; margin-bottom:10px; color:var(--primary)">手動設定（制限時間モード）</div>
+                <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
+                    <div style="font-size:0.8rem; color:var(--text-muted);">制限時間 ${timeLimit}秒 内の期待獲得数</div>
+                    <div style="font-size:2rem; font-weight:bold; color:var(--primary);">${expectedCount.toFixed(3)} 匹</div>
+                    <div style="font-size:0.9rem; margin-top:5px;">ヒット率: ${hitRateStr} &nbsp;|&nbsp; 平均サイクル: ${stats.avgCycleTime.toFixed(1)}秒</div>
+                    <div style="font-size:0.9rem; margin-top:3px;">制限時間内のGP消費：${gpTotal} GP</div>
+                    <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
+                        Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+                    </div>
                 </div>
-            </div>
-            <table><thead><tr><th>魚種名</th><th>ヒット率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
-            <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
-                <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
-                         <div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>
+                <table><thead><tr><th>魚種名</th><th>ヒット率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
+                <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+                    <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
+                             <div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>
+                    </div>
+                    <div id="scenario-str" style="margin-bottom: 4px;"></div>
+                    <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;"></div>
+                    <div id="avg-cycle-time"></div>
+                </div>`;
+        } else {
+            resultContent.innerHTML = `
+                <div style="font-size:1.3rem; font-weight:bold; margin-bottom:10px; color:var(--primary)">手動設定</div>
+                <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
+                    <div style="font-size:0.8rem; color:var(--text-muted);">期待時間</div>
+                    <div style="font-size:2rem; font-weight:bold; color:var(--primary);">${expTimeStr}</div>
+                    <div style="font-size:0.9rem; margin-top:5px;">ヒット率: ${hitRateStr}</div>
+                    <div style="font-size:0.9rem; margin-top:3px;">GP消費(秒間)：${gpPerSecStr}</div>
+                    <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
+                        Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+                    </div>
                 </div>
-                <div id="scenario-str" style="margin-bottom: 4px;"></div>
-                <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;"></div>
-                <div id="avg-cycle-time"></div>
-            </div>`;
+                <table><thead><tr><th>魚種名</th><th>ヒット率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
+                <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+                    <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
+                             <div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>
+                    </div>
+                    <div id="scenario-str" style="margin-bottom: 4px;"></div>
+                    <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;"></div>
+                    <div id="avg-cycle-time"></div>
+                </div>`;
+        }
     }
 
     renderResultTable(stats.allFishStats, config.target, scnPrefix + stats.scenarioStr, stats.scenarioProb, stats.avgCycleTime);
@@ -93,6 +120,9 @@ export function renderStrategyComparison(resA, resB, config) {
     const resultContent = document.getElementById('result-content');
     const right = document.getElementById('debug-content-wrapper');
     const buildCard = (res, label, color) => {
+        const isTimeLimit = config.stratTimeLimitEnabled;
+        const timeLimit = label === "Set A" ? config.stratATimeLimit : config.stratBTimeLimit;
+
         const time = (res.error || res.expectedTime === Infinity) ? '∞' : res.expectedTime.toFixed(1);
         const timeDisplay = (res.error || res.expectedTime === Infinity) ? '∞' :
             `${time}<span style="font-size:0.6em; margin-left:4px;">秒</span>`;
@@ -103,6 +133,22 @@ export function renderStrategyComparison(resA, resB, config) {
         const gp = res.gpStats;
         const gpPerSec = (gp && res.avgCycle > 0) ? (gp.cost.total / res.avgCycle) : 0;
         const gpPerSecStr = gpPerSec.toFixed(1) + '/s';
+
+        let mainValStr = '';
+        let mainLabelStr = '';
+        let statRowHtml = '';
+
+        if (isTimeLimit && timeLimit > 0) {
+            const expectedCount = res.error ? 0 : (timeLimit / res.avgCycle) * res.avgHitRate;
+            const gpTotal = res.error ? 0 : ((gpPerSec * timeLimit).toFixed(0));
+            mainValStr = res.error ? 'Error' : `${expectedCount.toFixed(3)}<span style="font-size:0.6em; margin-left:4px;">匹</span>`;
+            mainLabelStr = `期待獲得数 (${timeLimit}秒)`;
+            statRowHtml = `<div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div><div class=\"stat-item\">制限内GP<br><span class=\"stat-val\">${gpTotal}</span></div>`;
+        } else {
+            mainValStr = timeDisplay;
+            mainLabelStr = '期待時間';
+            statRowHtml = `<div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div><div class=\"stat-item\">GP消費<br><span class=\"stat-val\">${gpPerSecStr}</span></div>`;
+        }
 
         let top3Html = '';
         if (!res.error && res.scenarios) {
@@ -125,7 +171,7 @@ export function renderStrategyComparison(resA, resB, config) {
             </div>`;
         }
 
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div class="main-val">${timeDisplay}</div><div class="val-label">期待時間</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">Cycle<br><span class=\"stat-val\">${cycle}</span></div><div class=\"stat-item\">GP消費<br><span class=\"stat-val\">${gpPerSecStr}</span></div></div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div class="main-val">${mainValStr}</div><div class="val-label">${mainLabelStr}</div><div class="stat-row">${statRowHtml}</div>${res.error ? `<div style="color:red">⚠️ ${res.error}</div>` : top3Html}</div>`;
     };
 
     if (resultContent) {
@@ -507,14 +553,33 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         </div>`;
     }
 
+    let mainLabelStr = 'ターゲットヒット時間期待 (変数モード)';
+    if (config.manualTimeLimitEnabled && config.manualTimeLimit > 0) {
+        const timeLimit = config.manualTimeLimit;
+        
+        // Count formula: timeLimit * p / (Ct*p + S*(1-p))
+        if (Math.abs(Ct - S) < 0.01) {
+             formulaStr = `${timeLimit} × p / ${Ct.toFixed(1)}`;
+        } else {
+             formulaStr = `${timeLimit} × p / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p))`;
+        }
+        mainLabelStr = `制限時間 ${timeLimit}秒 内の期待獲得数 (変数モード)`;
+        
+        if (gpCost === 0) {
+            gpStr = '0 GP';
+        } else {
+             gpStr = `${gpCost * timeLimit} / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p)) GP`;
+        }
+    }
+
     resultContent.innerHTML = `
-        <div style="font-size:1.3rem; font-weight:bold; margin-bottom:10px; color:var(--primary)">手動設定（変数モード）</div>
+        <div style="font-size:1.3rem; font-weight:bold; margin-bottom:10px; color:var(--primary)">手動設定（変数モード${config.manualTimeLimitEnabled ? ' - 制限時間' : ''}）</div>
         ${hiddenNote}
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
-            <div style="font-size:0.8rem; color:var(--text-muted);">ターゲットヒット時間期待 (変数モード)</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">${mainLabelStr}</div>
             <div style="font-size:1.4rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
             <div style="font-size:0.9rem; margin-top:5px;">ヒット率: <strong>p</strong></div>
-            <div style="font-size:0.9rem; margin-top:3px;">GP消費(秒間)：${gpStr}</div>
+            <div style="font-size:0.9rem; margin-top:3px;">GP消費：${gpStr}</div>
             <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
                 Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
             </div>
@@ -788,18 +853,28 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name || label}</h4><div style="color:red">⚠️ ${res.error}</div></div>`;
         }
 
+        const isTimeLimit = config.stratTimeLimitEnabled;
+        const timeLimit = label === "Set A" ? config.stratATimeLimit : config.stratBTimeLimit;
         const vi = res.variableInfo;
-        let formulaStr = `${vi.A.toFixed(1)}`;
-        if (vi.B > 0) {
-            formulaStr += `<span style="font-size:0.6em; margin-left:2px;"> + ${vi.B.toFixed(2)}×(1-p)/p</span>`;
+        
+        let formulaStr = '';
+        let mainLabelStr = '期待時間 (変数モード)';
+        const gp = res.gpStats;
+        let gpStr = gp ? `${gp.cost.total.toFixed(0)}GP/cyc` : '-';
+        let hitStr = 'p';
+
+        if (isTimeLimit && timeLimit > 0) {
+            mainLabelStr = `期待獲得数 (${timeLimit}秒)`;
+            formulaStr = `${timeLimit} × p / (${vi.A.toFixed(1)}p + ${vi.B.toFixed(1)}(1-p))`;
+            gpStr = gp ? `${gp.cost.total.toFixed(0)}GP/cyc` : '-'; // 変数モードでの総GP計算は困難なためサイクル表記を維持
+        } else {
+            formulaStr = `${vi.A.toFixed(1)}`;
+            if (vi.B > 0) {
+                formulaStr += `<span style="font-size:0.6em; margin-left:2px;"> + ${vi.B.toFixed(2)}×(1-p)/p</span>`;
+            }
         }
 
-        const hit = 'p';
         const cycle = `${res.avgCycle.toFixed(1)}s`;
-
-        // GP per sec is complex in variable mode, show simplified
-        const gp = res.gpStats;
-        const gpStr = gp ? `${gp.cost.total.toFixed(0)}GP/cyc` : '-';
 
         let top3Html = '';
         if (res.scenarios) {
@@ -827,7 +902,7 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             </div>`;
         }
 
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div class="main-val">${formulaStr}</div><div class="val-label">期待時間 (変数モード)</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hit}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div></div>${top3Html}</div>`;
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div class="main-val">${formulaStr}</div><div class="val-label">${mainLabelStr}</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hitStr}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div></div>${top3Html}</div>`;
     };
 
     if (resultContent) {
