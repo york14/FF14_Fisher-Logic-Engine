@@ -580,8 +580,11 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         ${hiddenNote}
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
             <div style="font-size:0.8rem; color:var(--text-muted);">${mainLabelStr}</div>
-            <div style="font-size:1.2rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
-            <div style="font-size:0.9rem; margin-top:5px;">ヒット率: <strong>p</strong></div>
+            <div id="manual-formula-display" style="font-size:1.2rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
+            <div style="font-size:0.9rem; margin-top:5px;">ヒット率: <strong id="manual-p-display">p</strong></div>
+            <div style="margin-top:5px;">
+                <input type="range" id="manual-p-slider" min="0" max="100" value="50" style="width: 80%;">
+            </div>
             <div style="font-size:0.9rem; margin-top:3px;">GP消費：${gpStr}</div>
             <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
                 Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
@@ -657,10 +660,37 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         };
     }
     
-    // We need to wait slightly for the DOM to update before drawing, or do it immediately if possible.
-    // DOM is updated synchronously with innerHTML above, so it should be available.
+    const draw = (currentP) => {
+        renderGraphToCanvas('manual-variable-graph', [graphFunc], ['#3b82f6'], ['手動設定'], 'ターゲットヒット率 (p)', yLabel, currentP);
+    };
+
+    const slider = document.getElementById('manual-p-slider');
+    const pDisplay = document.getElementById('manual-p-display');
+    const fDisplay = document.getElementById('manual-formula-display');
+    const isTimeMode = (config.manualTimeLimitEnabled && config.manualTimeLimit > 0);
+
+    if (slider && pDisplay && fDisplay) {
+        slider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value, 10);
+            const p = val / 100;
+            pDisplay.textContent = `${val}%`;
+            if (p === 0) {
+                fDisplay.innerHTML = isTimeMode ? `0.00 <span style="font-size:0.7em;">匹</span>` : `∞ <span style="font-size:0.7em;">秒</span>`;
+            } else {
+                const resVal = graphFunc(p);
+                fDisplay.innerHTML = `${resVal.toFixed(2)} <span style="font-size:0.7em;">${isTimeMode ? '匹' : '秒'}</span>`;
+            }
+            draw(p);
+        });
+    }
+
     requestAnimationFrame(() => {
-        renderGraphToCanvas('manual-variable-graph', [graphFunc], ['#3b82f6'], ['手動設定'], 'ターゲットヒット率 (p)', yLabel);
+        if (slider) {
+            slider.value = 50;
+            slider.dispatchEvent(new Event('input'));
+        } else {
+            draw(0.5);
+        }
     });
 }
 
@@ -878,7 +908,7 @@ export function renderVariableStrategyComparison(resA, resB, config) {
     const resultContent = document.getElementById('result-content');
     const right = document.getElementById('debug-content-wrapper');
 
-    const buildCard = (res, label, color) => {
+    const buildCard = (res, label, color, idSuffix) => {
         if (res.error) {
             return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name || label}</h4><div style="color:red">⚠️ ${res.error}</div></div>`;
         }
@@ -933,7 +963,7 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             </div>`;
         }
 
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div class="main-val">${formulaStr}</div><div class="val-label">${mainLabelStr}</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span class=\"stat-val\">${hitStr}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div></div>${top3Html}</div>`;
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div id="strat-val-${idSuffix}" class="main-val">${formulaStr}</div><div class="val-label">${mainLabelStr}</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span id="strat-hit-${idSuffix}" class=\"stat-val\">${hitStr}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div></div>${top3Html}</div>`;
     };
 
     if (resultContent) {
@@ -955,48 +985,95 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             <div style="font-size:0.75rem; margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed #444; color:#888;">
                 Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
             </div>
-            <div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>
-            <div style="margin-top:15px;">
+            <div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)", "A")}${buildCard(resB, "Set B", "var(--accent-b)", "B")}</div>
+            <div style="margin-top:15px; text-align:center;">
+                <div style="font-size:0.9rem; color:#ddd; margin-bottom:5px;">ヒット率 (p): <strong id="strat-p-display">p</strong></div>
+                <input type="range" id="strat-p-slider" min="0" max="100" value="50" style="width: 80%;">
+            </div>
+            <div style="margin-top:10px;">
                 <canvas id="strat-variable-graph" style="width:100%; height:200px; background:#1a1a1a; border:1px solid #444; border-radius:4px;"></canvas>
             </div>
         `;
         
-        // Draw graph for both strategies
-        requestAnimationFrame(() => {
-            const funcs = [];
-            const colors = [];
-            const labels = [];
+        // Setup interactive functions
+        const funcs = [];
+        const colors = [];
+        const labels = [];
+        
+        let yLabel = '期待時間 (秒)';
+        const isTimeLimit = config.stratTimeLimitEnabled;
+        if (isTimeLimit) yLabel = '期待獲得数 (匹)';
+        
+        [resA, resB].forEach((res, idx) => {
+            if (res.error || !res.variableInfo) {
+                funcs.push(null);
+                return;
+            }
+            const vi = res.variableInfo;
+            const timeLimit = idx === 0 ? config.stratATimeLimit : config.stratBTimeLimit;
             
-            let yLabel = '期待時間 (秒)';
-            const isTimeLimit = config.stratTimeLimitEnabled;
-            if (isTimeLimit) yLabel = '期待獲得数 (匹)';
-            
-            [resA, resB].forEach((res, idx) => {
-                if (res.error || !res.variableInfo) return;
-                const vi = res.variableInfo;
-                const timeLimit = idx === 0 ? config.stratATimeLimit : config.stratBTimeLimit;
-                
-                let func = null;
-                if (isTimeLimit && timeLimit > 0) {
-                    func = (p) => {
-                        if (p === 0) return 0;
-                        const cycle = vi.A * p + vi.B * (1 - p); // This might not be exact cycle time, but E[Time] = A + B(1-p)/p.
-                        // Actually, total expected time E[T] = A + B(1-p)/p. So count = timeLimit / E[T] = timeLimit * p / (A*p + B(1-p))
-                        return (timeLimit * p) / (vi.A * p + vi.B * (1 - p));
-                    };
-                } else {
-                    func = (p) => {
-                        if (p === 0) return Infinity;
-                        return vi.A + vi.B * (1 - p) / p;
-                    };
-                }
-                funcs.push(func);
-                colors.push(idx === 0 ? '#ec4899' : '#8b5cf6');
-                labels.push(idx === 0 ? 'Set A' : 'Set B');
+            let func = null;
+            if (isTimeLimit && timeLimit > 0) {
+                func = (p) => {
+                    if (p === 0) return 0;
+                    return (timeLimit * p) / (vi.A * p + vi.B * (1 - p));
+                };
+            } else {
+                func = (p) => {
+                    if (p === 0) return Infinity;
+                    return vi.A + vi.B * (1 - p) / p;
+                };
+            }
+            funcs.push(func);
+            colors.push(idx === 0 ? '#ec4899' : '#8b5cf6');
+            labels.push(idx === 0 ? 'Set A' : 'Set B');
+        });
+
+        const activeFuncs = funcs.filter(f => f !== null);
+
+        const draw = (currentP) => {
+            if (activeFuncs.length > 0) {
+                renderGraphToCanvas('strat-variable-graph', activeFuncs, colors, labels, 'ターゲットヒット率 (p)', yLabel, currentP);
+            }
+        };
+
+        const slider = document.getElementById('strat-p-slider');
+        const pDisplay = document.getElementById('strat-p-display');
+        
+        if (slider && pDisplay) {
+            slider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value, 10);
+                const p = val / 100;
+                pDisplay.textContent = `${val}%`;
+
+                // Update cards
+                [resA, resB].forEach((res, idx) => {
+                    if (res.error || !res.variableInfo) return;
+                    const idSuffix = idx === 0 ? 'A' : 'B';
+                    const valEl = document.getElementById(`strat-val-${idSuffix}`);
+                    const hitEl = document.getElementById(`strat-hit-${idSuffix}`);
+                    if (valEl && hitEl) {
+                        hitEl.textContent = `${val}%`;
+                        const func = funcs[idx];
+                        if (p === 0) {
+                            valEl.innerHTML = isTimeLimit ? `0.00 <span style="font-size:0.6em;">匹</span>` : `∞ <span style="font-size:0.6em;">秒</span>`;
+                        } else if (func) {
+                            const resVal = func(p);
+                            valEl.innerHTML = `${resVal.toFixed(2)} <span style="font-size:0.6em;">${isTimeLimit ? '匹' : '秒'}</span>`;
+                        }
+                    }
+                });
+                draw(p);
             });
-            
-            if (funcs.length > 0) {
-                renderGraphToCanvas('strat-variable-graph', funcs, colors, labels, 'ターゲットヒット率 (p)', yLabel);
+        }
+
+        // Initial draw
+        requestAnimationFrame(() => {
+            if (slider) {
+                slider.value = 50;
+                slider.dispatchEvent(new Event('input'));
+            } else {
+                draw(0.5);
             }
         });
     }

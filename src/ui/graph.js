@@ -137,4 +137,39 @@ export function renderGraphToCanvas(canvasId, dataFuncs, colors, labels, xLabel,
             ctx.fillText(label, lx + 16, ly);
         });
     }
+
+    // Draw Marker if currentP is provided
+    if (typeof isTimeLimitMode === 'number') { // repurposing the argument for currentP to keep signature simple
+        const currentP = isTimeLimitMode;
+        if (currentP >= 0 && currentP <= 1) {
+            const px = mapX(currentP);
+            
+            // Draw vertical line
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 1;
+            ctx.moveTo(px, padding.top);
+            ctx.lineTo(px, h - padding.bottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Draw points at intersection
+            pointsArray.forEach((pts, idx) => {
+                const pt = pts.find(p => Math.abs(p.x - currentP) < 0.01) || pts[Math.round(currentP * steps)];
+                if (pt && pt.y !== Infinity && !isNaN(pt.y) && pt.y >= 0) {
+                    const py = mapY(pt.y);
+                    if (py >= padding.top && py <= h - padding.bottom) {
+                        ctx.beginPath();
+                        ctx.fillStyle = colors[idx];
+                        ctx.arc(px, py, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                    }
+                }
+            });
+        }
+    }
 }
