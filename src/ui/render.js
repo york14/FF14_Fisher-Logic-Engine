@@ -575,16 +575,31 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         formulaStr += ` <span style="font-size:0.7em;">秒</span>`;
     }
 
+    let isTimeMode = (config.manualTimeLimitEnabled && config.manualTimeLimit > 0);
+    let rawFormulaStr = '';
+    if (isTimeMode) {
+        const timeLimit = config.manualTimeLimit;
+        if (Math.abs(Ct - S) < 0.01) {
+            rawFormulaStr = `E = ${timeLimit} × p / ${Ct.toFixed(1)}`;
+        } else {
+            rawFormulaStr = `E = ${timeLimit} × p / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p))`;
+        }
+    } else {
+        rawFormulaStr = `E = ${vi.A.toFixed(1)} + ${vi.B.toFixed(1)}(1-p)/p`;
+    }
+
     resultContent.innerHTML = `
         <div style="font-size:1.3rem; font-weight:bold; margin-bottom:10px; color:var(--primary)">手動設定（変数モード${config.manualTimeLimitEnabled ? ' - 制限時間' : ''}）</div>
         ${hiddenNote}
         <div style="background:rgba(59,130,246,0.1); border:1px solid var(--primary); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
             <div style="font-size:0.8rem; color:var(--text-muted);">${mainLabelStr}</div>
             <div id="manual-formula-display" style="font-size:1.2rem; font-weight:bold; color:var(--primary); word-break:break-all;">${formulaStr}</div>
-            <div style="font-size:0.9rem; margin-top:5px;">ヒット率: <strong id="manual-p-display">p</strong></div>
+            <div style="font-size:0.75rem; color:#888; margin-top:2px; font-family:monospace;">( ${rawFormulaStr} )</div>
+            <div style="font-size:0.9rem; margin-top:5px;">基礎確率 (p): <strong id="manual-p-display">p</strong></div>
             <div style="margin-top:5px;">
                 <input type="range" id="manual-p-slider" min="0" max="100" value="50" style="width: 80%;">
             </div>
+            <div style="font-size:0.9rem; margin-top:3px; color:var(--primary);">Hit: <strong id="manual-corrected-p-display">p</strong></div>
             <div style="font-size:0.9rem; margin-top:3px;">GP消費：${gpStr}</div>
             <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
                 Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
@@ -597,7 +612,7 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
                 <canvas id="manual-variable-graph" style="width:100%; height:150px; background:#1a1a1a; border:1px solid #444; border-radius:4px;"></canvas>
             </div>
         </div>
-        <table><thead><tr><th>魚種名</th><th>ヒット率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
+        <table><thead><tr><th>魚種名</th><th>基礎確率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
         <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
             <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
                 <div>トレードリリース：<strong>${slapTxt}</strong></div>
@@ -666,10 +681,10 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
     
     const slider = document.getElementById('manual-p-slider');
     const pDisplay = document.getElementById('manual-p-display');
+    const correctedPDisplay = document.getElementById('manual-corrected-p-display');
     const fDisplay = document.getElementById('manual-formula-display');
     const minInp = document.getElementById('manual-p-min');
     const maxInp = document.getElementById('manual-p-max');
-    const isTimeMode = (config.manualTimeLimitEnabled && config.manualTimeLimit > 0);
     
     const draw = () => {
         let currentP = 0.5;
@@ -682,7 +697,7 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         if (isNaN(pMax)) pMax = 1;
         if (pMin >= pMax) pMax = pMin + 0.01; // prevent invalid range
         
-        renderGraphToCanvas('manual-variable-graph', [graphFunc], ['#3b82f6'], ['手動設定'], 'ターゲットヒット率 (p)', yLabel, currentP, pMin, pMax);
+        renderGraphToCanvas('manual-variable-graph', [graphFunc], ['#3b82f6'], ['手動設定'], 'ターゲット基礎確率 (p)', yLabel, currentP, pMin, pMax);
     };
 
     if (slider && pDisplay && fDisplay) {
@@ -690,6 +705,9 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
             const val = parseInt(e.target.value, 10);
             const p = val / 100;
             pDisplay.textContent = `${val}%`;
+            if (correctedPDisplay) {
+                correctedPDisplay.textContent = `${(p * vi.H * 100).toFixed(1)}%`;
+            }
             if (p === 0) {
                 fDisplay.innerHTML = isTimeMode ? `0.00 <span style="font-size:0.7em;">匹</span>` : `∞ <span style="font-size:0.7em;">秒</span>`;
             } else {
@@ -938,6 +956,7 @@ export function renderVariableStrategyComparison(resA, resB, config) {
         const vi = res.variableInfo;
         
         let formulaStr = '';
+        let rawFormulaStr = '';
         let mainLabelStr = '期待時間 (変数モード)';
         const gp = res.gpStats;
         let gpStr = gp ? `${gp.cost.total.toFixed(0)}GP/cyc` : '-';
@@ -946,9 +965,11 @@ export function renderVariableStrategyComparison(resA, resB, config) {
         if (isTimeLimit && timeLimit > 0) {
             mainLabelStr = `期待獲得数 (${timeLimit}秒)`;
             formulaStr = `<span style="font-size:0.85em;">${timeLimit} × p / (${vi.A.toFixed(1)}p + ${vi.B.toFixed(1)}(1-p))</span> <span style="font-size:0.5em;">匹</span>`;
+            rawFormulaStr = `( E = ${timeLimit} × p / (${vi.A.toFixed(1)}p + ${vi.B.toFixed(1)}(1-p)) )`;
             gpStr = gp ? `${gp.cost.total.toFixed(0)}GP/cyc` : '-'; // 変数モードでの総GP計算は困難なためサイクル表記を維持
         } else {
             formulaStr = `${vi.A.toFixed(1)}`;
+            rawFormulaStr = `( E = ${vi.A.toFixed(1)} + ${vi.B.toFixed(1)}(1-p)/p )`;
             if (vi.B > 0) {
                 formulaStr += `<span style="font-size:0.6em; margin-left:2px;"> + ${vi.B.toFixed(2)}×(1-p)/p</span>`;
             }
@@ -965,7 +986,7 @@ export function renderVariableStrategyComparison(resA, resB, config) {
                     `${s.A.toFixed(1)}+${s.B.toFixed(1)}(1-p)/p` : '-';
                 return `
                 <div class="top3-item"><div style="color:${color};font-weight:bold;">${s.label} ${(s.isQuit ? '<span style="color:red">!</span>' : '')}</div>
-                <div class="top3-stats"><span>Hit:p</span><span>発生:${(s.prob * 100).toFixed(1)}%</span></div>
+                <div class="top3-stats"><span>Hit: p×H</span><span>発生:${(s.prob * 100).toFixed(1)}%</span></div>
                 <div style="font-size:0.7rem; color:#aaa;">E[T]: ${expStr}</div>
                 </div>`;
             }).join('')}</div>`;
@@ -983,7 +1004,7 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             </div>`;
         }
 
-        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div id="strat-val-${idSuffix}" class="main-val">${formulaStr}</div><div class="val-label">${mainLabelStr}</div><div class="stat-row"><div class=\"stat-item\">Hit<br><span id="strat-hit-${idSuffix}" class=\"stat-val\">${hitStr}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div></div>${top3Html}</div>`;
+        return `<div class="strat-card" style="border-top:4px solid ${color}"><h4>${res.name}</h4><div class="strat-desc">${res.description || ''}</div>${extraInfo}<div id="strat-val-${idSuffix}" class="main-val">${formulaStr}</div><div style="font-size:0.75rem; color:#888; font-family:monospace; margin-bottom:5px;">${rawFormulaStr}</div><div class="val-label">${mainLabelStr}</div><div class="stat-row"><div class=\"stat-item\">補正確率<br><span id="strat-hit-${idSuffix}" class=\"stat-val\" style=\"color:var(--primary)\">${hitStr}</span></div><div class=\"stat-item\">GP<br><span class=\"stat-val\">${gpStr}</span></div></div>${top3Html}</div>`;
     };
 
     if (resultContent) {

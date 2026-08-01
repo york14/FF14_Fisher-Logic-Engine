@@ -735,10 +735,12 @@ async function runManualModeVariable(config) {
     // GP cost per cycle (fixed, independent of p)
     const gpCostPerCycle = stats.gpStats.cost.total;
     const gpCostDetails = stats.gpStats.cost.details;
+    
+    const H = (tStat.originalHitProb > 0) ? (tStat.hitRate / tStat.originalHitProb) : 0;
 
     // Attach variableInfo to stats
     stats.variableInfo = {
-        A, B, S,
+        A, B, S, H,
         targetM,
         wOthersTotal,
         fishRatios,
@@ -786,7 +788,7 @@ async function runStrategyModeVariable(config) {
         const targetInfo = masterDB.fish[config.target];
         const tHook = targetInfo ? targetInfo.hook_time : 0;
 
-        let weightedA = 0, weightedB = 0;
+        let weightedA = 0, weightedB = 0, weightedH = 0;
         let weightedPHidden = 0;
         let hiddenFishName = null;
         const enrichedScenarios = [];
@@ -825,25 +827,28 @@ async function runStrategyModeVariable(config) {
             });
 
             const B_i = (K > 0 && M > 0) ? sum_wT / (M * K) : 0;
+            const H_i = (tStat.originalHitProb > 0) ? (tStat.hitRate / tStat.originalHitProb) : 0;
 
             weightedA += scn.prob * A_i;
             weightedB += scn.prob * B_i;
+            weightedH += scn.prob * H_i;
             weightedPHidden += scn.prob * (stats.pHidden || 0);
             if (stats.hiddenFishName) hiddenFishName = stats.hiddenFishName;
 
-            enrichedScenarios.push({ ...scn, A: A_i, B: B_i });
+            enrichedScenarios.push({ ...scn, A: A_i, B: B_i, H: H_i });
         }
 
         // Strategy-level A and B
         const tp = stratResult.totalProb;
         const A_avg = tp > 0 ? weightedA / tp : 0;
         const B_avg = tp > 0 ? weightedB / tp : 0;
+        const H_avg = tp > 0 ? weightedH / tp : 0;
 
         results[set] = {
             ...stratResult,
             scenarios: enrichedScenarios,
             variableInfo: {
-                A: A_avg, B: B_avg,
+                A: A_avg, B: B_avg, H: H_avg,
                 pHidden: tp > 0 ? weightedPHidden / tp : 0,
                 hiddenFishName
             }
