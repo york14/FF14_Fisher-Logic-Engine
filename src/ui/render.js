@@ -589,7 +589,11 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
             <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
                 Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
             </div>
-            <div style="margin-top:15px;">
+            <div style="margin-top:15px; font-size:0.8rem; color:#aaa; display:flex; justify-content:center; align-items:center; gap:5px;">
+                表示範囲: <input type="number" id="manual-p-min" value="0" min="0" max="99" style="width:45px; padding:2px; background:#222; color:#fff; border:1px solid #555; text-align:center;"> % ～
+                <input type="number" id="manual-p-max" value="100" min="1" max="100" style="width:45px; padding:2px; background:#222; color:#fff; border:1px solid #555; text-align:center;"> %
+            </div>
+            <div style="margin-top:5px;">
                 <canvas id="manual-variable-graph" style="width:100%; height:150px; background:#1a1a1a; border:1px solid #444; border-radius:4px;"></canvas>
             </div>
         </div>
@@ -660,14 +664,26 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         };
     }
     
-    const draw = (currentP) => {
-        renderGraphToCanvas('manual-variable-graph', [graphFunc], ['#3b82f6'], ['手動設定'], 'ターゲットヒット率 (p)', yLabel, currentP);
-    };
-
     const slider = document.getElementById('manual-p-slider');
     const pDisplay = document.getElementById('manual-p-display');
     const fDisplay = document.getElementById('manual-formula-display');
+    const minInp = document.getElementById('manual-p-min');
+    const maxInp = document.getElementById('manual-p-max');
     const isTimeMode = (config.manualTimeLimitEnabled && config.manualTimeLimit > 0);
+    
+    const draw = () => {
+        let currentP = 0.5;
+        let pMin = 0;
+        let pMax = 1;
+        if (slider) currentP = parseInt(slider.value, 10) / 100;
+        if (minInp) pMin = parseInt(minInp.value, 10) / 100;
+        if (maxInp) pMax = parseInt(maxInp.value, 10) / 100;
+        if (isNaN(pMin)) pMin = 0;
+        if (isNaN(pMax)) pMax = 1;
+        if (pMin >= pMax) pMax = pMin + 0.01; // prevent invalid range
+        
+        renderGraphToCanvas('manual-variable-graph', [graphFunc], ['#3b82f6'], ['手動設定'], 'ターゲットヒット率 (p)', yLabel, currentP, pMin, pMax);
+    };
 
     if (slider && pDisplay && fDisplay) {
         slider.addEventListener('input', (e) => {
@@ -680,9 +696,13 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
                 const resVal = graphFunc(p);
                 fDisplay.innerHTML = `${resVal.toFixed(2)} <span style="font-size:0.7em;">${isTimeMode ? '匹' : '秒'}</span>`;
             }
-            draw(p);
+            draw();
         });
     }
+    
+    [minInp, maxInp].forEach(inp => {
+        if(inp) inp.addEventListener('change', draw);
+    });
 
     requestAnimationFrame(() => {
         if (slider) {
@@ -990,6 +1010,10 @@ export function renderVariableStrategyComparison(resA, resB, config) {
                 <div style="font-size:0.9rem; color:#ddd; margin-bottom:5px;">ヒット率 (p): <strong id="strat-p-display">p</strong></div>
                 <input type="range" id="strat-p-slider" min="0" max="100" value="50" style="width: 80%;">
             </div>
+            <div style="margin-top:10px; font-size:0.8rem; color:#aaa; display:flex; justify-content:center; align-items:center; gap:5px;">
+                表示範囲: <input type="number" id="strat-p-min" value="0" min="0" max="99" style="width:45px; padding:2px; background:#222; color:#fff; border:1px solid #555; text-align:center;"> % ～
+                <input type="number" id="strat-p-max" value="100" min="1" max="100" style="width:45px; padding:2px; background:#222; color:#fff; border:1px solid #555; text-align:center;"> %
+            </div>
             <div style="margin-top:10px;">
                 <canvas id="strat-variable-graph" style="width:100%; height:200px; background:#1a1a1a; border:1px solid #444; border-radius:4px;"></canvas>
             </div>
@@ -1030,15 +1054,27 @@ export function renderVariableStrategyComparison(resA, resB, config) {
         });
 
         const activeFuncs = funcs.filter(f => f !== null);
-
-        const draw = (currentP) => {
-            if (activeFuncs.length > 0) {
-                renderGraphToCanvas('strat-variable-graph', activeFuncs, colors, labels, 'ターゲットヒット率 (p)', yLabel, currentP);
-            }
-        };
-
+        
         const slider = document.getElementById('strat-p-slider');
         const pDisplay = document.getElementById('strat-p-display');
+        const minInp = document.getElementById('strat-p-min');
+        const maxInp = document.getElementById('strat-p-max');
+
+        const draw = () => {
+            let currentP = 0.5;
+            let pMin = 0;
+            let pMax = 1;
+            if (slider) currentP = parseInt(slider.value, 10) / 100;
+            if (minInp) pMin = parseInt(minInp.value, 10) / 100;
+            if (maxInp) pMax = parseInt(maxInp.value, 10) / 100;
+            if (isNaN(pMin)) pMin = 0;
+            if (isNaN(pMax)) pMax = 1;
+            if (pMin >= pMax) pMax = pMin + 0.01;
+            
+            if (activeFuncs.length > 0) {
+                renderGraphToCanvas('strat-variable-graph', activeFuncs, colors, labels, 'ターゲットヒット率 (p)', yLabel, currentP, pMin, pMax);
+            }
+        };
         
         if (slider && pDisplay) {
             slider.addEventListener('input', (e) => {
@@ -1063,9 +1099,13 @@ export function renderVariableStrategyComparison(resA, resB, config) {
                         }
                     }
                 });
-                draw(p);
+                draw();
             });
         }
+        
+        [minInp, maxInp].forEach(inp => {
+            if(inp) inp.addEventListener('change', draw);
+        });
 
         // Initial draw
         requestAnimationFrame(() => {
@@ -1073,7 +1113,7 @@ export function renderVariableStrategyComparison(resA, resB, config) {
                 slider.value = 50;
                 slider.dispatchEvent(new Event('input'));
             } else {
-                draw(0.5);
+                draw();
             }
         });
     }

@@ -1,4 +1,4 @@
-export function renderGraphToCanvas(canvasId, dataFuncs, colors, labels, xLabel, yLabel, isTimeLimitMode) {
+export function renderGraphToCanvas(canvasId, dataFuncs, colors, labels, xLabel, yLabel, currentP = null, pMin = 0, pMax = 1) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
 
@@ -19,46 +19,34 @@ export function renderGraphToCanvas(canvasId, dataFuncs, colors, labels, xLabel,
     ctx.clearRect(0, 0, w, h);
     
     // Calculate Data Points
-    const steps = 50;
+    const steps = 100; // Increased steps for smoother curves when zoomed in
     const pointsArray = dataFuncs.map(func => {
         const pts = [];
         for (let i = 0; i <= steps; i++) {
-            const p = i / steps; // p ranges from 0 to 1 (0% to 100%)
+            const p = pMin + (i / steps) * (pMax - pMin);
             const val = func(p);
             pts.push({ x: p, y: val });
         }
         return pts;
     });
 
-    // Find Min/Max Y
-    let maxY = 0;
-    // To prevent the graph from being flattened by huge values at p -> 0,
-    // we use the value at p=0.1 as a reference for scaling, or simply cap it if the peak is > 5x the median.
-    let refMax = 0;
+    // Find Min/Max Y using 90th percentile for robust scaling against huge peaks at p -> 0
+    let validYs = [];
     pointsArray.forEach(pts => {
         pts.forEach(pt => {
-            if (pt.x >= 0.05 && pt.y !== Infinity && !isNaN(pt.y)) {
-                if (pt.y > refMax) refMax = pt.y;
+            if (pt.y !== Infinity && !isNaN(pt.y) && pt.y >= 0) {
+                validYs.push(pt.y);
             }
         });
     });
+    validYs.sort((a, b) => a - b);
+    let refMax = validYs.length > 0 ? validYs[Math.floor(validYs.length * 0.90)] : 10;
     
-    // If the curve is extremely steep, cap the visual maxY
-    maxY = refMax > 0 ? refMax * 1.5 : 10;
-    
-    pointsArray.forEach(pts => {
-        pts.forEach(pt => {
-            if (pt.y !== Infinity && !isNaN(pt.y) && pt.y > maxY && pt.y < refMax * 10) {
-                 // if there are valid points slightly above refMax*1.5, we can allow up to that, but we just cap at maxY for display.
-            }
-        });
-    });
+    let maxY = refMax > 0 ? refMax * 1.5 : 10;
+    if (maxY > 2000) maxY = 2000; // Cap extreme values
+    if (maxY < 1) maxY = 1;
 
-    // Add some margin to max Y
-    maxY = maxY > 0 ? maxY * 1.1 : 10;
-    if (maxY > 1000) maxY = 1000; // Cap to avoid infinite bounds
-
-    const mapX = (x) => padding.left + x * (w - padding.left - padding.right);
+    const mapX = (x) => padding.left + ((x - pMin) / (pMax - pMin)) * (w - padding.left - padding.right);
     const mapY = (y) => h - padding.bottom - (y / maxY) * (h - padding.top - padding.bottom);
 
     // Draw Grid and Axes
@@ -78,15 +66,15 @@ export function renderGraphToCanvas(canvasId, dataFuncs, colors, labels, xLabel,
         ctx.lineTo(w - padding.right, yPos);
         ctx.fillText(yVal.toFixed(1), padding.left - 5, yPos);
     }
-    // X axis grid lines (0%, 25%, 50%, 75%, 100%)
+    // X axis grid lines
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     for (let i = 0; i <= 4; i++) {
-        const xVal = i * 0.25;
+        const xVal = pMin + (pMax - pMin) * (i / 4);
         const xPos = mapX(xVal);
         ctx.moveTo(xPos, mapY(0));
         ctx.lineTo(xPos, padding.top);
-        ctx.fillText((xVal * 100) + '%', xPos, mapY(0) + 5);
+        ctx.fillText((xVal * 100).toFixed(1).replace('.0','') + '%', xPos, mapY(0) + 5);
     }
     ctx.stroke();
 
@@ -139,9 +127,8 @@ export function renderGraphToCanvas(canvasId, dataFuncs, colors, labels, xLabel,
     }
 
     // Draw Marker if currentP is provided
-    if (typeof isTimeLimitMode === 'number') { // repurposing the argument for currentP to keep signature simple
-        const currentP = isTimeLimitMode;
-        if (currentP >= 0 && currentP <= 1) {
+    if (typeof currentP === 'number') {
+        if (currentP >= pMin && currentP <= pMax) {
             const px = mapX(currentP);
             
             // Draw vertical line
@@ -156,7 +143,14 @@ export function renderGraphToCanvas(canvasId, dataFuncs, colors, labels, xLabel,
             
             // Draw points at intersection
             pointsArray.forEach((pts, idx) => {
-                const pt = pts.find(p => Math.abs(p.x - currentP) < 0.01) || pts[Math.round(currentP * steps)];
+                // Find closest point or interpolate
+                let pt = pts.find(p => Math.abs(p.x - currentP) < 0.001);
+                if (!pt) {
+                    const stepSize = (pMax - pMin) / steps;
+                    const index = Math.round((currentP - pMin) / stepSize);
+                    if (index >= 0 && index < pts.length) pt = pts[index];
+                }
+                
                 if (pt && pt.y !== Infinity && !isNaN(pt.y) && pt.y >= 0) {
                     const py = mapY(pt.y);
                     if (py >= padding.top && py <= h - padding.bottom) {
