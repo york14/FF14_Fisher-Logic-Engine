@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-08-02T01:54:46.174Z",
+  "updated_at": "2026-08-02T09:28:54.948Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -300,20 +300,20 @@
       {
         "fish": "エレクトロベタ",
         "weight": 200,
-        "bite_time_min": 7,
-        "bite_time_max": 13
+        "bite_time_min": 7.5,
+        "bite_time_max": 13.5
       },
       {
         "fish": "サンダーレッド",
-        "weight": 200,
-        "bite_time_min": 8,
-        "bite_time_max": 16
+        "weight": 150,
+        "bite_time_min": 9,
+        "bite_time_max": 16.5
       },
       {
         "fish": "ヤースラニボウフィン",
-        "weight": 160,
-        "bite_time_min": 6,
-        "bite_time_max": 20
+        "weight": 150,
+        "bite_time_min": 10.5,
+        "bite_time_max": 19.5
       },
       {
         "fish": "ヘリテージグルーパー",
@@ -331,21 +331,21 @@
     "アレクサンドリア旧市街|霧晴れ12-16|ポッパールアー": [
       {
         "fish": "エレクトロベタ",
-        "weight": 150,
-        "bite_time_min": 4,
-        "bite_time_max": 18
+        "weight": 180,
+        "bite_time_min": 7.5,
+        "bite_time_max": 13.5
       },
       {
         "fish": "サンダーレッド",
-        "weight": 150,
-        "bite_time_min": 5,
-        "bite_time_max": 19
+        "weight": 160,
+        "bite_time_min": 9,
+        "bite_time_max": 16.5
       },
       {
         "fish": "ヤースラニボウフィン",
-        "weight": 150,
-        "bite_time_min": 5,
-        "bite_time_max": 24
+        "weight": 160,
+        "bite_time_min": 10.5,
+        "bite_time_max": 19.5
       },
       {
         "fish": "ヘリテージグルーパー",
@@ -364,25 +364,25 @@
       {
         "fish": "エレクトロベタ",
         "weight": 200,
-        "bite_time_min": 7,
-        "bite_time_max": 13
+        "bite_time_min": 7.5,
+        "bite_time_max": 13.5
       },
       {
         "fish": "サンダーレッド",
-        "weight": 200,
-        "bite_time_min": 8,
-        "bite_time_max": 16
+        "weight": 150,
+        "bite_time_min": 9,
+        "bite_time_max": 16.5
       },
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
-        "bite_time_min": 6,
-        "bite_time_max": 20
+        "bite_time_min": 10.5,
+        "bite_time_max": 19.5
       },
       {
         "fish": "ライトニングボール",
         "weight": 10,
-        "bite_time_min": 25,
+        "bite_time_min": 18,
         "bite_time_max": 25
       },
       {
@@ -396,20 +396,20 @@
       {
         "fish": "エレクトロベタ",
         "weight": 200,
-        "bite_time_min": 7,
-        "bite_time_max": 13
+        "bite_time_min": 7.5,
+        "bite_time_max": 13.5
       },
       {
         "fish": "サンダーレッド",
-        "weight": 200,
-        "bite_time_min": 8,
-        "bite_time_max": 16
+        "weight": 150,
+        "bite_time_min": 9,
+        "bite_time_max": 16.5
       },
       {
         "fish": "ヤースラニボウフィン",
         "weight": 150,
-        "bite_time_min": 6,
-        "bite_time_max": 20
+        "bite_time_min": 10.5,
+        "bite_time_max": 19.5
       },
       {
         "fish": "ヘリテージグルーパー",
@@ -427,21 +427,21 @@
     "アレクサンドリア旧市街|ヌシ以外|ポッパールアー": [
       {
         "fish": "エレクトロベタ",
-        "weight": 150,
-        "bite_time_min": 4,
-        "bite_time_max": 18
+        "weight": 180,
+        "bite_time_min": 7.5,
+        "bite_time_max": 13.5
       },
       {
         "fish": "サンダーレッド",
-        "weight": 150,
-        "bite_time_min": 5,
-        "bite_time_max": 19
+        "weight": 160,
+        "bite_time_min": 9,
+        "bite_time_max": 16.5
       },
       {
         "fish": "ヤースラニボウフィン",
-        "weight": 150,
-        "bite_time_min": 5,
-        "bite_time_max": 24
+        "weight": 160,
+        "bite_time_min": 10.5,
+        "bite_time_max": 19.5
       },
       {
         "fish": "ヘリテージグルーパー",

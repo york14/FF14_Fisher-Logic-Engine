@@ -30,20 +30,34 @@ export function renderGraphToCanvas(canvasId, dataFuncs, colors, labels, xLabel,
         return pts;
     });
 
-    // Find Min/Max Y using 90th percentile for robust scaling against huge peaks at p -> 0
-    let validYs = [];
-    pointsArray.forEach(pts => {
-        pts.forEach(pt => {
-            if (pt.y !== Infinity && !isNaN(pt.y) && pt.y >= 0) {
-                validYs.push(pt.y);
+    let currentPMaxY = 0;
+    if (typeof currentP === 'number') {
+        dataFuncs.forEach(func => {
+            const val = func(currentP);
+            if (val !== Infinity && !isNaN(val) && val >= 0) {
+                if (val > currentPMaxY) currentPMaxY = val;
             }
         });
-    });
-    validYs.sort((a, b) => a - b);
-    let refMax = validYs.length > 0 ? validYs[Math.floor(validYs.length * 0.90)] : 10;
+    }
+
+    let maxY = 10;
+    if (currentPMaxY > 0) {
+        maxY = currentPMaxY * 1.5;
+    } else {
+        let validYs = [];
+        pointsArray.forEach(pts => {
+            pts.forEach(pt => {
+                if (pt.y !== Infinity && !isNaN(pt.y) && pt.y >= 0) {
+                    validYs.push(pt.y);
+                }
+            });
+        });
+        validYs.sort((a, b) => a - b);
+        let refMax = validYs.length > 0 ? validYs[Math.floor(validYs.length * 0.90)] : 10;
+        maxY = refMax > 0 ? refMax * 1.5 : 10;
+    }
     
-    let maxY = refMax > 0 ? refMax * 1.5 : 10;
-    if (maxY > 2000) maxY = 2000; // Cap extreme values
+    if (maxY > 5000) maxY = 5000; // Cap extreme values
     if (maxY < 1) maxY = 1;
 
     const mapX = (x) => padding.left + ((x - pMin) / (pMax - pMin)) * (w - padding.left - padding.right);

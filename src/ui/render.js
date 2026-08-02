@@ -1262,7 +1262,7 @@ export function renderVariableStrategyComparison(resA, resB, config) {
         // Initial draw
         requestAnimationFrame(() => {
             if (slider) {
-                slider.value = 50;
+                slider.value = 3;
                 slider.dispatchEvent(new Event('input'));
             } else {
                 draw();
