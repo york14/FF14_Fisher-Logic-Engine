@@ -511,10 +511,18 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
     const p_h = vi.pHidden || 0;
     const C_hidden = vi.C_hidden || 0;
 
+    const getPActual = (p) => {
+        if (p === 0) return 0;
+        if (p >= 1 - p_h) return 1 - p_h;
+        const W_t = vi.K * (p / (1 - p_h - p));
+        const p_actual = (W_t * vi.targetM / (vi.wOthersTotal + W_t * vi.targetM)) * (1 - p_h);
+        return p_actual;
+    };
+
     // Expected time formula string
     let formulaStr = `${vi.A.toFixed(1)}`;
     if (vi.B !== 0) {
-        formulaStr += ` + ${vi.B.toFixed(2)} / p`;
+        formulaStr += ` + ${vi.B.toFixed(2)} / p'`;
     } else {
         formulaStr += ` (Fixed)`;
     }
@@ -527,9 +535,9 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         avgCycleStr = `${Ct.toFixed(1)}sec`;
     } else {
         let h_part = p_h > 0 ? ` + ${(C_hidden * p_h).toFixed(1)}` : '';
-        let s_part = p_h > 0 ? `${S.toFixed(1)}(1-p-${(p_h*100).toFixed(1)}%)` : `${S.toFixed(1)}(1-p)`;
-        gpStr = gpCost === 0 ? '0.0 GP / sec' : `${gpCost} / (${Ct.toFixed(1)}p${h_part} + ${s_part}) GP/sec`;
-        avgCycleStr = `${Ct.toFixed(1)}p${h_part} + ${s_part} sec`;
+        let s_part = p_h > 0 ? `${S.toFixed(1)}(1-p'-${(p_h*100).toFixed(1)}%)` : `${S.toFixed(1)}(1-p')`;
+        gpStr = gpCost === 0 ? '0.0 GP / sec' : `${gpCost} / (${Ct.toFixed(1)}p'${h_part} + ${s_part}) GP/sec`;
+        avgCycleStr = `${Ct.toFixed(1)}p'${h_part} + ${s_part} sec`;
     }
 
     let scnPrefix = '';
@@ -554,19 +562,19 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         const timeLimit = config.manualTimeLimit;
         mainLabelStr = `制限時間 ${timeLimit}秒 内の期待獲得数 (変数モード)`;
         if (Math.abs(Ct - S) < 0.01 && p_h === 0) {
-             formulaStr = `${timeLimit} × p / ${Ct.toFixed(1)} <span style="font-size:0.7em;">匹</span>`;
-             rawFormulaStr = `E = ${timeLimit} × p / ${Ct.toFixed(1)}`;
+             formulaStr = `${timeLimit} × p' / ${Ct.toFixed(1)} <span style="font-size:0.7em;">匹</span>`;
+             rawFormulaStr = `E = ${timeLimit} × p' / ${Ct.toFixed(1)}`;
              gpStr = gpCost === 0 ? '0 GP' : `${gpCost * timeLimit} / ${Ct.toFixed(1)} GP`;
         } else {
              let h_part = p_h > 0 ? ` + ${(C_hidden * p_h).toFixed(1)}` : '';
-             let s_part = p_h > 0 ? `${S.toFixed(1)}(1-p-${(p_h*100).toFixed(1)}%)` : `${S.toFixed(1)}(1-p)`;
-             formulaStr = `${timeLimit} × p / (${Ct.toFixed(1)}p${h_part} + ${s_part}) <span style="font-size:0.7em;">匹</span>`;
-             rawFormulaStr = `E = ${timeLimit} × p / (${Ct.toFixed(1)}p${h_part} + ${s_part})`;
-             gpStr = gpCost === 0 ? '0 GP' : `${gpCost * timeLimit} / (${Ct.toFixed(1)}p${h_part} + ${s_part}) GP`;
+             let s_part = p_h > 0 ? `${S.toFixed(1)}(1-p'-${(p_h*100).toFixed(1)}%)` : `${S.toFixed(1)}(1-p')`;
+             formulaStr = `${timeLimit} × p' / (${Ct.toFixed(1)}p'${h_part} + ${s_part}) <span style="font-size:0.7em;">匹</span>`;
+             rawFormulaStr = `E = ${timeLimit} × p' / (${Ct.toFixed(1)}p'${h_part} + ${s_part})`;
+             gpStr = gpCost === 0 ? '0 GP' : `${gpCost * timeLimit} / (${Ct.toFixed(1)}p'${h_part} + ${s_part}) GP`;
         }
     } else {
         formulaStr += ` <span style="font-size:0.7em;">秒</span>`;
-        rawFormulaStr = `E = ${vi.A.toFixed(1)} + ${vi.B.toFixed(1)} / p`;
+        rawFormulaStr = `E = ${vi.A.toFixed(1)} + ${vi.B.toFixed(1)} / p'`;
     }
 
     resultContent.innerHTML = `
@@ -581,7 +589,7 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
             <div style="font-size:1.0rem; font-weight:bold; color:#fff;"><span id="manual-cycle-display">-</span> <span style="font-size:0.7em;">s</span></div>
             
             <div style="margin-top:10px; border-top:1px dashed #444; padding-top:10px;">
-                <div style="font-size:0.9rem; color:var(--primary);">補正確率: <strong id="manual-corrected-p-display">p</strong></div>
+                <div style="font-size:0.9rem; color:var(--primary);">実効確率 (p'): <strong id="manual-corrected-p-display">p'</strong></div>
                 <div style="font-size:0.85rem; color:#aaa; margin-top:3px;">基礎確率 (p): <strong id="manual-p-display">p</strong></div>
                 <div style="margin-top:5px;">
                     <input type="range" id="manual-p-slider" min="0" max="100" value="50" style="width: 80%;">
@@ -602,6 +610,7 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         </div>
         <table><thead><tr><th>魚種名</th><th>基礎確率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
         <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
+            <div style="margin-bottom: 8px; color: #aaa;">※ p' = 実効確率（基礎確率 p とスラップ状況から算出）</div>
             <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
                 <div>トレードリリース：<strong>${slapTxt}</strong></div>
                 <div>撒き餌：<strong>${chumTxt}</strong></div>
@@ -621,16 +630,16 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
             // Hit rate as p-expression
             let hitStr;
             if (s.isTarget) {
-                hitStr = '<strong>p</strong>';
+                hitStr = '<strong>p\'</strong>';
             } else if (p_h > 0 && s.name === vi.hiddenFishName) {
                 hitStr = `<strong>${(p_h * 100).toFixed(1)}%</strong> <span style="font-size:0.7em;">(固定)</span>`;
             } else {
                 const fr = vi.fishRatios.find(r => r.name === s.name);
                 if (fr && fr.ratio !== null && fr.ratio > 0) {
                     if (p_h > 0) {
-                        hitStr = `${(fr.ratio * 100).toFixed(1)}%×(1-p-${(p_h * 100).toFixed(1)}%)`;
+                        hitStr = `${(fr.ratio * 100).toFixed(1)}%×(1-p'-${(p_h * 100).toFixed(1)}%)`;
                     } else {
-                        hitStr = `${(fr.ratio * 100).toFixed(1)}%×(1-p)`;
+                        hitStr = `${(fr.ratio * 100).toFixed(1)}%×(1-p')`;
                     }
                 } else {
                     hitStr = '0.0%';
@@ -661,15 +670,17 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
     if (config.manualTimeLimitEnabled && config.manualTimeLimit > 0) {
         yLabel = '期待獲得数 (匹)';
         graphFunc = (p) => {
-            if (p === 0) return 0;
-            const cycle = Ct * p + C_hidden * p_h + S * (1 - p - p_h);
-            return (config.manualTimeLimit * p) / cycle;
+            const p_actual = getPActual(p);
+            if (p_actual === 0) return 0;
+            const cycle = Ct * p_actual + C_hidden * p_h + S * (1 - p_actual - p_h);
+            return (config.manualTimeLimit * p_actual) / cycle;
         };
     } else {
         yLabel = '期待時間 (秒)';
         graphFunc = (p) => {
-            if (p === 0) return Infinity;
-            return vi.A + vi.B / p;
+            const p_actual = getPActual(p);
+            if (p_actual === 0) return Infinity;
+            return vi.A + vi.B / p_actual;
         };
     }
     
@@ -703,19 +714,15 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
             let resVal = graphFunc(p);
             
             if (correctedPDisplay) {
-                let p_prime = 0;
-                if (p === 1) p_prime = vi.D;
-                else if (p > 0) p_prime = (p / (p + vi.C * (1 - p))) * vi.D;
+                const p_prime = getPActual(p);
                 
                 correctedPDisplay.textContent = `${(p_prime * 100).toFixed(1)}%`;
                 
                 const cycleDisplay = document.getElementById('manual-cycle-display');
                 if (cycleDisplay) {
-                    if (p === 0) {
+                    if (p_prime === 0) {
                         cycleDisplay.textContent = (C_hidden * p_h + S * (1 - p_h)).toFixed(1);
-                    } else if (resVal !== Infinity && !isTimeMode) {
-                        cycleDisplay.textContent = (Ct * p_prime + C_hidden * p_h + S * (1 - p_prime - p_h)).toFixed(1);
-                    } else if (isTimeMode) {
+                    } else {
                         cycleDisplay.textContent = (Ct * p_prime + C_hidden * p_h + S * (1 - p_prime - p_h)).toFixed(1);
                     }
                 }
@@ -813,10 +820,10 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
                 <td>?</td>
                 <td>x${d.m}</td>
                 <td>? × ${d.m}</td>
-                <td><strong>p</strong></td>
+                <td><strong>p'</strong></td>
             </tr>`;
         } else {
-            const probStr = p_h > 0 ? `(1-p-${(p_h * 100).toFixed(1)}%)` : `(1-p)`;
+            const probStr = p_h > 0 ? `(1-p'-${(p_h * 100).toFixed(1)}%)` : `(1-p')`;
             const prob = d.ratio !== null ? `${(d.ratio * 100).toFixed(2)}%×${probStr}` : '0.00%';
             wHtml += `<tr style="text-align:right;">
                 <td style="text-align:left">${d.name}</td>
@@ -836,7 +843,7 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
         </tr>`;
     }
 
-    const othersSumStr = p_h > 0 ? `1-p-${(p_h*100).toFixed(1)}%` : `1-p`;
+    const othersSumStr = p_h > 0 ? `1-p'-${(p_h*100).toFixed(1)}%` : `1-p'`;
     wHtml += `<tr style="border-top:1px solid #666; font-weight:bold; text-align:right;">
         <td colspan="3">他魚合計(ΣW)</td><td>${vi.wOthersTotal.toFixed(1)}</td><td>${othersSumStr}</td>
     </tr>`;
@@ -865,11 +872,11 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
         const fr = vi.fishRatios.find(r => r.name === s.name);
         let hitStr = '0%';
         if (isTgt) {
-            hitStr = 'p';
+            hitStr = 'p\'';
         } else if (p_h > 0 && s.name === vi.hiddenFishName) {
             hitStr = `${(p_h * 100).toFixed(1)}%`;
         } else if (fr && fr.ratio) {
-            hitStr = p_h > 0 ? `${(fr.ratio * 100).toFixed(1)}%×(1-p-${(p_h * 100).toFixed(1)}%)` : `${(fr.ratio * 100).toFixed(1)}%×(1-p)`;
+            hitStr = p_h > 0 ? `${(fr.ratio * 100).toFixed(1)}%×(1-p'-${(p_h * 100).toFixed(1)}%)` : `${(fr.ratio * 100).toFixed(1)}%×(1-p')`;
         }
 
         const parts = [];
@@ -909,7 +916,7 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
     // Expected time formula
     let formulaStr = `${vi.A.toFixed(1)}`;
     if (vi.B !== 0) {
-        formulaStr += ` + ${vi.B.toFixed(2)} / p`;
+        formulaStr += ` + ${vi.B.toFixed(2)} / p'`;
     }
 
     const expectHtml = `
@@ -918,9 +925,10 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
             <div style="margin-top:4px;"><strong>定数 B' (ペナルティ定数):</strong> ${vi.B.toFixed(2)}</div>
             <div style="margin-top:4px;"><strong>定数 S (他魚加重サイクル):</strong> ${vi.S.toFixed(2)}s</div>
             <hr style="margin:8px 0; border:0; border-top:1px dashed #666;">
-            <div><strong>式:</strong> E[Time] = A' + B' / p</div>
+            <div><strong>式:</strong> E[Time] = A' + B' / p'</div>
             <div style="margin:5px 0; color:#bbb; font-size:0.75rem; line-height:1.4;">
-                ※ p = ターゲットのヒット率（0-1）<br>
+                ※ p = ターゲットの基礎確率（0-1）<br>
+                ※ p' = 実効確率（pとトレードリリース状況等から算出した実際の確率）<br>
                 ※ A' = Ct - Hook - S<br>
                 ※ B' = p_h*C_hidden + S*(1 - p_h)
             </div>
@@ -956,9 +964,9 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
                     </div>
                 </div>
                 <div style="margin-bottom:10px;">
-                    <div style="color:#aaa; font-size:0.75rem;">GP消費(秒間) - pに依存</div>
+                    <div style="color:#aaa; font-size:0.75rem;">GP消費(秒間) - p'に依存</div>
                     <div style="font-size:0.85rem; color:#bbb;">
-                        ${gpCost} / (${vi.targetCycleTime.toFixed(1)}p ${p_h > 0 ? `+ ${(vi.C_hidden*p_h).toFixed(1)}` : ''} + ${vi.S.toFixed(1)}(1-p${p_h > 0 ? `-${(p_h*100).toFixed(1)}%` : ''})) GP/sec
+                        ${gpCost} / (${vi.targetCycleTime.toFixed(1)}p' ${p_h > 0 ? `+ ${(vi.C_hidden*p_h).toFixed(1)}` : ''} + ${vi.S.toFixed(1)}(1-p'${p_h > 0 ? `-${(p_h*100).toFixed(1)}%` : ''})) GP/sec
                     </div>
                 </div>
             </div>
@@ -989,19 +997,16 @@ export function renderVariableStrategyComparison(resA, resB, config) {
         let mainLabelStr = '期待時間 (変数モード)';
         const gp = res.gpStats;
         let gpStr = gp ? `${gp.cost.total.toFixed(0)}GP/cyc` : '-';
-        let hitStr = 'p';
+        let hitStr = 'p\'';
 
         if (isTimeLimit && timeLimit > 0) {
             mainLabelStr = `期待獲得数 (${timeLimit}秒)`;
-            formulaStr = `<span style="font-size:0.85em;">${timeLimit} × p / (${vi.A.toFixed(1)}p + ${vi.B.toFixed(1)}(1-p))</span> <span style="font-size:0.5em;">匹</span>`;
-            rawFormulaStr = `( E = ${timeLimit} × p / (${vi.A.toFixed(1)}p + ${vi.B.toFixed(1)}(1-p)) )`;
+            formulaStr = `<span style="font-size:0.85em;">E[Catch]</span>`;
+            rawFormulaStr = `( E = ${timeLimit} × E[Time] )`;
             gpStr = gp ? `${gp.cost.total.toFixed(0)}GP/cyc` : '-'; // 変数モードでの総GP計算は困難なためサイクル表記を維持
         } else {
-            formulaStr = `${vi.A.toFixed(1)}`;
-            rawFormulaStr = `( E = ${vi.A.toFixed(1)} + ${vi.B.toFixed(1)}(1-p)/p )`;
-            if (vi.B > 0) {
-                formulaStr += `<span style="font-size:0.6em; margin-left:2px;"> + ${vi.B.toFixed(2)}×(1-p)/p</span>`;
-            }
+            formulaStr = `E[Time]`;
+            rawFormulaStr = `( シナリオ期待値の加重平均 )`;
             formulaStr += ` <span style="font-size:0.5em;">秒</span>`;
         }
 
@@ -1120,12 +1125,33 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             if (isTimeLimit && timeLimit > 0) {
                 func = (p) => {
                     if (p === 0) return 0;
-                    return (timeLimit * p) / (vi.A * p + vi.B * (1 - p));
+                    let totalCount = 0;
+                    for (const s of res.scenarios) {
+                        const p_h = s.p_h || 0;
+                        if (p >= 1 - p_h) continue;
+                        const W_t = s.K > 0 ? s.K * (p / (1 - p_h - p)) : 0;
+                        const p_actual = (s.K > 0) ? (W_t * s.M / (s.wOthers + W_t * s.M)) * (1 - p_h) : (1 - p_h);
+                        if (p_actual > 0) {
+                            const C_i = s.Ct * p_actual + s.C_hidden * p_h + s.S_i * (1 - p_actual - p_h);
+                            totalCount += s.prob * (timeLimit * p_actual / C_i);
+                        }
+                    }
+                    return totalCount;
                 };
             } else {
                 func = (p) => {
                     if (p === 0) return Infinity;
-                    return vi.A + vi.B * (1 - p) / p;
+                    let totalE = 0;
+                    for (const s of res.scenarios) {
+                        const p_h = s.p_h || 0;
+                        if (p >= 1 - p_h) continue;
+                        const W_t = s.K > 0 ? s.K * (p / (1 - p_h - p)) : 0;
+                        const p_actual = (s.K > 0) ? (W_t * s.M / (s.wOthers + W_t * s.M)) * (1 - p_h) : (1 - p_h);
+                        if (p_actual > 0) {
+                            totalE += s.prob * (s.A + s.B / p_actual);
+                        }
+                    }
+                    return totalE;
                 };
             }
             funcs.push(func);
@@ -1175,15 +1201,24 @@ export function renderVariableStrategyComparison(resA, resB, config) {
 
                     if (valEl && hitEl) {
                         let p_prime = 0;
+                        let avgCycle = 0;
                         if (res.scenarios && res.totalProb > 0) {
                             let weightedHit = 0;
+                            let weightedCycle = 0;
                             res.scenarios.forEach(scn => {
-                                let hit_i = 0;
-                                if (p === 1) hit_i = scn.D;
-                                else if (p > 0) hit_i = (p / (p + scn.C * (1 - p))) * scn.D;
-                                weightedHit += scn.prob * hit_i;
+                                const p_h = scn.p_h || 0;
+                                let p_actual = 0;
+                                if (p >= 1 - p_h) {
+                                    p_actual = 1 - p_h;
+                                } else if (p > 0) {
+                                    const W_t = scn.K > 0 ? scn.K * (p / (1 - p_h - p)) : 0;
+                                    p_actual = (scn.K > 0) ? (W_t * scn.M / (scn.wOthers + W_t * scn.M)) * (1 - p_h) : (1 - p_h);
+                                }
+                                weightedHit += scn.prob * p_actual;
+                                weightedCycle += scn.prob * (scn.Ct * p_actual + scn.C_hidden * p_h + scn.S_i * (1 - p_actual - p_h));
                             });
                             p_prime = weightedHit / res.totalProb;
+                            avgCycle = weightedCycle / res.totalProb;
                         }
                         hitEl.textContent = `${(p_prime * 100).toFixed(1)}%`;
                         
@@ -1195,18 +1230,11 @@ export function renderVariableStrategyComparison(resA, resB, config) {
 
                         if (p === 0) {
                             valEl.innerHTML = isTimeLimit ? `0.00 <span style="font-size:0.6em;">匹</span>` : `∞ <span style="font-size:0.6em;">秒</span>`;
-                            if (cycleEl) cycleEl.textContent = (res.variableInfo.A + res.variableInfo.B).toFixed(1);
+                            if (cycleEl) cycleEl.textContent = avgCycle.toFixed(1);
                         } else if (func) {
                             valEl.innerHTML = `${resVal.toFixed(2)} <span style="font-size:0.6em;">${isTimeLimit ? '匹' : '秒'}</span>`;
                             if (cycleEl) {
-                                if (isTimeLimit) {
-                                    // In time limit mode, resVal is expected catches. Cycle isn't explicitly simple, we can compute it manually or use E[T]*p' where E[T] is time/resVal. 
-                                    // Actually we can just use the base E[T] formula:
-                                    const expectedTime = res.variableInfo.A + res.variableInfo.B * (1 - p) / p;
-                                    cycleEl.textContent = (expectedTime * p_prime).toFixed(1);
-                                } else {
-                                    cycleEl.textContent = (resVal * p_prime).toFixed(1);
-                                }
+                                cycleEl.textContent = avgCycle.toFixed(1);
                             }
                         }
                     }

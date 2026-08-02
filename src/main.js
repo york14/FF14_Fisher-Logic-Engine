@@ -756,7 +756,8 @@ async function runManualModeVariable(config) {
         targetCycleTime: tStat.cycleTime,
         pHidden: stats.pHidden,
         hiddenFishName: stats.hiddenFishName,
-        C_hidden: C_hidden
+        C_hidden: C_hidden,
+        K: K
     };
 
     // Render using the dedicated variable-mode renderers
