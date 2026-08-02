@@ -705,32 +705,36 @@ async function runManualModeVariable(config) {
             finalW: d.final
         }));
 
-    // A = target cycle - hook
-    const A = tStat.cycleTime - tStat.hookTime;
-
-    // B = sum(w_i_final * cycle_i for non-target) / (M_target * K)
-    // where K = sum of base weights of non-target
-    const K = stats.weightDetails
-        .filter(d => d.name !== config.target && !d.isHidden)
-        .reduce((acc, d) => acc + d.base, 0);
-
-    let sum_w_prime_T_others = 0;
-    stats.allFishStats.filter(s => !s.isTarget).forEach(o => {
-        const wd = stats.weightDetails.find(d => d.name === o.name);
-        if (wd && !wd.isHidden) sum_w_prime_T_others += (wd.final * o.cycleTime);
-    });
-
-    let B = 0;
-    if (K > 0 && targetM > 0) {
-        B = sum_w_prime_T_others / (targetM * K);
-    }
-
-    // S = sum(R_i * cycleTime_i) for avg cycle formula: p*Ct + (1-p)*S
+    // S = sum(R_i * cycleTime_i) for avg cycle formula: p*Ct + pHidden*C_hidden + (1-p-pHidden)*S
     let S = 0;
     stats.allFishStats.filter(s => !s.isTarget).forEach(o => {
         const fr = fishRatios.find(r => r.name === o.name);
         if (fr && fr.ratio !== null) S += fr.ratio * o.cycleTime;
     });
+
+    let C_hidden = 0;
+    if (stats.hiddenFishName) {
+        const hStat = stats.allFishStats.find(s => s.name === stats.hiddenFishName);
+        if (hStat) C_hidden = hStat.cycleTime;
+    }
+
+    const Ct = tStat.cycleTime;
+    const targetHook = tStat.hookTime;
+    const p_h = stats.pHidden || 0;
+
+    // Expected Time E = (E[Cycle] - p*Hook) / p
+    // E[Cycle] = p*Ct + p_h*C_hidden + (1 - p - p_h)*S
+    // E = (p(Ct - Hook) + p_h*C_hidden + (1 - p_h)*S - p*S) / p
+    // E = (Ct - Hook - S) + (p_h*C_hidden + (1 - p_h)*S) / p
+    // A_prime = Ct - Hook - S
+    // B_prime = p_h*C_hidden + S*(1 - p_h)
+    
+    const A = Ct - targetHook - S;
+    const B = p_h * C_hidden + S * (1 - p_h);
+
+    const K = stats.weightDetails
+        .filter(d => d.name !== config.target && !d.isHidden)
+        .reduce((acc, d) => acc + d.base, 0);
 
     // GP cost per cycle (fixed, independent of p)
     const gpCostPerCycle = stats.gpStats.cost.total;
@@ -751,7 +755,8 @@ async function runManualModeVariable(config) {
         gpCostDetails,
         targetCycleTime: tStat.cycleTime,
         pHidden: stats.pHidden,
-        hiddenFishName: stats.hiddenFishName
+        hiddenFishName: stats.hiddenFishName,
+        C_hidden: C_hidden
     };
 
     // Render using the dedicated variable-mode renderers
@@ -812,24 +817,34 @@ async function runStrategyModeVariable(config) {
                 continue;
             }
 
-            const A_i = tStat.cycleTime - tStat.hookTime;
-
             const wOthers = stats.weightDetails
                 .filter(d => d.name !== config.target && !d.isHidden)
                 .reduce((acc, d) => acc + d.final, 0);
+            
+            let S_i = 0;
+            stats.allFishStats.filter(s => !s.isTarget).forEach(o => {
+                const wd = stats.weightDetails.find(d => d.name === o.name);
+                if (wd && !wd.isHidden) {
+                    const ratio = wOthers > 0 ? wd.final / wOthers : 0;
+                    S_i += ratio * o.cycleTime;
+                }
+            });
+
+            let C_hidden = 0;
+            if (stats.hiddenFishName) {
+                const hStat = stats.allFishStats.find(s => s.name === stats.hiddenFishName);
+                if (hStat) C_hidden = hStat.cycleTime;
+            }
+
+            const p_h = stats.pHidden || 0;
+            const A_i = tStat.cycleTime - tStat.hookTime - S_i;
+            const B_i = p_h * C_hidden + S_i * (1 - p_h);
+
             const K = stats.weightDetails
                 .filter(d => d.name !== config.target && !d.isHidden)
                 .reduce((acc, d) => acc + d.base, 0);
             const targetWD = stats.weightDetails.find(d => d.name === config.target);
             const M = (targetWD && targetWD.m !== '-') ? targetWD.m : 1.0;
-
-            let sum_wT = 0;
-            stats.allFishStats.filter(s => !s.isTarget).forEach(o => {
-                const wd = stats.weightDetails.find(d => d.name === o.name);
-                if (wd && !wd.isHidden) sum_wT += (wd.final * o.cycleTime);
-            });
-
-            const B_i = (K > 0 && M > 0) ? sum_wT / (M * K) : 0;
             const C_i = (K > 0 && M > 0) ? wOthers / (M * K) : 0;
             const F_100 = (M > 0) ? (100 * M) / ((100 * M) + wOthers) : 0;
             const D_i = (F_100 > 0) ? (tStat.hitRate / F_100) : 0;

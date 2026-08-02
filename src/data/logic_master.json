@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-07-31T23:22:56.342Z",
+  "updated_at": "2026-08-02T01:54:46.174Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -1159,6 +1159,40 @@
       ],
       "guar_rates_after_disc": {},
       "hidden_hit_rates": {}
+    },
+    {
+      "spot": "アレクサンドリア旧市街",
+      "weather": "雷雨放電2-4",
+      "bait": "紅サシ",
+      "target_hidden": "ゴールデングルーパー",
+      "slap_target": "ゴールデングルーパー",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        3.28,
+        8.79,
+        12.38
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 7.6,
+        "d1_g3": 16.53,
+        "d2_g3": 17.97
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
     },
     {
       "spot": "アレクサンドリア旧市街",

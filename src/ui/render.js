@@ -506,38 +506,30 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
     const chumTxt = isChum ? '使用する' : '未使用';
     const slapTxt = (slapFish === 'なし') ? 'なし' : slapFish;
 
+    const Ct = vi.targetCycleTime;
+    const S = vi.S;
+    const p_h = vi.pHidden || 0;
+    const C_hidden = vi.C_hidden || 0;
+
     // Expected time formula string
     let formulaStr = `${vi.A.toFixed(1)}`;
-    if (vi.B > 0) {
-        formulaStr += ` + ${vi.B.toFixed(2)} × (1-p)/p`;
+    if (vi.B !== 0) {
+        formulaStr += ` + ${vi.B.toFixed(2)} / p`;
     } else {
         formulaStr += ` (Fixed)`;
     }
 
-    // GP formula (simplified)
     const gpCost = vi.gpCostPerCycle;
     let gpStr;
-    if (gpCost === 0) {
-        gpStr = '0.0 GP / sec';
-    } else {
-        const Ct = vi.targetCycleTime;
-        const S = vi.S;
-        if (Math.abs(Ct - S) < 0.01) {
-            // When Ct ≈ S, cycle is constant
-            gpStr = `${(gpCost / Ct).toFixed(1)} GP / sec`;
-        } else {
-            gpStr = `${gpCost} / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p)) GP/sec`;
-        }
-    }
-
-    // Avg cycle formula
-    const Ct = vi.targetCycleTime;
-    const S = vi.S;
     let avgCycleStr;
-    if (Math.abs(Ct - S) < 0.01) {
+    if (Math.abs(Ct - S) < 0.01 && p_h === 0) {
+        gpStr = gpCost === 0 ? '0.0 GP / sec' : `${(gpCost / Ct).toFixed(1)} GP / sec`;
         avgCycleStr = `${Ct.toFixed(1)}sec`;
     } else {
-        avgCycleStr = `${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p) sec`;
+        let h_part = p_h > 0 ? ` + ${(C_hidden * p_h).toFixed(1)}` : '';
+        let s_part = p_h > 0 ? `${S.toFixed(1)}(1-p-${(p_h*100).toFixed(1)}%)` : `${S.toFixed(1)}(1-p)`;
+        gpStr = gpCost === 0 ? '0.0 GP / sec' : `${gpCost} / (${Ct.toFixed(1)}p${h_part} + ${s_part}) GP/sec`;
+        avgCycleStr = `${Ct.toFixed(1)}p${h_part} + ${s_part} sec`;
     }
 
     let scnPrefix = '';
@@ -555,37 +547,26 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
     }
 
     let mainLabelStr = 'ターゲットヒット時間期待 (変数モード)';
-    if (config.manualTimeLimitEnabled && config.manualTimeLimit > 0) {
+    let isTimeMode = (config.manualTimeLimitEnabled && config.manualTimeLimit > 0);
+    let rawFormulaStr = '';
+
+    if (isTimeMode) {
         const timeLimit = config.manualTimeLimit;
-        
-        // Count formula: timeLimit * p / (Ct*p + S*(1-p))
-        if (Math.abs(Ct - S) < 0.01) {
-             formulaStr = `${timeLimit} × p / ${Ct.toFixed(1)} <span style="font-size:0.7em;">匹</span>`;
-        } else {
-             formulaStr = `${timeLimit} × p / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p)) <span style="font-size:0.7em;">匹</span>`;
-        }
         mainLabelStr = `制限時間 ${timeLimit}秒 内の期待獲得数 (変数モード)`;
-        
-        if (gpCost === 0) {
-            gpStr = '0 GP';
+        if (Math.abs(Ct - S) < 0.01 && p_h === 0) {
+             formulaStr = `${timeLimit} × p / ${Ct.toFixed(1)} <span style="font-size:0.7em;">匹</span>`;
+             rawFormulaStr = `E = ${timeLimit} × p / ${Ct.toFixed(1)}`;
+             gpStr = gpCost === 0 ? '0 GP' : `${gpCost * timeLimit} / ${Ct.toFixed(1)} GP`;
         } else {
-             gpStr = `${gpCost * timeLimit} / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p)) GP`;
+             let h_part = p_h > 0 ? ` + ${(C_hidden * p_h).toFixed(1)}` : '';
+             let s_part = p_h > 0 ? `${S.toFixed(1)}(1-p-${(p_h*100).toFixed(1)}%)` : `${S.toFixed(1)}(1-p)`;
+             formulaStr = `${timeLimit} × p / (${Ct.toFixed(1)}p${h_part} + ${s_part}) <span style="font-size:0.7em;">匹</span>`;
+             rawFormulaStr = `E = ${timeLimit} × p / (${Ct.toFixed(1)}p${h_part} + ${s_part})`;
+             gpStr = gpCost === 0 ? '0 GP' : `${gpCost * timeLimit} / (${Ct.toFixed(1)}p${h_part} + ${s_part}) GP`;
         }
     } else {
         formulaStr += ` <span style="font-size:0.7em;">秒</span>`;
-    }
-
-    let isTimeMode = (config.manualTimeLimitEnabled && config.manualTimeLimit > 0);
-    let rawFormulaStr = '';
-    if (isTimeMode) {
-        const timeLimit = config.manualTimeLimit;
-        if (Math.abs(Ct - S) < 0.01) {
-            rawFormulaStr = `E = ${timeLimit} × p / ${Ct.toFixed(1)}`;
-        } else {
-            rawFormulaStr = `E = ${timeLimit} × p / (${Ct.toFixed(1)}p + ${S.toFixed(1)}(1-p))`;
-        }
-    } else {
-        rawFormulaStr = `E = ${vi.A.toFixed(1)} + ${vi.B.toFixed(1)}(1-p)/p`;
+        rawFormulaStr = `E = ${vi.A.toFixed(1)} + ${vi.B.toFixed(1)} / p`;
     }
 
     resultContent.innerHTML = `
@@ -641,10 +622,16 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
             let hitStr;
             if (s.isTarget) {
                 hitStr = '<strong>p</strong>';
+            } else if (p_h > 0 && s.name === vi.hiddenFishName) {
+                hitStr = `<strong>${(p_h * 100).toFixed(1)}%</strong> <span style="font-size:0.7em;">(固定)</span>`;
             } else {
                 const fr = vi.fishRatios.find(r => r.name === s.name);
                 if (fr && fr.ratio !== null && fr.ratio > 0) {
-                    hitStr = `${(fr.ratio * 100).toFixed(1)}%×(1-p)`;
+                    if (p_h > 0) {
+                        hitStr = `${(fr.ratio * 100).toFixed(1)}%×(1-p-${(p_h * 100).toFixed(1)}%)`;
+                    } else {
+                        hitStr = `${(fr.ratio * 100).toFixed(1)}%×(1-p)`;
+                    }
                 } else {
                     hitStr = '0.0%';
                 }
@@ -675,14 +662,14 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
         yLabel = '期待獲得数 (匹)';
         graphFunc = (p) => {
             if (p === 0) return 0;
-            const cycle = Ct * p + S * (1 - p);
+            const cycle = Ct * p + C_hidden * p_h + S * (1 - p - p_h);
             return (config.manualTimeLimit * p) / cycle;
         };
     } else {
         yLabel = '期待時間 (秒)';
         graphFunc = (p) => {
             if (p === 0) return Infinity;
-            return vi.A + vi.B * (1 - p) / p;
+            return vi.A + vi.B / p;
         };
     }
     
@@ -725,11 +712,11 @@ export function renderVariableManualResult(stats, config, isChum, slapFish) {
                 const cycleDisplay = document.getElementById('manual-cycle-display');
                 if (cycleDisplay) {
                     if (p === 0) {
-                        cycleDisplay.textContent = (vi.A + vi.B).toFixed(1); // C_avg = B/C is theoretically true but using expected limit A+B
+                        cycleDisplay.textContent = (C_hidden * p_h + S * (1 - p_h)).toFixed(1);
                     } else if (resVal !== Infinity && !isTimeMode) {
-                        cycleDisplay.textContent = (resVal * p_prime).toFixed(1);
+                        cycleDisplay.textContent = (Ct * p_prime + C_hidden * p_h + S * (1 - p_prime - p_h)).toFixed(1);
                     } else if (isTimeMode) {
-                        cycleDisplay.textContent = (Ct * p_prime + S * (1 - p_prime)).toFixed(1); // fallback for time mode
+                        cycleDisplay.textContent = (Ct * p_prime + C_hidden * p_h + S * (1 - p_prime - p_h)).toFixed(1);
                     }
                 }
             }
@@ -807,7 +794,8 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
         </div>`;
     }
 
-    analysisHtml += `<div>隠し魚ヒット率 (P_Hidden): 0.00% (変数モード: 隠し魚なし前提)</div>`;
+    const p_h = vi.pHidden || 0;
+    analysisHtml += `<div>隠し魚ヒット率 (P_Hidden): ${(p_h * 100).toFixed(2)}% (変数モード計算式に組み込み済み)</div>`;
 
     const dbgScenario = document.getElementById('debug-scenario');
     if (dbgScenario) dbgScenario.innerHTML = analysisHtml;
@@ -828,7 +816,8 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
                 <td><strong>p</strong></td>
             </tr>`;
         } else {
-            const prob = d.ratio !== null ? `${(d.ratio * 100).toFixed(2)}%×(1-p)` : '0.00%';
+            const probStr = p_h > 0 ? `(1-p-${(p_h * 100).toFixed(1)}%)` : `(1-p)`;
+            const prob = d.ratio !== null ? `${(d.ratio * 100).toFixed(2)}%×${probStr}` : '0.00%';
             wHtml += `<tr style="text-align:right;">
                 <td style="text-align:left">${d.name}</td>
                 <td>${d.baseW}</td>
@@ -839,8 +828,17 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
         }
     });
 
+    if (p_h > 0 && vi.hiddenFishName) {
+        wHtml += `<tr style="text-align:right; color:#888;">
+            <td style="text-align:left">${vi.hiddenFishName}(隠)</td>
+            <td>-</td><td>-</td><td>-</td>
+            <td>${(p_h * 100).toFixed(2)}%</td>
+        </tr>`;
+    }
+
+    const othersSumStr = p_h > 0 ? `1-p-${(p_h*100).toFixed(1)}%` : `1-p`;
     wHtml += `<tr style="border-top:1px solid #666; font-weight:bold; text-align:right;">
-        <td colspan="3">他魚合計(ΣW)</td><td>${vi.wOthersTotal.toFixed(1)}</td><td>1-p</td>
+        <td colspan="3">他魚合計(ΣW)</td><td>${vi.wOthersTotal.toFixed(1)}</td><td>${othersSumStr}</td>
     </tr>`;
     wHtml += `</table>`;
 
@@ -852,7 +850,7 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
     const activeStats = stats.allFishStats.filter(s => {
         // In variable mode, show all fish that could have hitRate > 0
         const fr = vi.fishRatios.find(r => r.name === s.name);
-        return s.isTarget || (fr && fr.ratio !== null && fr.ratio > 0);
+        return s.isTarget || (p_h > 0 && s.name === vi.hiddenFishName) || (fr && fr.ratio !== null && fr.ratio > 0);
     });
 
     const pre = isChum ? c.D_CHUM : 0;
@@ -865,7 +863,14 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
         const cTypeColor = isIntegral ? '#ffaa00' : '#888';
 
         const fr = vi.fishRatios.find(r => r.name === s.name);
-        const hitStr = isTgt ? 'p' : (fr && fr.ratio ? `${(fr.ratio * 100).toFixed(1)}%×(1-p)` : '0%');
+        let hitStr = '0%';
+        if (isTgt) {
+            hitStr = 'p';
+        } else if (p_h > 0 && s.name === vi.hiddenFishName) {
+            hitStr = `${(p_h * 100).toFixed(1)}%`;
+        } else if (fr && fr.ratio) {
+            hitStr = p_h > 0 ? `${(fr.ratio * 100).toFixed(1)}%×(1-p-${(p_h * 100).toFixed(1)}%)` : `${(fr.ratio * 100).toFixed(1)}%×(1-p)`;
+        }
 
         const parts = [];
         if (pre > 0) parts.push(`撒き餌(${pre})`);
@@ -903,21 +908,21 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
 
     // Expected time formula
     let formulaStr = `${vi.A.toFixed(1)}`;
-    if (vi.B > 0) {
-        formulaStr += ` + ${vi.B.toFixed(2)} × (1-p)/p`;
+    if (vi.B !== 0) {
+        formulaStr += ` + ${vi.B.toFixed(2)} / p`;
     }
 
     const expectHtml = `
         <div style="font-size:0.8rem;">
-            <div><strong>定数 A (ターゲットコスト):</strong> ${vi.A.toFixed(2)}s</div>
-            <div style="font-size:0.7rem; color:#888; margin-left:12px;">= サイクル(${vi.targetCycleTime.toFixed(1)}) - フッキング(${(vi.targetCycleTime - vi.A).toFixed(1)})</div>
-            <div style="margin-top:4px;"><strong>定数 B (ペナルティ係数):</strong> ${vi.B.toFixed(2)}</div>
-            <div style="font-size:0.7rem; color:#888; margin-left:12px;">= Σ(W_i × Cycle_i) / (M_target × K)</div>
+            <div><strong>定数 A' (ターゲット期待値定数):</strong> ${vi.A.toFixed(2)}s</div>
+            <div style="margin-top:4px;"><strong>定数 B' (ペナルティ定数):</strong> ${vi.B.toFixed(2)}</div>
             <div style="margin-top:4px;"><strong>定数 S (他魚加重サイクル):</strong> ${vi.S.toFixed(2)}s</div>
             <hr style="margin:8px 0; border:0; border-top:1px dashed #666;">
-            <div><strong>式:</strong> E[Time] = A + B × (1-p)/p</div>
+            <div><strong>式:</strong> E[Time] = A' + B' / p</div>
             <div style="margin:5px 0; color:#bbb; font-size:0.75rem; line-height:1.4;">
-                ※ p = ターゲットのヒット率（0-1）
+                ※ p = ターゲットのヒット率（0-1）<br>
+                ※ A' = Ct - Hook - S<br>
+                ※ B' = p_h*C_hidden + S*(1 - p_h)
             </div>
             <div style="margin-top:4px; color:var(--primary); font-size:1.1rem; font-weight:bold;">${formulaStr}</div>
         </div>
@@ -953,7 +958,7 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
                 <div style="margin-bottom:10px;">
                     <div style="color:#aaa; font-size:0.75rem;">GP消費(秒間) - pに依存</div>
                     <div style="font-size:0.85rem; color:#bbb;">
-                        ${gpCost} / (${vi.targetCycleTime.toFixed(1)}p + ${vi.S.toFixed(1)}(1-p)) GP/sec
+                        ${gpCost} / (${vi.targetCycleTime.toFixed(1)}p ${p_h > 0 ? `+ ${(vi.C_hidden*p_h).toFixed(1)}` : ''} + ${vi.S.toFixed(1)}(1-p${p_h > 0 ? `-${(p_h*100).toFixed(1)}%` : ''})) GP/sec
                     </div>
                 </div>
             </div>
