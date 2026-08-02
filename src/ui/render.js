@@ -1096,12 +1096,12 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             </div>
             <div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)", "A")}${buildCard(resB, "Set B", "var(--accent-b)", "B")}</div>
             <div style="margin-top:15px; text-align:center;">
-                <div style="font-size:0.9rem; color:#ddd; margin-bottom:5px;">ヒット率 (p): <strong id="strat-p-display">p</strong></div>
-                <input type="range" id="strat-p-slider" min="0" max="100" value="50" style="width: 80%;">
+                <div style="font-size:0.9rem; color:#ddd; margin-bottom:5px;">基礎確率 (p): <strong id="strat-p-display">p</strong></div>
+                <input type="range" id="strat-p-slider" min="0" max="100" value="3" style="width: 80%;">
             </div>
             <div style="margin-top:10px; font-size:0.8rem; color:#aaa; display:flex; justify-content:center; align-items:center; gap:5px;">
                 表示範囲: <input type="number" id="strat-p-min" value="0" min="0" max="99" style="width:45px; padding:2px; background:#222; color:#fff; border:1px solid #555; text-align:center;"> % ～
-                <input type="number" id="strat-p-max" value="100" min="1" max="100" style="width:45px; padding:2px; background:#222; color:#fff; border:1px solid #555; text-align:center;"> %
+                <input type="number" id="strat-p-max" value="30" min="1" max="100" style="width:45px; padding:2px; background:#222; color:#fff; border:1px solid #555; text-align:center;"> %
             </div>
             <div style="margin-top:10px;">
                 <canvas id="strat-variable-graph" style="width:100%; height:200px; background:#1a1a1a; border:1px solid #444; border-radius:4px;"></canvas>
@@ -1167,7 +1167,7 @@ export function renderVariableStrategyComparison(resA, resB, config) {
                 };
             }
             funcs.push(func);
-            colors.push(idx === 0 ? '#ec4899' : '#8b5cf6');
+            colors.push(idx === 0 ? '#3b82f6' : '#ec4899');
             labels.push(idx === 0 ? 'Set A' : 'Set B');
         });
 
