@@ -919,6 +919,10 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
         formulaStr += ` + ${vi.B.toFixed(2)} / p'`;
     }
 
+    let aFormulaStr = "Ct - Hook - S";
+    if (config.goalTiming === 'catch') aFormulaStr = "Ct - S";
+    else if (config.goalTiming === 'cast') aFormulaStr = "Ct - Hook - Wait - S";
+
     const expectHtml = `
         <div style="font-size:0.8rem;">
             <div><strong>定数 A' (ターゲット期待値定数):</strong> ${vi.A.toFixed(2)}s</div>
@@ -929,7 +933,7 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
             <div style="margin:5px 0; color:#bbb; font-size:0.75rem; line-height:1.4;">
                 ※ p = ターゲットの基礎確率（0-1）<br>
                 ※ p' = 実効確率（pとトレードリリース状況等から算出した実際の確率）<br>
-                ※ A' = Ct - Hook - S<br>
+                ※ A' = ${aFormulaStr}<br>
                 ※ B' = p_h*C_hidden + S*(1 - p_h)
             </div>
             <div style="margin-top:4px; color:var(--primary); font-size:1.1rem; font-weight:bold;">${formulaStr}</div>

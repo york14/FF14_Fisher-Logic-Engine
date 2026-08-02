@@ -223,7 +223,16 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
     const targetStat = allFishStats.find(s => s.isTarget);
     const targetHitRate = targetStat ? targetStat.hitRate : 0;
     const targetHookTime = targetStat ? targetStat.hookTime : 0;
-    const expectedTime = (targetHitRate > 0) ? (sumProbTotalCycle - (targetHitRate * targetHookTime)) / targetHitRate : Infinity;
+    
+    let goalOffset = 0;
+    if (config.goalTiming === 'catch') {
+        goalOffset = targetHookTime;
+    } else if (config.goalTiming === 'cast') {
+        const tWait = targetStat ? targetStat.waitTimeAvg : 0;
+        goalOffset = -tWait;
+    }
+    
+    const expectedTime = (targetHitRate > 0) ? (sumProbTotalCycle - (targetHitRate * targetHookTime) + (targetHitRate * goalOffset)) / targetHitRate : Infinity;
     const expectedTimeRange = (targetHitRate > 0) ? (sumProbWaitRange / targetHitRate) : 0;
 
     // --- GP Calculation ---
@@ -280,7 +289,18 @@ export function calculateStrategySet(masterDB, probabilityMap, config, setConfig
     const targetInfo = masterDB.fish[config.target];
     // Bug fix from original logic: check if targetInfo exists
     const tHook = targetInfo ? targetInfo.hook_time : 0;
-    let expectedTime = (weightedHitRate > 0) ? (weightedCycle - (weightedHitRate * tHook)) / weightedHitRate : Infinity;
+    
+    let goalOffset = 0;
+    if (config.goalTiming === 'catch') {
+        goalOffset = tHook;
+    } else if (config.goalTiming === 'cast') {
+        // We need wait time average for this target. It's stored in scenarios, but we can approximate or get from db.
+        // It's better to get the weighted sum of wait times, but for now we can just use the target's base wait time.
+        const tWait = targetInfo ? (targetInfo.bite_time_min + targetInfo.bite_time_max) / 2 : 0;
+        goalOffset = -tWait;
+    }
+    
+    let expectedTime = (weightedHitRate > 0) ? (weightedCycle - (weightedHitRate * tHook) + (weightedHitRate * goalOffset)) / weightedHitRate : Infinity;
     const avgCastCount = (weightedHitRate > 0) ? (1 / weightedHitRate) : Infinity;
 
     // --- GP Calculation (Weighted) ---

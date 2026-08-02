@@ -456,7 +456,7 @@ function setupEventListeners() {
     });
     document.getElementById('currentSpot').addEventListener('change', () => updateSpotDependents(masterDB, updateSimulation));
 
-    ['currentWeather', 'currentBait', 'targetFishName', 'manualSurfaceSlap', 'macroLimitTime'].forEach(id => {
+    ['currentWeather', 'currentBait', 'targetFishName', 'manualSurfaceSlap', 'macroLimitTime', 'goalTiming'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', updateSimulation);
     });
@@ -563,6 +563,7 @@ function updateSimulation() {
         lureType: document.getElementById('lureType').value,
         quitIfNoDisc: false,
         macroLimitTime: parseFloat(document.getElementById('macroLimitTime').value) || 0,
+        goalTiming: document.getElementById('goalTiming')?.value || 'hit',
         // Time Limit Mode
         manualTimeLimitEnabled: document.getElementById('manualTimeLimitEnabled')?.checked || false,
         manualTimeLimit: parseFloat(document.getElementById('manualTimeLimit')?.value) || 0,
@@ -717,19 +718,26 @@ async function runManualModeVariable(config) {
         const hStat = stats.allFishStats.find(s => s.name === stats.hiddenFishName);
         if (hStat) C_hidden = hStat.cycleTime;
     }
+    
+    let goalOffset = 0;
+    if (config.goalTiming === 'catch') {
+        goalOffset = tStat.hookTime;
+    } else if (config.goalTiming === 'cast') {
+        goalOffset = -tStat.waitTimeAvg;
+    }
 
+    const p_h = stats.pHidden || 0;
     const Ct = tStat.cycleTime;
     const targetHook = tStat.hookTime;
-    const p_h = stats.pHidden || 0;
-
+    
     // Expected Time E = (E[Cycle] - p*Hook) / p
     // E[Cycle] = p*Ct + p_h*C_hidden + (1 - p - p_h)*S
     // E = (p(Ct - Hook) + p_h*C_hidden + (1 - p_h)*S - p*S) / p
     // E = (Ct - Hook - S) + (p_h*C_hidden + (1 - p_h)*S) / p
-    // A_prime = Ct - Hook - S
+    // A_prime = Ct - Hook - S + goalOffset
     // B_prime = p_h*C_hidden + S*(1 - p_h)
     
-    const A = Ct - targetHook - S;
+    const A = Ct - targetHook - S + goalOffset;
     const B = p_h * C_hidden + S * (1 - p_h);
 
     const K = stats.weightDetails
@@ -837,8 +845,15 @@ async function runStrategyModeVariable(config) {
                 if (hStat) C_hidden = hStat.cycleTime;
             }
 
+            let goalOffset = 0;
+            if (config.goalTiming === 'catch') {
+                goalOffset = tStat.hookTime;
+            } else if (config.goalTiming === 'cast') {
+                goalOffset = -tStat.waitTimeAvg;
+            }
+
             const p_h = stats.pHidden || 0;
-            const A_i = tStat.cycleTime - tStat.hookTime - S_i;
+            const A_i = tStat.cycleTime - tStat.hookTime - S_i + goalOffset;
             const B_i = p_h * C_hidden + S_i * (1 - p_h);
 
             const K = stats.weightDetails
