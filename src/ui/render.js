@@ -1128,9 +1128,13 @@ export function renderVariableStrategyComparison(resA, resB, config) {
                     let totalCount = 0;
                     for (const s of res.scenarios) {
                         const p_h = s.p_h || 0;
-                        if (p >= 1 - p_h) continue;
-                        const W_t = s.K > 0 ? s.K * (p / (1 - p_h - p)) : 0;
-                        const p_actual = (s.K > 0) ? (W_t * s.M / (s.wOthers + W_t * s.M)) * (1 - p_h) : (1 - p_h);
+                        let p_actual;
+                        if (p >= 1 - p_h) {
+                            p_actual = 1 - p_h;
+                        } else {
+                            const W_t = s.K > 0 ? s.K * (p / (1 - p_h - p)) : 0;
+                            p_actual = (s.K > 0) ? (W_t * s.M / (s.wOthers + W_t * s.M)) * (1 - p_h) : (1 - p_h);
+                        }
                         if (p_actual > 0) {
                             const C_i = s.Ct * p_actual + s.C_hidden * p_h + s.S_i * (1 - p_actual - p_h);
                             totalCount += s.prob * (timeLimit * p_actual / C_i);
@@ -1144,9 +1148,13 @@ export function renderVariableStrategyComparison(resA, resB, config) {
                     let totalE = 0;
                     for (const s of res.scenarios) {
                         const p_h = s.p_h || 0;
-                        if (p >= 1 - p_h) continue;
-                        const W_t = s.K > 0 ? s.K * (p / (1 - p_h - p)) : 0;
-                        const p_actual = (s.K > 0) ? (W_t * s.M / (s.wOthers + W_t * s.M)) * (1 - p_h) : (1 - p_h);
+                        let p_actual;
+                        if (p >= 1 - p_h) {
+                            p_actual = 1 - p_h;
+                        } else {
+                            const W_t = s.K > 0 ? s.K * (p / (1 - p_h - p)) : 0;
+                            p_actual = (s.K > 0) ? (W_t * s.M / (s.wOthers + W_t * s.M)) * (1 - p_h) : (1 - p_h);
+                        }
                         if (p_actual > 0) {
                             totalE += s.prob * (s.A + s.B / p_actual);
                         }
