@@ -857,7 +857,7 @@ async function runStrategyModeVariable(config) {
             weightedPHidden += scn.prob * (stats.pHidden || 0);
             if (stats.hiddenFishName) hiddenFishName = stats.hiddenFishName;
 
-            enrichedScenarios.push({ ...scn, A: A_i, B: B_i, H: H_i, C: C_i, D: D_i });
+            enrichedScenarios.push({ ...scn, A: A_i, B: B_i, H: H_i, C: C_i, D: D_i, K, wOthers, M, S_i, Ct: tStat.cycleTime, p_h, C_hidden });
         }
 
         // Strategy-level A and B
