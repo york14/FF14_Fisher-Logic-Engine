@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-08-02T09:28:54.948Z",
+  "updated_at": "2026-08-04T00:22:54.741Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -602,6 +602,38 @@
         "weight": 32,
         "bite_time_min": 21.5,
         "bite_time_max": 33
+      }
+    ],
+    "トーリ湖|任意|紅サシ": [
+      {
+        "fish": "ポニーテールチャプ",
+        "weight": 162,
+        "bite_time_min": 7.5,
+        "bite_time_max": 13.5
+      },
+      {
+        "fish": "ニーケレピトラウト",
+        "weight": 124,
+        "bite_time_min": 10.5,
+        "bite_time_max": 19.5
+      },
+      {
+        "fish": "トレイルトラウト",
+        "weight": 100,
+        "bite_time_min": 9,
+        "bite_time_max": 16.5
+      },
+      {
+        "fish": "トーリ・サッカー",
+        "weight": 86,
+        "bite_time_min": 15,
+        "bite_time_max": 25.5
+      },
+      {
+        "fish": "トラパドルフィッシュ",
+        "weight": 28,
+        "bite_time_min": 20,
+        "bite_time_max": 31.5
       }
     ]
   },
@@ -2044,6 +2076,210 @@
         6,
         12,
         17
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "トーリ湖",
+      "weather": "任意",
+      "bait": "紅サシ",
+      "target_hidden": null,
+      "slap_target": "なし",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "トーリ湖",
+      "weather": "任意",
+      "bait": "紅サシ",
+      "target_hidden": null,
+      "slap_target": "トレイルトラウト",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "トーリ湖",
+      "weather": "任意",
+      "bait": "ポッパールアー",
+      "target_hidden": null,
+      "slap_target": "なし",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "トーリ湖",
+      "weather": "任意",
+      "bait": "ポッパールアー",
+      "target_hidden": null,
+      "slap_target": "トレイルトラウト",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "トーリ湖",
+      "weather": "任意",
+      "bait": "万能ルアー",
+      "target_hidden": null,
+      "slap_target": "なし",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "トーリ湖",
+      "weather": "任意",
+      "bait": "万能ルアー",
+      "target_hidden": null,
+      "slap_target": "トレイルトラウト",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
       ],
       "guar_rates_after_disc": {
         "d1_g2": 0,
