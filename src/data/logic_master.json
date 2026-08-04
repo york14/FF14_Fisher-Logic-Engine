@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated_at": "2026-08-04T00:30:07.320Z",
+  "updated_at": "2026-08-04T07:15:07.041Z",
   "fish": {
     "エレクトロベタ": {
       "type": "small_jaws",
@@ -169,6 +169,41 @@
       "hook_time": 10,
       "is_hidden": false,
       "can_slap": true
+    },
+    "マッドフィッシュ": {
+      "type": "small_jaws",
+      "vibration": "!",
+      "hook_time": 5,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "ヤクテルキャットフィッシュ": {
+      "type": "large_jaws",
+      "vibration": "!!",
+      "hook_time": 10,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "ヴァリタス": {
+      "type": "small_jaws",
+      "vibration": "!",
+      "hook_time": 5,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "星粒魚": {
+      "type": "large_jaws",
+      "vibration": "!!",
+      "hook_time": 10,
+      "is_hidden": false,
+      "can_slap": true
+    },
+    "トゥルーソーサー": {
+      "type": "large_jaws",
+      "vibration": "!!",
+      "hook_time": 10,
+      "is_hidden": false,
+      "can_slap": true
     }
   },
   "spots": {
@@ -251,6 +286,24 @@
         "トレイルトラウト",
         "トーリ・サッカー",
         "トラパドルフィッシュ"
+      ]
+    },
+    "セノーテ・ジャユンジャ": {
+      "expansion": "黄金の遺産_7.x",
+      "area": "ヤクテル樹海",
+      "weathers": [
+        "ヌシ以外"
+      ],
+      "baits": [
+        "紅サシ",
+        "万能ルアー"
+      ],
+      "fish_list": [
+        "マッドフィッシュ",
+        "ヤクテルキャットフィッシュ",
+        "ヴァリタス",
+        "星粒魚",
+        "トゥルーソーサー"
       ]
     },
     "テスト釣り場1": {
@@ -635,6 +688,38 @@
         "weight": 28,
         "bite_time_min": 20,
         "bite_time_max": 31.5
+      }
+    ],
+    "セノーテ・ジャユンジャ|ヌシ以外|紅サシ": [
+      {
+        "fish": "マッドフィッシュ",
+        "weight": 140,
+        "bite_time_min": 9,
+        "bite_time_max": 17
+      },
+      {
+        "fish": "ヤクテルキャットフィッシュ",
+        "weight": 133,
+        "bite_time_min": 7.5,
+        "bite_time_max": 14
+      },
+      {
+        "fish": "ヴァリタス",
+        "weight": 87,
+        "bite_time_min": 10,
+        "bite_time_max": 19.5
+      },
+      {
+        "fish": "星粒魚",
+        "weight": 87,
+        "bite_time_min": 10.5,
+        "bite_time_max": 19.5
+      },
+      {
+        "fish": "トゥルーソーサー",
+        "weight": 53,
+        "bite_time_min": 15,
+        "bite_time_max": 25.5
       }
     ]
   },
@@ -2271,6 +2356,108 @@
       "bait": "万能ルアー",
       "target_hidden": null,
       "slap_target": "トレイルトラウト",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "セノーテ・ジャユンジャ",
+      "weather": "ヌシ以外",
+      "bait": "紅サシ",
+      "target_hidden": null,
+      "slap_target": "なし",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "セノーテ・ジャユンジャ",
+      "weather": "ヌシ以外",
+      "bait": "紅サシ",
+      "target_hidden": null,
+      "slap_target": "星粒魚",
+      "lure_type": "アンビシャスルアー",
+      "disc_rates": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_nodisc": [
+        0,
+        0,
+        0
+      ],
+      "guar_rates_after_disc": {
+        "d1_g2": 0,
+        "d1_g3": 0,
+        "d2_g3": 0
+      },
+      "hidden_hit_rates": {
+        "n1_d1_g0": 0,
+        "n2_d1_g2": 0,
+        "n2_d1_g0": 0,
+        "n3_d1_g3": 0,
+        "n3_d1_g0": 0,
+        "n2_d2_g0": 0,
+        "n3_d2_g3": 0,
+        "n3_d2_g0": 0,
+        "n3_d3_g0": 0
+      }
+    },
+    {
+      "spot": "セノーテ・ジャユンジャ",
+      "weather": "ヌシ以外",
+      "bait": "紅サシ",
+      "target_hidden": null,
+      "slap_target": "ヤクテルキャットフィッシュ",
       "lure_type": "アンビシャスルアー",
       "disc_rates": [
         0,
