@@ -6,6 +6,8 @@ import { GDS } from '../core/calculator.js';
 import { getScenarioLabel } from '../core/scenario.js';
 import { renderGraphToCanvas } from './graph.js';
 
+const getGoalTimingLabel = (t) => t === 'cast' ? 'キャスト完了まで' : t === 'catch' ? '釣り上げるまで' : 'アタリが来るまで';
+
 export function renderResultTable(stats, targetName, scnStr, scnProb, avgCycle) {
     const tbody = document.getElementById('res-table-body');
     if (!tbody) return;
@@ -74,13 +76,15 @@ export function renderManualModeResult(stats, config, isChum, slapFish) {
                     <div style="font-size:0.9rem; margin-top:5px;">ヒット率: ${hitRateStr} &nbsp;|&nbsp; 平均サイクル: ${stats.avgCycleTime.toFixed(1)}秒</div>
                     <div style="font-size:0.9rem; margin-top:3px;">制限時間内のGP消費：${gpTotal} GP</div>
                     <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
-                        Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+                        <div>Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}</div>
+                        <div style="margin-top:4px;">外道もすべて釣る: <span style="color:#bbb">${config.isCatchAll ? 'ON' : 'OFF'}</span> &nbsp;|&nbsp; 期待時間のゴール: <span style="color:#bbb">${getGoalTimingLabel(config.goalTiming)}</span></div>
                     </div>
                 </div>
                 <table><thead><tr><th>魚種名</th><th>ヒット率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
                 <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
                     <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
                              <div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>
+                             <div>見切り時間：<strong>${config.macroLimitTime ? config.macroLimitTime + '秒' : 'なし'}</strong></div>
                     </div>
                     <div id="scenario-str" style="margin-bottom: 4px;"></div>
                     <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;"></div>
@@ -95,13 +99,15 @@ export function renderManualModeResult(stats, config, isChum, slapFish) {
                     <div style="font-size:0.9rem; margin-top:5px;">ヒット率: ${hitRateStr}</div>
                     <div style="font-size:0.9rem; margin-top:3px;">GP消費(秒間)：${gpPerSecStr}</div>
                     <div style="font-size:0.75rem; margin-top:8px; padding-top:8px; border-top:1px dashed #444; color:#888;">
-                        Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+                        <div>Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}</div>
+                        <div style="margin-top:4px;">外道もすべて釣る: <span style="color:#bbb">${config.isCatchAll ? 'ON' : 'OFF'}</span> &nbsp;|&nbsp; 期待時間のゴール: <span style="color:#bbb">${getGoalTimingLabel(config.goalTiming)}</span></div>
                     </div>
                 </div>
                 <table><thead><tr><th>魚種名</th><th>ヒット率</th><th>実効待機時間(Min-Max)</th></tr></thead><tbody id="res-table-body"></tbody></table>
                 <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">
                     <div id="manual-header-info" style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px dashed #444;">
                              <div>トレードリリース：<strong>${slapTxt}</strong></div><div>撒き餌：<strong>${chumTxt}</strong></div>
+                             <div>見切り時間：<strong>${config.macroLimitTime ? config.macroLimitTime + '秒' : 'なし'}</strong></div>
                     </div>
                     <div id="scenario-str" style="margin-bottom: 4px;"></div>
                     <div id="scenario-prob" style="color: var(--primary); font-weight: bold; margin-bottom: 8px;"></div>
@@ -165,10 +171,11 @@ export function renderStrategyComparison(resA, resB, config) {
             const quitStr = res.setConfig.quitIfNoDisc ? 'する' : 'しない';
             const chumStr = res.setConfig.isChum ? 'あり' : 'なし';
             const slapStr = res.setConfig.slapFish && res.setConfig.slapFish !== 'なし' ? res.setConfig.slapFish : 'なし';
-            const limitStr = res.setConfig.macroLimitTime ? res.setConfig.macroLimitTime + 's' : 'なし';
+            const limitVal = res.setConfig.macroLimitTime || config.macroLimitTime;
+            const limitStr = limitVal ? limitVal + 's' : 'なし';
             extraInfo = `<div style="font-size:0.8rem; color:#888; margin: 8px 0 12px; padding-top: 8px; border-top: 1px dashed #444; text-align: center; width: 100%; line-height: 1.5;">
-                <div>即竿上げ: <span style="color:#bbb">${quitStr}</span> &nbsp;|&nbsp; 見切り: <span style="color:#bbb">${limitStr}</span></div>
-                <div>トレード: <span style="color:#bbb">${slapStr}</span> &nbsp;|&nbsp; 撒き餌: <span style="color:#bbb">${chumStr}</span></div>
+                <div>即竿上げ: <span style="color:#bbb">${quitStr}</span> &nbsp;|&nbsp; トレード: <span style="color:#bbb">${slapStr}</span></div>
+                <div>撒き餌: <span style="color:#bbb">${chumStr}</span> &nbsp;|&nbsp; 見切り時間: <span style="color:#bbb">${limitStr}</span></div>
             </div>`;
         }
 
@@ -179,7 +186,8 @@ export function renderStrategyComparison(resA, resB, config) {
         resultContent.innerHTML = `
             <div style="font-size:1.3rem; font-weight:bold; margin-bottom:5px; color:var(--primary)">L戦略評価</div>
             <div style="font-size:0.75rem; margin-bottom:10px; padding-bottom:8px; border-bottom:1px dashed #444; color:#888;">
-                Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}
+                <div>Spot: ${config.spot} / ${config.weather} / ${config.bait} / ${config.target}</div>
+                <div style="margin-top:4px;">外道もすべて釣る: <span style="color:#bbb">${config.isCatchAll ? 'ON' : 'OFF'}</span> &nbsp;|&nbsp; 期待時間のゴール: <span style="color:#bbb">${getGoalTimingLabel(config.goalTiming)}</span></div>
             </div>
             <div class="comparison-container" style="align-items:stretch;">${buildCard(resA, "Set A", "var(--accent-a)")}${buildCard(resB, "Set B", "var(--accent-b)")}</div>`;
     }
