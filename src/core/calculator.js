@@ -256,6 +256,7 @@ export function calculateStrategySet(masterDB, probabilityMap, config, setConfig
 
     // Track weighted GP Cost as well
     let weightedGPCost = 0;
+    let weightedWaitTime = 0;
 
     for (const sid of preset.eligible_scenarios) {
         const scenarioConfig = { ...config, lureType: setConfig.lureType, quitIfNoDisc: setConfig.quitIfNoDisc };
@@ -275,6 +276,7 @@ export function calculateStrategySet(masterDB, probabilityMap, config, setConfig
 
         // Accumulate Weighted Cost
         weightedGPCost += (stats.scenarioProb * stats.gpStats.cost.total);
+        weightedWaitTime += (stats.scenarioProb * stats.targetHitRate * (stats.debugData.waitTimeAvg || 0));
 
         scenarios.push({
             id: sid, label: getScenarioLabel(sid), prob: stats.scenarioProb, cycle: stats.avgCycleTime, hit: stats.targetHitRate, expected: stats.expectedTime, pObj: stats.debugData.p, isQuit: stats.debugData.isQuit,
@@ -294,9 +296,7 @@ export function calculateStrategySet(masterDB, probabilityMap, config, setConfig
     if (config.goalTiming === 'catch') {
         goalOffset = tHook;
     } else if (config.goalTiming === 'cast') {
-        // We need wait time average for this target. It's stored in scenarios, but we can approximate or get from db.
-        // It's better to get the weighted sum of wait times, but for now we can just use the target's base wait time.
-        const tWait = targetInfo ? (targetInfo.bite_time_min + targetInfo.bite_time_max) / 2 : 0;
+        const tWait = (weightedHitRate > 0) ? (weightedWaitTime / weightedHitRate) : 0;
         goalOffset = -tWait;
     }
     
