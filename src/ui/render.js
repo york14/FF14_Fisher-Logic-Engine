@@ -175,12 +175,14 @@ export function renderStrategyComparison(resA, resB, config) {
             const slapStr = res.setConfig.slapFish && res.setConfig.slapFish !== 'なし' ? res.setConfig.slapFish : 'なし';
             const limitMaxVal = res.setConfig.limitMaxTime || config.limitMaxTime;
             const limitMinVal = res.setConfig.limitMinTime || config.limitMinTime;
-            const limitMaxStr = limitMaxVal ? limitMaxVal + 's' : 'なし';
-            const limitMinStr = limitMinVal ? limitMinVal + 's' : 'なし';
+            const limitMaxStr = limitMaxVal ? limitMaxVal + '秒経過したら竿上げ中断' : 'なし';
+            const limitMinStr = limitMinVal ? limitMinVal + '秒以下のヒットは竿上げ中断' : 'なし';
             extraInfo = `<div style="font-size:0.8rem; color:#888; margin: 8px 0 12px; padding-top: 8px; border-top: 1px dashed #444; text-align: center; width: 100%; line-height: 1.5;">
-                <div>即竿上げ: <span style="color:#bbb">${quitStr}</span> &nbsp;|&nbsp; トレード: <span style="color:#bbb">${slapStr}</span></div>
+                <div>未発見即竿上げ: <span style="color:#bbb">${quitStr}</span></div>
+                <div>トレード: <span style="color:#bbb">${slapStr}</span></div>
                 <div>撒き餌: <span style="color:#bbb">${chumStr}</span></div>
-                <div>上限見切り: <span style="color:#bbb">${limitMaxStr}</span> &nbsp;|&nbsp; 下限見切り: <span style="color:#bbb">${limitMinStr}</span></div>
+                <div>上限見切り時間: <span style="color:#bbb">${limitMaxStr}</span></div>
+                <div>下限見切り時間: <span style="color:#bbb">${limitMinStr}</span></div>
             </div>`;
         }
 
@@ -1082,12 +1084,14 @@ export function renderVariableStrategyComparison(resA, resB, config) {
             const quitStr = res.setConfig.quitIfNoDisc ? 'する' : 'しない';
             const chumStr = res.setConfig.isChum ? 'あり' : 'なし';
             const slapStr = res.setConfig.slapFish && res.setConfig.slapFish !== 'なし' ? res.setConfig.slapFish : 'なし';
-            const limitMaxStr = res.setConfig.limitMaxTime ? res.setConfig.limitMaxTime + 's' : 'なし';
-            const limitMinStr = res.setConfig.limitMinTime ? res.setConfig.limitMinTime + 's' : 'なし';
+            const limitMaxStr = res.setConfig.limitMaxTime ? res.setConfig.limitMaxTime + '秒経過したら竿上げ中断' : 'なし';
+            const limitMinStr = res.setConfig.limitMinTime ? res.setConfig.limitMinTime + '秒以下のヒットは竿上げ中断' : 'なし';
             extraInfo = `<div style="font-size:0.8rem; color:#888; margin: 8px 0 12px; padding-top: 8px; border-top: 1px dashed #444; text-align: center; width: 100%; line-height: 1.5;">
-                <div>即竿上げ: <span style="color:#bbb">${quitStr}</span> &nbsp;|&nbsp; 見切り上限: <span style="color:#bbb">${limitMaxStr}</span></div>
-                <div>トレード: <span style="color:#bbb">${slapStr}</span> &nbsp;|&nbsp; 見切り下限: <span style="color:#bbb">${limitMinStr}</span></div>
+                <div>未発見即竿上げ: <span style="color:#bbb">${quitStr}</span></div>
+                <div>トレード: <span style="color:#bbb">${slapStr}</span></div>
                 <div>撒き餌: <span style="color:#bbb">${chumStr}</span></div>
+                <div>上限見切り時間: <span style="color:#bbb">${limitMaxStr}</span></div>
+                <div>下限見切り時間: <span style="color:#bbb">${limitMinStr}</span></div>
             </div>`;
         }
 
