@@ -20,6 +20,20 @@ export function generateProbabilityMap(probabilities) {
     return map;
 }
 
+function calcIntegralWaitAvg(low, high, L) {
+    if (low >= high) return Math.max(low, L);
+    if (L <= low) {
+        return (low + high) / 2;
+    } else if (high <= L) {
+        return L;
+    } else {
+        const term1 = L * (L - low);
+        const term2 = (Math.pow(high, 2) - Math.pow(L, 2)) / 2;
+        return (term1 + term2) / (high - low);
+    }
+}
+
+
 export function calculateScenarioStats(masterDB, probabilityMap, config, scenarioId, isChum, slapFish, overrideP = null) {
     if (!masterDB.spots[config.spot]) return { error: "釣り場データが見つかりません" };
     const p = parseScenarioId(scenarioId);
@@ -182,7 +196,7 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
             if (Mn >= t_max) {
                 // 全て下限見切り
                 cancelLowRatio = 1.0;
-                cancelLowWaitAvg = (Math.max(t_min, L) + Math.max(t_max, L)) / 2;
+                cancelLowWaitAvg = calcIntegralWaitAvg(t_min, t_max, L);
                 cType = 'All LowCut';
             } else {
                 cancelHighRatio = 1.0;
@@ -200,7 +214,7 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
                 cancelLowRatio = (Mn - t_min) / range;
                 cancelHighRatio = 1.0 - cancelLowRatio;
                 if (cancelLowRatio > 0) {
-                    cancelLowWaitAvg = (Math.max(t_min, L) + Math.max(Math.min(Mn, t_max), L)) / 2;
+                    cancelLowWaitAvg = calcIntegralWaitAvg(t_min, Math.min(Mn, t_max), L);
                 }
                 cType = 'No Valid Zone';
             } else {
@@ -208,27 +222,17 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
                 cancelLowRatio = (effLow - t_min) / range;
                 if (cancelLowRatio > 0) {
                     // 下限見切りゾーンの平均待機時間
-                    const z1_low = Math.max(t_min, L);
-                    const z1_high = Math.max(effLow, L);
-                    if (z1_low >= z1_high) {
-                        cancelLowWaitAvg = z1_low;
-                    } else {
-                        cancelLowWaitAvg = (z1_low + z1_high) / 2;
-                    }
+                    cancelLowWaitAvg = calcIntegralWaitAvg(t_min, effLow, L);
                 }
 
                 // Zone 2: 有効範囲 (effLow ~ effHigh) — 釣獲
                 catchRatio = (effHigh - effLow) / range;
+                waitTimeAvg = calcIntegralWaitAvg(effLow, effHigh, L);
                 if (L <= effLow) {
-                    waitTimeAvg = (effLow + effHigh) / 2;
                     cType = 'Standard';
                 } else if (effHigh <= L) {
-                    waitTimeAvg = L;
                     cType = 'Lure Fixed';
                 } else {
-                    const term1 = L * (L - effLow);
-                    const term2 = (Math.pow(effHigh, 2) - Math.pow(L, 2)) / 2;
-                    waitTimeAvg = (term1 + term2) / (effHigh - effLow);
                     cType = 'Integral';
                 }
 
