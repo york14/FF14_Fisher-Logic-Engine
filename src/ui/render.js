@@ -412,7 +412,29 @@ export function renderDebugDetails(stats, config, isChum, scenarioId) {
     const expectedTime = stats.expectedTime;
     const expectedTimeRange = stats.expectedTimeRange || 0;
     const targetHook = stats.debugData.targetHook;
-    const formulaStr = `(${avgCycle.toFixed(2)} - (${(hitRate * 100).toFixed(2)}% × ${targetHook.toFixed(1)})) / ${(hitRate * 100).toFixed(2)}%`;
+    const targetWait = tStat ? tStat.waitTimeAvg : 0;
+    const goalTiming = config.goalTiming || 'hit';
+    const goalLabel = getGoalTimingLabel(goalTiming);
+
+    // goalTimingに応じた式の構築
+    let formulaStr, formulaDesc, formulaNote;
+    if (goalTiming === 'catch') {
+        // 釣り上げるまで: E[Cycle] / P （hookTimeがcycleTimeに含まれているのでそのまま）
+        formulaStr = `${avgCycle.toFixed(2)} / ${(hitRate * 100).toFixed(2)}%`;
+        formulaDesc = `E[Cycle] / P`;
+        formulaNote = `※釣り上げ完了時点までの期待値（サイクル時間にhookTimeが含まれているためそのまま除算）`;
+    } else if (goalTiming === 'cast') {
+        // キャスト完了まで: (E[Cycle] - P × hookTime - P × waitTimeAvg) / P
+        formulaStr = `(${avgCycle.toFixed(2)} - (${(hitRate * 100).toFixed(2)}% × ${targetHook.toFixed(1)}) - (${(hitRate * 100).toFixed(2)}% × ${targetWait.toFixed(1)})) / ${(hitRate * 100).toFixed(2)}%`;
+        formulaDesc = `(E[Cycle] - (P × 動作時間) - (P × 待機時間)) / P`;
+        formulaNote = `※次のキャスト開始時点までの期待値（釣り上げ動作 + 待機時間を除外）`;
+    } else {
+        // アタリが来るまで（デフォルト）: (E[Cycle] - P × hookTime) / P
+        formulaStr = `(${avgCycle.toFixed(2)} - (${(hitRate * 100).toFixed(2)}% × ${targetHook.toFixed(1)})) / ${(hitRate * 100).toFixed(2)}%`;
+        formulaDesc = `(E[Cycle] - (P × 動作時間)) / P`;
+        formulaNote = `※ターゲット釣り上げ時間（成功時コスト）を除外した待機期待値`;
+    }
+
     const rangeStr = `<span style="font-size:0.8em; color:#888;">±${expectedTimeRange.toFixed(1)}s</span>`;
     const expectExpr = (hitRate > 0) ? `${formulaStr} = <strong>${expectedTime.toFixed(1)}s</strong> ${rangeStr}` : `ターゲット確率が 0% のため計算不可`;
 
@@ -421,10 +443,12 @@ export function renderDebugDetails(stats, config, isChum, scenarioId) {
             <div><strong>平均サイクル (E[Cycle]):</strong> ${avgCycle.toFixed(2)}s</div>
             <div><strong>ターゲット確率 (P):</strong> ${(hitRate * 100).toFixed(2)}%</div>
             <div><strong>ターゲット釣り上げ動作時間:</strong> ${targetHook.toFixed(1)}s</div>
+            <div><strong>ターゲット平均待機時間:</strong> ${targetWait.toFixed(2)}s</div>
+            <div><strong>ゴール地点:</strong> <span style="color:var(--primary);">${goalLabel}</span></div>
             <hr style="margin:5px 0; border:0; border-top:1px dashed #666;">
-            <div><strong>式:</strong> (E[Cycle] - (P × 動作時間)) / P</div>
+            <div><strong>式:</strong> ${formulaDesc}</div>
             <div style="margin:5px 0; color:#bbb; font-size:0.75rem; line-height:1.4;">
-                ※ターゲット釣り上げ時間（成功時コスト）を除外した待機期待値
+                ${formulaNote}
             </div>
             <div style="margin-top:4px; color:var(--primary);">${expectExpr}</div>
         </div>
@@ -802,6 +826,7 @@ export function renderVariableDebugDetails(stats, config, isChum, scenarioId) {
             <div>Cond: ${config.weather} / Bait: ${config.bait}</div>
             <div>Target: ${config.target}</div>
             <div>Slap: ${slapVal} / Lure: ${config.lureType}</div>
+            <div>Rest if no disc: ${config.quitIfNoDisc ? 'ON' : 'OFF'} / Limit Max: ${config.limitMaxTime > 0 ? config.limitMaxTime + 's' : 'OFF'} / Limit Min: ${config.limitMinTime > 0 ? config.limitMinTime + 's' : 'OFF'}</div>
             <div>Mode: <strong style="color:var(--primary);">変数モード (Unknown Weight)</strong></div>
         </div>
         <div>特定キー: ${label} (${scenarioId})</div>`;
