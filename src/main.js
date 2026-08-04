@@ -167,7 +167,8 @@ async function initShareMode() {
         addOpt('targetFishName', config.target);
         setCheck('isCatchAll', config.isCatchAll);
         setCheck('isVariableMode', config.isVariableMode);
-        setVal('macroLimitTime', config.macroLimitTime || '');
+        setVal('limitMaxTime', config.limitMaxTime || '');
+        setVal('limitMinTime', config.limitMinTime || '');
 
         document.querySelectorAll('.tab-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.mode === config.mode);
@@ -195,7 +196,8 @@ async function initShareMode() {
                     spot: config.spot, weather: config.weather, bait: config.bait, target: config.target,
                     isCatchAll: config.isCatchAll, lureType: config.lureType, slapFish: config.slapFish,
                     quitIfNoDisc: false,
-                    macroLimitTime: parseFloat(config.macroLimitTime) || 0
+                    limitMaxTime: parseFloat(config.limitMaxTime) || 0,
+                    limitMinTime: parseFloat(config.limitMinTime) || 0
                 };
 
                 // Reconstruct Scenario ID
@@ -248,7 +250,8 @@ async function initShareMode() {
                 if (sDat) {
                     addOpt(`strat${set}Lure`, sDat.lureType || 'none');
                     setVal(`strat${set}Quit`, sDat.quit || 'no');
-                    setVal(`strat${set}MacroLimit`, sDat.macroLimit || '');
+                    setVal(`strat${set}LimitMax`, sDat.limitMax || '');
+                    setVal(`strat${set}LimitMin`, sDat.limitMin || '');
                     addOpt(`strat${set}Slap`, sDat.slap || 'なし');
                     setVal(`strat${set}Chum`, sDat.chum || 'no');
                     // Preset: find name from masterDB
@@ -269,7 +272,8 @@ async function initShareMode() {
             const calcConfig = {
                 spot: config.spot, weather: config.weather, bait: config.bait,
                 target: config.target, isCatchAll: config.isCatchAll,
-                macroLimitTime: parseFloat(config.macroLimitTime) || 0
+                limitMaxTime: parseFloat(config.limitMaxTime) || 0,
+                limitMinTime: parseFloat(config.limitMinTime) || 0
             };
             const sets = ['A', 'B'];
             const results = {};
@@ -281,7 +285,8 @@ async function initShareMode() {
                     const setConfig = {
                         lureType: sDat.lureType, quitIfNoDisc: sDat.quit === 'yes',
                         slapFish: sDat.slap, isChum: sDat.chum === 'yes', presetId: sDat.preset,
-                        macroLimitTime: sDat.macroLimit !== undefined && sDat.macroLimit !== '' ? parseFloat(sDat.macroLimit) : undefined
+                        limitMaxTime: sDat.limitMax !== undefined && sDat.limitMax !== '' ? parseFloat(sDat.limitMax) : undefined,
+                        limitMinTime: sDat.limitMin !== undefined && sDat.limitMin !== '' ? parseFloat(sDat.limitMin) : undefined
                     };
                     const preset = masterDB.strategy_presets.find(p => p.id === setConfig.presetId);
                     if (!preset) {
@@ -327,7 +332,8 @@ async function initShareMode() {
                     const setConfig = {
                         lureType: sDat.lureType, quitIfNoDisc: sDat.quit === 'yes', slapFish: sDat.slap,
                         isChum: sDat.chum === 'yes', presetId: sDat.preset,
-                        macroLimitTime: sDat.macroLimit !== undefined && sDat.macroLimit !== '' ? parseFloat(sDat.macroLimit) : undefined
+                        limitMaxTime: sDat.limitMax !== undefined && sDat.limitMax !== '' ? parseFloat(sDat.limitMax) : undefined,
+                        limitMinTime: sDat.limitMin !== undefined && sDat.limitMin !== '' ? parseFloat(sDat.limitMin) : undefined
                     };
                     const preset = masterDB.strategy_presets.find(p => p.id === setConfig.presetId);
                     results[set] = calculateStrategySet(masterDB, probabilityMap, calcConfig, setConfig, preset);
@@ -354,7 +360,8 @@ function serializeStateToURL() {
         target: document.getElementById('targetFishName').value,
         isCatchAll: document.getElementById('isCatchAll').checked,
         isVariableMode: document.getElementById('isVariableMode').checked,
-        macroLimitTime: document.getElementById('macroLimitTime').value,
+        limitMaxTime: document.getElementById('limitMaxTime').value,
+        limitMinTime: document.getElementById('limitMinTime').value,
 
         slapFish: document.getElementById('manualSurfaceSlap').value,
         isChum: document.getElementById('manualChum').value === 'yes',
@@ -367,7 +374,8 @@ function serializeStateToURL() {
         stratA: {
             lureType: document.getElementById('stratALure').value,
             quit: document.getElementById('stratAQuit').value,
-            macroLimit: document.getElementById('stratAMacroLimit').value,
+            limitMax: document.getElementById('stratALimitMax').value,
+            limitMin: document.getElementById('stratALimitMin').value,
             preset: document.getElementById('stratAPreset').value,
             slap: document.getElementById('stratASlap').value,
             chum: document.getElementById('stratAChum').value
@@ -375,7 +383,8 @@ function serializeStateToURL() {
         stratB: {
             lureType: document.getElementById('stratBLure').value,
             quit: document.getElementById('stratBQuit').value,
-            macroLimit: document.getElementById('stratBMacroLimit').value,
+            limitMax: document.getElementById('stratBLimitMax').value,
+            limitMin: document.getElementById('stratBLimitMin').value,
             preset: document.getElementById('stratBPreset').value,
             slap: document.getElementById('stratBSlap').value,
             chum: document.getElementById('stratBChum').value
@@ -456,7 +465,7 @@ function setupEventListeners() {
     });
     document.getElementById('currentSpot').addEventListener('change', () => updateSpotDependents(masterDB, updateSimulation));
 
-    ['currentWeather', 'currentBait', 'targetFishName', 'manualSurfaceSlap', 'macroLimitTime', 'goalTiming'].forEach(id => {
+    ['currentWeather', 'currentBait', 'targetFishName', 'manualSurfaceSlap', 'limitMaxTime', 'limitMinTime', 'goalTiming'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', updateSimulation);
     });
@@ -481,8 +490,8 @@ function setupEventListeners() {
         });
     });
 
-    ['stratALure', 'stratAQuit', 'stratAMacroLimit', 'stratAPreset', 'stratASlap', 'stratAChum',
-        'stratBLure', 'stratBQuit', 'stratBMacroLimit', 'stratBPreset', 'stratBSlap', 'stratBChum'].forEach(id => {
+    ['stratALure', 'stratAQuit', 'stratALimitMax', 'stratALimitMin', 'stratAPreset', 'stratASlap', 'stratAChum',
+        'stratBLure', 'stratBQuit', 'stratBLimitMax', 'stratBLimitMin', 'stratBPreset', 'stratBSlap', 'stratBChum'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', () => {
                 if (id.includes('Lure')) updateStrategyPresetsFilter(masterDB);
@@ -562,7 +571,8 @@ function updateSimulation() {
         isVariableMode: vmCheck.checked,
         lureType: document.getElementById('lureType').value,
         quitIfNoDisc: false,
-        macroLimitTime: parseFloat(document.getElementById('macroLimitTime').value) || 0,
+        limitMaxTime: parseFloat(document.getElementById('limitMaxTime').value) || 0,
+        limitMinTime: parseFloat(document.getElementById('limitMinTime').value) || 0,
         goalTiming: document.getElementById('goalTiming')?.value || 'hit',
         // Time Limit Mode
         manualTimeLimitEnabled: document.getElementById('manualTimeLimitEnabled')?.checked || false,
@@ -620,7 +630,8 @@ function runStrategyMode(config) {
         const setConfig = {
             lureType: document.getElementById(`strat${set}Lure`).value,
             quitIfNoDisc: document.getElementById(`strat${set}Quit`).value === 'yes',
-            macroLimitTime: document.getElementById(`strat${set}MacroLimit`).value !== '' ? parseFloat(document.getElementById(`strat${set}MacroLimit`).value) : undefined,
+            limitMaxTime: document.getElementById(`strat${set}LimitMax`).value !== '' ? parseFloat(document.getElementById(`strat${set}LimitMax`).value) : undefined,
+            limitMinTime: document.getElementById(`strat${set}LimitMin`).value !== '' ? parseFloat(document.getElementById(`strat${set}LimitMin`).value) : undefined,
             slapFish: document.getElementById(`strat${set}Slap`).value,
             isChum: document.getElementById(`strat${set}Chum`).value === 'yes',
             presetId: document.getElementById(`strat${set}Preset`).value
@@ -781,7 +792,8 @@ async function runStrategyModeVariable(config) {
         const setConfig = {
             lureType: document.getElementById(`strat${set}Lure`).value,
             quitIfNoDisc: document.getElementById(`strat${set}Quit`).value === 'yes',
-            macroLimitTime: document.getElementById(`strat${set}MacroLimit`).value !== '' ? parseFloat(document.getElementById(`strat${set}MacroLimit`).value) : undefined,
+            limitMaxTime: document.getElementById(`strat${set}LimitMax`).value !== '' ? parseFloat(document.getElementById(`strat${set}LimitMax`).value) : undefined,
+            limitMinTime: document.getElementById(`strat${set}LimitMin`).value !== '' ? parseFloat(document.getElementById(`strat${set}LimitMin`).value) : undefined,
             slapFish: document.getElementById(`strat${set}Slap`).value,
             isChum: document.getElementById(`strat${set}Chum`).value === 'yes',
             presetId: document.getElementById(`strat${set}Preset`).value

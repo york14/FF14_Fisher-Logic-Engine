@@ -141,59 +141,133 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
         const t_min = isChum ? (baseBiteMin * GDS.C_CHUM) : baseBiteMin;
         const t_max = isChum ? (baseBiteMax * GDS.C_CHUM) : baseBiteMax;
         const L = lureTime;
-        const M = (config.macroLimitTime && config.macroLimitTime > 0) ? config.macroLimitTime : Infinity;
+        const M = (config.limitMaxTime && config.limitMaxTime > 0) ? config.limitMaxTime : Infinity;
+        const Mn = (config.limitMinTime && config.limitMinTime > 0) ? config.limitMinTime : 0;
 
-        // Wait Time & Macro Limit Logic
+        // Wait Time & Limit Logic (3-zone algorithm)
+        // Zone 1: t < Mn  → 下限見切り（早アタリ竿上げ中断）
+        // Zone 2: Mn <= t <= M  → 有効範囲（釣獲）
+        // Zone 3: t > M  → 上限見切り（タイムアウト竿上げ中断）
         let waitTimeAvg = 0;
         let cType = '';
         let catchRatio = 1.0;
+        let cancelLowRatio = 0;   // 下限見切りによるキャンセル率
+        let cancelHighRatio = 0;  // 上限見切りによるキャンセル率
+        let cancelLowWaitAvg = 0; // 下限見切り時の平均待機時間
         let waitTimeMinDisplay = Math.max(t_min, L);
         let waitTimeMaxDisplay = Math.max(t_max, L);
 
-        if (M <= L || M <= t_min) {
-            catchRatio = 0.0;
-            waitTimeAvg = M; // 釣れないがキャンセル発生時刻として記録
-            cType = 'Macro Quit';
-        } else {
-            const limit = Math.min(t_max, M);
-            const range = t_max - t_min;
-            if (range <= 0) {
-                // fixed bite time
-                catchRatio = (t_min <= M) ? 1.0 : 0.0;
+        const range = t_max - t_min;
+
+        if (range <= 0) {
+            // Fixed bite time (t_min === t_max)
+            if (t_min < Mn || M <= L || M <= t_min) {
+                catchRatio = 0.0;
+                if (t_min < Mn) {
+                    cancelLowRatio = 1.0;
+                    cancelLowWaitAvg = Math.max(t_min, L);
+                    cType = 'Fixed (LowCut)';
+                } else {
+                    cancelHighRatio = 1.0;
+                    cType = 'Fixed (HighCut)';
+                }
+            } else {
+                catchRatio = 1.0;
                 waitTimeAvg = Math.max(t_min, L);
                 cType = 'Fixed (ZeroRange)';
+            }
+        } else if (M <= L || M <= t_min || Mn >= t_max) {
+            // 全域キャンセル: 上限が有効範囲より前 or 下限が有効範囲より後
+            catchRatio = 0.0;
+            if (Mn >= t_max) {
+                // 全て下限見切り
+                cancelLowRatio = 1.0;
+                cancelLowWaitAvg = (Math.max(t_min, L) + Math.max(t_max, L)) / 2;
+                cType = 'All LowCut';
             } else {
-                catchRatio = (limit - t_min) / range;
-                if (L <= t_min) {
-                    waitTimeAvg = (t_min + limit) / 2;
+                cancelHighRatio = 1.0;
+                cType = 'All HighCut';
+            }
+        } else {
+            // 一般ケース: 3ゾーン分割
+            // 有効範囲の実効上下限
+            const effLow = Math.max(t_min, Mn);   // 有効範囲の下端
+            const effHigh = Math.min(t_max, M);    // 有効範囲の上端
+
+            if (effLow >= effHigh) {
+                // 有効範囲がゼロ（下限と上限が逆転）
+                catchRatio = 0.0;
+                cancelLowRatio = (Mn - t_min) / range;
+                cancelHighRatio = 1.0 - cancelLowRatio;
+                if (cancelLowRatio > 0) {
+                    cancelLowWaitAvg = (Math.max(t_min, L) + Math.max(Math.min(Mn, t_max), L)) / 2;
+                }
+                cType = 'No Valid Zone';
+            } else {
+                // Zone 1: 下限見切り (t_min ~ effLow)
+                cancelLowRatio = (effLow - t_min) / range;
+                if (cancelLowRatio > 0) {
+                    // 下限見切りゾーンの平均待機時間
+                    const z1_low = Math.max(t_min, L);
+                    const z1_high = Math.max(effLow, L);
+                    if (z1_low >= z1_high) {
+                        cancelLowWaitAvg = z1_low;
+                    } else {
+                        cancelLowWaitAvg = (z1_low + z1_high) / 2;
+                    }
+                }
+
+                // Zone 2: 有効範囲 (effLow ~ effHigh) — 釣獲
+                catchRatio = (effHigh - effLow) / range;
+                if (L <= effLow) {
+                    waitTimeAvg = (effLow + effHigh) / 2;
                     cType = 'Standard';
-                } else if (limit <= L) {
+                } else if (effHigh <= L) {
                     waitTimeAvg = L;
                     cType = 'Lure Fixed';
                 } else {
-                    const term1 = L * (L - t_min);
-                    const term2 = (Math.pow(limit, 2) - Math.pow(L, 2)) / 2;
-                    waitTimeAvg = (term1 + term2) / (limit - t_min);
+                    const term1 = L * (L - effLow);
+                    const term2 = (Math.pow(effHigh, 2) - Math.pow(L, 2)) / 2;
+                    waitTimeAvg = (term1 + term2) / (effHigh - effLow);
                     cType = 'Integral';
                 }
+
+                // Zone 3: 上限見切り (effHigh ~ t_max)
+                cancelHighRatio = (t_max - effHigh) / range;
+
+                // 表示用の有効待機時間範囲
+                waitTimeMinDisplay = Math.max(effLow, L);
+                waitTimeMaxDisplay = Math.max(effHigh, L);
             }
-            waitTimeMaxDisplay = Math.max(limit, L);
         }
-        if (M !== Infinity && catchRatio < 1.0) {
-            cType += ' (w/MacroLimit)';
-        }
+
+        // 見切りタイプの注記
+        const hasLimits = [];
+        if (Mn > 0 && cancelLowRatio > 0) hasLimits.push('下限');
+        if (M !== Infinity && cancelHighRatio > 0) hasLimits.push('上限');
+        if (hasLimits.length > 0) cType += ` (w/${hasLimits.join('+')})`;
 
         const waitTimeRange = catchRatio > 0 ? (waitTimeMaxDisplay - waitTimeMinDisplay) / 2 : 0;
         
         let actualHitProb = hitProb * catchRatio;
-        let cancelProb = hitProb * (1.0 - catchRatio);
+        let cancelProb = hitProb * (cancelLowRatio + cancelHighRatio);
 
         const isTarget = (fName === config.target);
         const actualHookTime = (isTarget || config.isCatchAll) ? fInfo.hook_time : tRest;
         const pre = (isChum ? tChum : 0);
 
+        // 各キャンセルパターンのサイクル時間
+        // 下限見切り: キャスト + 待機 + 竿上げ(tRest=2s)
+        const cancelLowCycleTime = tCast + cancelLowWaitAvg + tRest + pre;
+        // 上限見切り: キャスト + 上限時間 + 竿上げ(tRest=2s)
+        const cancelHighCycleTime = tCast + (M !== Infinity ? M : t_max) + tRest + pre;
+        // 後方互換用: 加重平均キャンセルサイクル
+        const totalCancelRatio = cancelLowRatio + cancelHighRatio;
+        const cancelCycleTime = totalCancelRatio > 0
+            ? (cancelLowRatio * cancelLowCycleTime + cancelHighRatio * cancelHighCycleTime) / totalCancelRatio
+            : tCast + (M !== Infinity ? M : t_max) + tRest + pre;
+
         let cycleTime = 0;
-        let cancelCycleTime = tCast + (M !== Infinity ? M : t_max) + tRest + pre;
 
         if (isQuit) {
             cycleTime = tCast + (p.n * tLureAction) + tRest + pre;
@@ -203,7 +277,9 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
             cycleTime = tCast + waitTimeAvg + actualHookTime + pre;
         }
 
-        sumProbTotalCycle += (actualHitProb * cycleTime) + (cancelProb * cancelCycleTime);
+        const cancelLowProb = hitProb * cancelLowRatio;
+        const cancelHighProb = hitProb * cancelHighRatio;
+        sumProbTotalCycle += (actualHitProb * cycleTime) + (cancelLowProb * cancelLowCycleTime) + (cancelHighProb * cancelHighCycleTime);
         sumProbWaitRange += (actualHitProb * waitTimeRange);
 
         allFishStats.push({
@@ -211,7 +287,8 @@ export function calculateScenarioStats(masterDB, probabilityMap, config, scenari
             baseBiteMin, baseBiteMax, biteTimeMin: t_min, biteTimeMax: t_max, lureTime: L,
             waitTimeMin: waitTimeMinDisplay, waitTimeMax: waitTimeMaxDisplay, waitTimeAvg, waitTimeRange,
             hookTime: actualHookTime, cycleTime, isTarget, cType,
-            originalHitProb: hitProb, cancelProb, cancelCycleTime
+            originalHitProb: hitProb, cancelProb, cancelCycleTime,
+            cancelLowRatio, cancelHighRatio
         });
     });
 
@@ -260,8 +337,11 @@ export function calculateStrategySet(masterDB, probabilityMap, config, setConfig
 
     for (const sid of preset.eligible_scenarios) {
         const scenarioConfig = { ...config, lureType: setConfig.lureType, quitIfNoDisc: setConfig.quitIfNoDisc };
-        if (setConfig.macroLimitTime !== undefined) {
-            scenarioConfig.macroLimitTime = setConfig.macroLimitTime;
+        if (setConfig.limitMaxTime !== undefined) {
+            scenarioConfig.limitMaxTime = setConfig.limitMaxTime;
+        }
+        if (setConfig.limitMinTime !== undefined) {
+            scenarioConfig.limitMinTime = setConfig.limitMinTime;
         }
         const stats = calculateScenarioStats(masterDB, probabilityMap, scenarioConfig, sid, setConfig.isChum, setConfig.slapFish, overrideP);
         if (stats.error) {

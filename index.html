@@ -60,8 +60,12 @@
                         <label for="isVariableMode">基礎重み不明として計算 (Unknown Weight)</label>
                     </div>
                     <div class="input-group" style="margin-bottom: 15px;">
-                        <label>見切り時間 (秒) <span style="font-size:0.75rem; color:var(--text-muted);">(空欄で無効)</span></label>
-                        <input type="number" id="macroLimitTime" value="" placeholder="未設定" min="0" step="1" disabled>
+                        <label>上限見切り時間 (秒) <span style="font-size:0.75rem; color:var(--text-muted);">(空欄で無効)</span></label>
+                        <input type="number" id="limitMaxTime" value="" placeholder="未設定" min="0" step="1" disabled>
+                    </div>
+                    <div class="input-group" style="margin-bottom: 15px;">
+                        <label>下限見切り時間 (秒) <span style="font-size:0.75rem; color:var(--text-muted);">(空欄で無効)</span></label>
+                        <input type="number" id="limitMinTime" value="" placeholder="未設定" min="0" step="1" disabled>
                     </div>
                     <div class="input-group" style="margin-bottom: 15px;">
                         <label>期待時間のゴール地点 (Goal Timing)</label>
@@ -180,8 +184,12 @@
                                 </select>
                             </div>
                             <div class="input-group">
-                                <label>見切り時間 (秒)</label>
-                                <input type="number" id="stratAMacroLimit" value="" placeholder="共通設定" min="0" step="1" disabled style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body); color: var(--text-main);">
+                                <label>上限見切り時間 (秒)</label>
+                                <input type="number" id="stratALimitMax" value="" placeholder="共通設定" min="0" step="1" disabled style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body); color: var(--text-main);">
+                            </div>
+                            <div class="input-group">
+                                <label>下限見切り時間 (秒)</label>
+                                <input type="number" id="stratALimitMin" value="" placeholder="共通設定" min="0" step="1" disabled style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body); color: var(--text-main);">
                             </div>
                             <div class="input-group">
                                 <label>戦略プリセット</label>
@@ -231,8 +239,12 @@
                                 </select>
                             </div>
                             <div class="input-group">
-                                <label>見切り時間 (秒)</label>
-                                <input type="number" id="stratBMacroLimit" value="" placeholder="共通設定" min="0" step="1" disabled style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body); color: var(--text-main);">
+                                <label>上限見切り時間 (秒)</label>
+                                <input type="number" id="stratBLimitMax" value="" placeholder="共通設定" min="0" step="1" disabled style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body); color: var(--text-main);">
+                            </div>
+                            <div class="input-group">
+                                <label>下限見切り時間 (秒)</label>
+                                <input type="number" id="stratBLimitMin" value="" placeholder="共通設定" min="0" step="1" disabled style="width: 100%; box-sizing: border-box; padding: 5px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-body); color: var(--text-main);">
                             </div>
                             <div class="input-group">
                                 <label>戦略プリセット</label>
